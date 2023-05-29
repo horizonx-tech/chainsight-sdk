@@ -1,0 +1,21 @@
+[package]
+name = "snapshot_icp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = "0.8"
+ic-cdk = "0.7"
+ic-cdk-macros = "0.6.10"
+ic-cdk-timers = "0.1" # Feel free to remove this dependency if you don't need timers
+serde = "1.0.163" # depend on by candid
+ic-web3 = { git = "https://github.com/horizonx-tech/ic-web3" }
+
+ic-solidity-bindgen = { git = "https://github.com/horizonx-tech/ic-solidity-bindgen" }
+chainsight-macros = { path = "../../../.." }
+chainsight-cdk = { path = "../../../../../chainsight-cdk" }

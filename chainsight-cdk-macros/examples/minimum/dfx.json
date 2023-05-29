@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "canisters": {
+    "snapshot_chain": {
+      "type": "rust",
+      "package": "snapshot_chain",
+      "candid": "src/snapshot_chain/snapshot_chain.did"
+    },
+    "snapshot_icp": {
+      "type": "rust",
+      "package": "snapshot_icp",
+      "candid": "src/snapshot_icp/snapshot_icp.did"
+    },
+    "relayer": {
+      "type": "rust",
+      "package": "relayer",
+      "candid": "src/relayer/relayer.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "",
+      "args": ""
+    }
+  },
+  "output_env_file": ".env"
+}

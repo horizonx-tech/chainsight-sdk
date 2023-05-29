@@ -1,0 +1,22 @@
+[package]
+name = "chainsight-cdk-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proc-macro2 = "1.0.58"
+quote = "1.0.27"
+syn = "2.0.16"
+
+candid = "0.8.4"
+ic-cdk = "0.7.4"
+ic-cdk-timers = "0.1.2"
+serde = "1.0.163"
+ic-cdk-macros = "0.6.10"
+
+chainsight-cdk = { path = "../chainsight-cdk" }

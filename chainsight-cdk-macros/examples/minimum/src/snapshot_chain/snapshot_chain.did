@@ -1,0 +1,29 @@
+type CanisterMetricsSnapshot = record { cycles : nat; timestamp : nat64 };
+type EcdsaKeyEnvs = variant { Production; Test; LocalDevelopment };
+type HttpHeader = record { value : text; name : text };
+type HttpResponse = record {
+  status : nat;
+  body : vec nat8;
+  headers : vec HttpHeader;
+};
+type Result = variant { Ok; Err : text };
+type TransformArgs = record { context : vec nat8; response : HttpResponse };
+type VirtualPrice = record { value : text; timestamp : nat64 };
+type Web3CtxParam = record {
+  key : EcdsaKeyEnvs;
+  url : text;
+  from : opt text;
+  chain_id : nat64;
+};
+service : {
+  get_last_price : () -> (VirtualPrice) query;
+  get_price : (nat64) -> (VirtualPrice) query;
+  get_prices : () -> (vec VirtualPrice) query;
+  get_top_prices : (nat64) -> (vec VirtualPrice) query;
+  metric : () -> (CanisterMetricsSnapshot) query;
+  metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
+  prices_len : () -> (nat64) query;
+  set_task : (nat32, nat32) -> ();
+  setup : (text, Web3CtxParam) -> (Result);
+  transform : (TransformArgs) -> (HttpResponse) query;
+}

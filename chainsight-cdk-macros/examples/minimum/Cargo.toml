@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "src/example_canister",
+    "src/snapshot_chain",
+    "src/snapshot_icp",
+    "src/relayer",
+]
