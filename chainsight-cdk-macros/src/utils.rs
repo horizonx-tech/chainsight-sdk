@@ -1,34 +1,49 @@
 use proc_macro::TokenStream;
-use syn::{parse::Parser, parse_macro_input};
+use syn::parse_macro_input;
 use quote::{quote, format_ident};
 
-pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
-    let parser = syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated;
-    let args = parser.parse(input).expect("Failed to parse input");
-    if args.len() != 3 {
-        panic!("Expected exactly 3 arguments");
+struct CrossCanisterCallFuncInput {
+    fn_name: syn::LitStr,
+    args_type: syn::Type,
+    result_type: syn::Type,
+}
+impl syn::parse::Parse for CrossCanisterCallFuncInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let fn_name = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let args_type = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let result_type = input.parse()?;
+        Ok(CrossCanisterCallFuncInput { fn_name, args_type, result_type })
     }
+}
 
-    let fn_name = match &args[0] {
-        syn::Expr::Lit(lit) => {
-            if let syn::Lit::Str(lit_str) = &lit.lit {
-                lit_str.value()
+pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
+    let CrossCanisterCallFuncInput { fn_name, args_type, result_type } = parse_macro_input!(input as CrossCanisterCallFuncInput);
+
+    let call_fn_name = format_ident!("call_{}", &fn_name.value());
+
+    let (args_type, args) = match args_type.clone() {
+        syn::Type::Tuple(type_tuple) => {
+            if type_tuple.elems.len() == 1 {
+                // same as in the case of primitive type
+                let single_arg_type = type_tuple.elems.first().unwrap().clone();
+                (single_arg_type.clone(), quote! { (call_args,) })
             } else {
-                panic!("Expected a string literal for the function name");
+                (args_type, quote! { call_args })
             }
+        },
+        _ => {
+            (args_type, quote! { (call_args,) })
         }
-        _ => panic!("Expected a string literal for the function name"),
     };
-    let call_fn_name = format_ident!("call_{}", fn_name);
-    let args_type = &args[1];
-    let result_type = &args[2];
     
     let output = quote! {
         async fn #call_fn_name(
             canister_id: candid::Principal,
             call_args: #args_type,
         ) -> Result<#result_type, String> {
-            let res = ic_cdk::api::call::call::<_, (#result_type,)>(canister_id, #fn_name, call_args)
+            let res = ic_cdk::api::call::call::<_, (#result_type,)>(canister_id, #fn_name, #args)
                 .await
                 .map_err(|e| format!("call error: {:?}", e))?;
             Ok(res.0)

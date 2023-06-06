@@ -1,9 +1,11 @@
+#[allow(unused_parens)]
+
 use chainsight_cdk_macros::cross_canister_call_func;
-use candid::Principal;
 
-type _CallCanisterArgs = (String, String);
-type _CallCanisterResponse = String;
-
-cross_canister_call_func!("greet", _CallCanisterArgs, _CallCanisterResponse);
+cross_canister_call_func!("arg_primitive", String, String);
+cross_canister_call_func!("arg_primitive_2", (String), String);
+cross_canister_call_func!("arg_tuple_with_single", (String,), String);
+cross_canister_call_func!("arg_tuple_with_double", (String, u8), String);
+cross_canister_call_func!("arg_tuple_with_triple", (String, u8, f32), String);
 
 fn main() {}

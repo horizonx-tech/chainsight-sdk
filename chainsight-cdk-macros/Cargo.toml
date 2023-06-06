@@ -16,7 +16,8 @@ syn = "2.0.16"
 candid = "0.8.4"
 ic-cdk = "0.7.4"
 ic-cdk-timers = "0.1.2"
-serde = "1.0.163"
 ic-cdk-macros = "0.6.10"
+
+serde = "1.0.163"
 
 chainsight-cdk = { path = "../chainsight-cdk" }
