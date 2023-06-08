@@ -7,7 +7,10 @@ use derive_more::{Display, From};
 #[derive(Debug, Display, From)]
 pub enum Error {}
 
-pub trait Event: CandidType + Send + Sync + Clone + 'static {}
+pub trait Event: CandidType + Send + Sync + Clone + 'static {
+    /// Create an event from a log.
+    fn from<T>(log: T) -> Self;
+}
 
 #[async_trait]
 pub trait Indexer {
@@ -19,10 +22,6 @@ pub trait Indexer {
         T: Event;
     /// Get the latest event id.
     fn get_last_number(&self) -> Result<u64, Error>;
-    /// Get the transformer function.
-    fn get_transformer<T, U>(&self) -> fn(U) -> T
-    where
-        T: Event;
     /// Get the event chunk size.
     fn get_event_chunk_size(&self) -> Result<u64, Error>;
     /// Set the event chunk size.
@@ -31,38 +30,23 @@ pub trait Indexer {
     fn get_last_indexed(&self) -> Result<u64, Error>;
     /// Set the last indexed event id.
     fn set_last_indexed(&self, id: u64) -> Result<(), Error>;
-    async fn publish<T>(&self, events: Vec<T>) -> Result<(), Error>
-    where
-        T: Event;
     /// Index events.
     async fn index<T, U>(&self) -> Result<(), Error>
     where
         T: Event,
     {
-        let latest = self.get_last_number()?;
         let last_indexed = self.get_last_indexed()?;
-        if last_indexed >= latest {
-            return Ok(());
-        }
         let chunk_size = self.get_event_chunk_size()?;
         let from = last_indexed + 1;
         let to = last_indexed + chunk_size;
-        let transformer = self.get_transformer::<T, U>();
         self.get_from_to(from, to)
             .await?
             .into_iter()
-            .map(|(k, v)| {
-                (
-                    k,
-                    v.into_iter()
-                        .map(|log| transformer(log))
-                        .collect::<Vec<T>>(),
-                )
-            })
+            .map(|(k, v)| (k, v.into_iter().map(Event::from::<U>).collect::<Vec<T>>()))
             .for_each(|(k, v)| {
                 self.save(k, v);
             });
-
+        self.set_last_indexed(to)?;
         Ok(())
     }
 }
