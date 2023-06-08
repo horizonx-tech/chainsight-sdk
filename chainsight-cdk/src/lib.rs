@@ -1,3 +1,3 @@
 pub mod indexer;
 pub mod types;
-mod web3;
+pub mod web3;

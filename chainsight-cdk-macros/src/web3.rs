@@ -28,7 +28,7 @@ pub fn define_web3_ctx() -> TokenStream {
         }
         manage_single_state!("web3_ctx_param", Web3CtxParam, false);
 
-        pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3::Error> {
+        pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
             let param = get_web3_ctx_param();
             let from = match param.from {
                 Some(from) => Address::from_str(&from).unwrap(),
@@ -51,11 +51,11 @@ pub fn define_get_ethereum_address() -> TokenStream {
             ic_cdk::id().as_slice().to_vec()
         }
         async fn public_key(key_name: String) -> Result<Vec<u8>, String> {
-            ic_web3::ic::get_public_key(None, vec![default_derivation_key()], key_name).await
+            ic_web3_rs::ic::get_public_key(None, vec![default_derivation_key()], key_name).await
         }
         async fn ethereum_address(key_name: String) -> Result<Address, String> {
             let pub_key = public_key(key_name).await?;
-            ic_web3::ic::pubkey_to_address(&pub_key)
+            ic_web3_rs::ic::pubkey_to_address(&pub_key)
         }
 
         #[ic_cdk::update]
