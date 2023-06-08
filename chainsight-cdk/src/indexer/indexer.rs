@@ -13,13 +13,13 @@ pub trait Event: CandidType + Send + Sync + Clone + 'static {
 }
 
 #[async_trait]
-pub trait Indexer {
+pub trait Indexer<T> {
     /// Get events from `from` to `to`. e.g. `from = 1`, `to = 10` will return events with id from 1 to 10.
-    async fn get_from_to<U>(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<U>>, Error>;
+    async fn get_from_to(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<T>>, Error>;
     /// Save events to database.
-    fn save<T>(&self, id: u64, elements: Vec<T>)
+    fn save<E>(&self, id: u64, elements: Vec<E>)
     where
-        T: Event;
+        E: Event;
     /// Get the latest event id.
     fn get_last_number(&self) -> Result<u64, Error>;
     /// Get the event chunk size.
@@ -31,9 +31,9 @@ pub trait Indexer {
     /// Set the last indexed event id.
     fn set_last_indexed(&self, id: u64) -> Result<(), Error>;
     /// Index events.
-    async fn index<T, U>(&self) -> Result<(), Error>
+    async fn index<E>(&self) -> Result<(), Error>
     where
-        T: Event,
+        E: Event,
     {
         let last_indexed = self.get_last_indexed()?;
         let chunk_size = self.get_event_chunk_size()?;
@@ -42,7 +42,7 @@ pub trait Indexer {
         self.get_from_to(from, to)
             .await?
             .into_iter()
-            .map(|(k, v)| (k, v.into_iter().map(Event::from::<U>).collect::<Vec<T>>()))
+            .map(|(k, v)| (k, v.into_iter().map(Event::from::<T>).collect::<Vec<E>>()))
             .for_each(|(k, v)| {
                 self.save(k, v);
             });
