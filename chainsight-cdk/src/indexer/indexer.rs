@@ -4,8 +4,17 @@ use async_trait::async_trait;
 use candid::CandidType;
 use derive_more::{Display, From};
 
-#[derive(Debug, Display, From)]
-pub enum Error {}
+#[derive(Debug, Display)]
+pub enum Error {
+    #[display(fmt = "Indexer error: {}", _0)]
+    IndexerError(String),
+    #[display(fmt = "Web3 error: {}", _0)]
+    Web3Error(String),
+    #[display(fmt = "Database error: {}", _0)]
+    DatabaseError(String),
+    #[display(fmt = "Other error: {}", _0)]
+    OtherError(String),
+}
 
 pub trait Event: CandidType + Send + Sync + Clone + 'static {
     /// Create an event from a log.

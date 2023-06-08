@@ -1,15 +1,29 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future};
 
 use async_trait::async_trait;
 use ic_solidity_bindgen::types::EventLog;
+use ic_web3_rs::transports::ic_http_client::CallOptions;
 
 use crate::indexer::{Error, Event, Indexer};
-struct Web3Indexer {}
+#[derive(Clone)]
+struct Web3Indexer<F>
+where
+    F: Future<Output = Result<HashMap<u64, Vec<EventLog>>, ic_web3_rs::error::Error>>,
+{
+    get_logs_fn: fn(from: u64, to: u64, options: CallOptions) -> F,
+    call_options: CallOptions,
+}
 
 #[async_trait]
-impl Indexer<EventLog> for Web3Indexer {
+impl<F> Indexer<EventLog> for Web3Indexer<F>
+where
+    F: Future<Output = Result<HashMap<u64, Vec<EventLog>>, ic_web3_rs::error::Error>> + Send,
+{
     async fn get_from_to(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<EventLog>>, Error> {
-        unimplemented!()
+        let f = self.get_logs_fn;
+        f(from, to, self.call_options.clone())
+            .await
+            .map_err(|e| Error::Web3Error(e.to_string()))
     }
 
     fn save<E>(&self, id: u64, elements: Vec<E>)
