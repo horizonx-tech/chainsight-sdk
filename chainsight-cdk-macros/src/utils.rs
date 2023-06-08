@@ -63,15 +63,21 @@ pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
         chainsight_cdk_macros::manage_vec_state!("canister_metrics_snapshot", CanisterMetricsSnapshot, false);
 
         fn setup_monitoring_canister_metrics() {
-            ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item), || {
-                let timestamp = ic_cdk::api::time();
-                let cycles = ic_cdk::api::canister_balance128();
-                let datum = CanisterMetricsSnapshot {
-                    timestamp,
-                    cycles,
-                };
-                ic_cdk::println!("monitoring: {:?}", datum.clone());
-                add_canister_metrics_snapshot(datum);
+            let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
+            let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
+            let delay = round_timestamp(current_time_sec, #item) + #item - current_time_sec;
+
+            ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
+                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item), || {
+                    let timestamp = ic_cdk::api::time();
+                    let cycles = ic_cdk::api::canister_balance128();
+                    let datum = CanisterMetricsSnapshot {
+                        timestamp,
+                        cycles,
+                    };
+                    ic_cdk::println!("monitoring: {:?}", datum.clone());
+                    add_canister_metrics_snapshot(datum);
+                });
             });
         }
 
