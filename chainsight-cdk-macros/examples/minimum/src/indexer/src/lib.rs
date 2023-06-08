@@ -43,7 +43,7 @@ impl Event for TransferEvent {
     }
 }
 
-/// This is generated from yaml
+/// This is auto-generated from yaml
 /// inputs:
 /// - address(get_target_addr())
 /// - contract name(ERC20)
