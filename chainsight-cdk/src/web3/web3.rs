@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
 use ic_solidity_bindgen::types::EventLog;
-use ic_web3_rs::{futures::future::BoxFuture, transports::ic_http_client::CallOptions};
+use ic_web3_rs::{
+    futures::future::BoxFuture,
+    transports::ic_http_client::{CallOptions, CallOptionsBuilder},
+};
 
 use crate::indexer::{Error, Event, Finder, Indexer};
 pub struct Web3Indexer {
@@ -29,11 +33,31 @@ impl Web3Indexer {
             u64,
             CallOptions,
         ) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, Error>>,
-        call_options: CallOptions,
+        call_options: Option<CallOptions>,
     ) -> Self {
         Self {
-            finder: Web3LogFinder { call_options, find },
+            finder: Web3LogFinder {
+                call_options: match call_options {
+                    Some(options) => options,
+                    None => Web3Indexer::default_indexer_call_options(),
+                },
+                find,
+            },
         }
+    }
+    fn default_indexer_call_options() -> CallOptions {
+        CallOptionsBuilder::default()
+            .max_resp(None)
+            .cycles(None)
+            .transform(Some(TransformContext {
+                function: TransformFunc(candid::Func {
+                    principal: ic_cdk::api::id(),
+                    method: "transform_get_filter_changes".to_string(),
+                }),
+                context: vec![],
+            }))
+            .build()
+            .unwrap()
     }
 }
 
@@ -46,7 +70,7 @@ impl Indexer<EventLog> for Web3Indexer {
 
     fn save<E>(&self, id: u64, elements: Vec<E>)
     where
-        E: Event,
+        E: Event<EventLog>,
     {
         unimplemented!()
     }

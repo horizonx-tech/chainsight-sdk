@@ -1,7 +1,7 @@
-mod web3;
 mod functions;
 mod states;
 mod utils;
+mod web3;
 
 use proc_macro::TokenStream;
 

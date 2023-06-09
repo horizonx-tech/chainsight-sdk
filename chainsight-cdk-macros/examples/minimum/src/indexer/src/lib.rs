@@ -11,6 +11,7 @@ use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
     ethabi::Address,
     futures::{future::BoxFuture, FutureExt},
+    ic,
     transports::ic_http_client::CallOptions,
 };
 use std::{collections::HashMap, str::FromStr};
@@ -27,21 +28,6 @@ setup_func!({
     target_addr: String,
     web3_ctx_param: Web3CtxParam
 });
-
-/// This is generated from yaml
-#[derive(Debug, Clone, CandidType)]
-struct TransferEvent {
-    from: String,
-    to: String,
-    value: u64,
-}
-
-impl Event for TransferEvent {
-    fn from<EventLog>(log: EventLog) -> Self {
-        // This is where users must implement.
-        todo!()
-    }
-}
 
 /// This is auto-generated from yaml
 /// inputs:
@@ -64,12 +50,34 @@ fn get_logs(
     }
     .boxed()
 }
+/// This is auto-generated from yaml
+#[derive(Debug, Clone, CandidType)]
+pub struct TransferEvent {
+    from: String,
+    to: String,
+    value: u64,
+}
 
+/// This is auto-generated from yaml
+impl From<EventLog> for TransferEvent {
+    fn from(item: EventLog) -> Self {
+        TransferEvent {
+            from: item.event.params[0].value.to_string(),
+            to: item.event.params[1].value.to_string(),
+            value: item.event.params[2]
+                .clone()
+                .value
+                .into_uint()
+                .unwrap()
+                .as_u64(),
+        }
+    }
+}
 async fn this_is_timer_task_entry_point() {
     indexer().index::<TransferEvent>().await;
 }
 
 fn indexer() -> Web3Indexer {
-    Web3Indexer::new(get_logs, CallOptions::default())
+    Web3Indexer::new(get_logs, None)
 }
 did_export!("indexer");

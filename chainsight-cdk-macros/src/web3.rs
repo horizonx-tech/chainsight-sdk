@@ -3,6 +3,7 @@ use quote::quote;
 
 pub fn define_transform_for_web3() -> TokenStream {
     let output = quote! {
+        use ic_web3_rs::transforms::transform::TransformProcessor;
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn transform(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
@@ -13,6 +14,21 @@ pub fn define_transform_for_web3() -> TokenStream {
                 body: res.body,
             }
         }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn transform_send_transaction(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
+            ic_web3_rs::transforms::processors::send_transaction_processor().transform(response)
+        }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn transform_get_filter_changes(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
+            ic_web3_rs::transforms::processors::get_filter_changes_processor().transform(response)
+        }
+
+        
+
     };
     output.into()
 }

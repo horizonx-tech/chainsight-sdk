@@ -16,9 +16,10 @@ pub enum Error {
     OtherError(String),
 }
 
-pub trait Event: CandidType + Send + Sync + Clone + 'static {
-    /// Create an event from a log.
-    fn from<T>(log: T) -> Self;
+pub trait Event<T>: CandidType + Send + Sync + Clone + 'static {
+    fn from(event: T) -> Self
+    where
+        T: Into<Self>;
 }
 
 #[async_trait]
@@ -34,7 +35,7 @@ pub trait Indexer<T> {
     /// Save events to database.
     fn save<E>(&self, id: u64, elements: Vec<E>)
     where
-        E: Event;
+        E: Event<T>;
     /// Get the latest event id.
     fn get_last_number(&self) -> Result<u64, Error>;
     /// Get the event chunk size.
@@ -48,7 +49,7 @@ pub trait Indexer<T> {
     /// Index events.
     async fn index<E>(&self) -> Result<(), Error>
     where
-        E: Event,
+        E: Event<T> + From<T>,
     {
         let last_indexed = self.get_last_indexed()?;
         let chunk_size = self.get_event_chunk_size()?;
