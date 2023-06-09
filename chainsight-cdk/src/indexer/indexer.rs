@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use candid::CandidType;
 use derive_more::Display;
 
+use crate::storage::{self, Data};
+
 #[derive(Debug, Display)]
 pub enum Error {
     #[display(fmt = "Indexer error: {}", _0)]
@@ -20,6 +22,8 @@ pub trait Event<T>: CandidType + Send + Sync + Clone + 'static {
     fn from(event: T) -> Self
     where
         T: Into<Self>;
+    fn tokenize(&self) -> Data;
+    fn untokenize(data: Data) -> Self;
 }
 
 #[async_trait]
@@ -35,7 +39,12 @@ pub trait Indexer<T> {
     /// Save events to database.
     fn save<E>(&self, id: u64, elements: Vec<E>)
     where
-        E: Event<T>;
+        E: Event<T>,
+    {
+        elements.iter().map(|e| e.tokenize()).for_each(|data| {
+            storage::insert(id, data).unwrap();
+        });
+    }
     /// Get the latest event id.
     fn get_last_number(&self) -> Result<u64, Error>;
     /// Get the event chunk size.

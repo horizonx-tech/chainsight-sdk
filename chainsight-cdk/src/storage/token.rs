@@ -174,6 +174,72 @@ impl Token {
             Token::Bytes(b) => format!("{:?}", b),
         }
     }
+    pub fn to_usize(&self) -> Option<usize> {
+        match self {
+            Token::Uint(u) => Some(usize::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_u128(&self) -> Option<u128> {
+        match self {
+            Token::Uint(u) => Some(u128::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_u64(&self) -> Option<u64> {
+        match self {
+            Token::Uint(u) => Some(u64::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_u32(&self) -> Option<u32> {
+        match self {
+            Token::Uint(u) => Some(u32::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_u16(&self) -> Option<u16> {
+        match self {
+            Token::Uint(u) => Some(u16::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_u8(&self) -> Option<u8> {
+        match self {
+            Token::Uint(u) => Some(u8::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_i128(&self) -> Option<i128> {
+        match self {
+            Token::Uint(u) => Some(i128::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_i64(&self) -> Option<i64> {
+        match self {
+            Token::Uint(u) => Some(i64::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_i32(&self) -> Option<i32> {
+        match self {
+            Token::Uint(u) => Some(i32::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_i16(&self) -> Option<i16> {
+        match self {
+            Token::Uint(u) => Some(i16::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
+    pub fn to_i8(&self) -> Option<i8> {
+        match self {
+            Token::Uint(u) => Some(i8::from_be_bytes(u.clone().try_into().unwrap())),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

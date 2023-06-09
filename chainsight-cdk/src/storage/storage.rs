@@ -16,6 +16,12 @@ pub struct Data {
     values: HashMap<String, Token>,
 }
 
+impl Data {
+    pub fn new(values: HashMap<String, Token>) -> Self {
+        Self { values }
+    }
+}
+
 impl Storable for Data {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
         Cow::Owned(Encode!(self).unwrap())
@@ -49,15 +55,8 @@ pub fn get(key: u64) -> Option<Data> {
     MAP.with(|m| m.borrow().get(&key))
 }
 
-pub fn insert(key: u64) -> Option<Data> {
-    MAP.with(|m| {
-        m.borrow_mut().insert(
-            key,
-            Data {
-                values: HashMap::new(),
-            },
-        )
-    })
+pub fn insert(key: u64, data: Data) -> Option<Data> {
+    MAP.with(|m| m.borrow_mut().insert(key, data))
 }
 
 // get last n
