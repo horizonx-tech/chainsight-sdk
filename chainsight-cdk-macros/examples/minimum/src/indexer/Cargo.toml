@@ -19,4 +19,4 @@ chainsight-cdk-macros = { path = "../../../../" }
 chainsight-cdk = { path = "../../../../../chainsight-cdk" }
 
 ic-web3-rs = "0.1.1"
-ic-solidity-bindgen = "0.1.4"
+ic-solidity-bindgen = "0.1.5"
