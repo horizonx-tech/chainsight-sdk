@@ -73,6 +73,15 @@ impl From<EventLog> for TransferEvent {
         }
     }
 }
+/// This is auto-generated from yaml
+impl Event<EventLog> for TransferEvent {
+    fn from(event: EventLog) -> Self
+    where
+        EventLog: Into<Self>,
+    {
+        event.into()
+    }
+}
 async fn this_is_timer_task_entry_point() {
     indexer().index::<TransferEvent>().await;
 }
