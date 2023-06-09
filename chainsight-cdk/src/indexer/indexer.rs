@@ -59,7 +59,7 @@ pub trait Indexer<T> {
             .find(from, to)
             .await?
             .into_iter()
-            .map(|(k, v)| (k, v.into_iter().map(Event::from::<T>).collect::<Vec<E>>()))
+            .map(|(k, v)| (k, v.into_iter().map(Event::from).collect::<Vec<E>>()))
             .for_each(|(k, v)| {
                 self.save(k, v);
             });
