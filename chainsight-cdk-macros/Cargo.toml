@@ -21,3 +21,4 @@ ic-cdk-macros = "0.6.10"
 serde = "1.0.163"
 
 chainsight-cdk = { path = "../chainsight-cdk" }
+ic-solidity-bindgen = "0.1.5"

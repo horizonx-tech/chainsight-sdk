@@ -1,5 +1,112 @@
+use chainsight_cdk::storage::Data;
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
+
+pub trait ContractEvent {
+    fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
+}
+
+pub trait Persist {
+    fn untokenize(data: Data) -> Self;
+    fn tokenize(&self) -> Data;
+}
+
+pub fn persist_derive(input: TokenStream) -> TokenStream {
+    // get struct body
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    // get struct name
+    let name = input.ident;
+    // get struct fields
+    let fields = match input.data {
+        syn::Data::Struct(syn::DataStruct {
+            fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
+            ..
+        }) => named,
+        _ => panic!("Only support struct"),
+    };
+    // get field name and type
+    let mut field_names = Vec::new();
+    let mut field_types = Vec::new();
+    for field in fields {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+        field_names.push(field_name);
+        field_types.push(field_type.clone());
+    }
+    // generate impl Persist
+    let expanded = quote! {
+        impl Persist for #name {
+            fn untokenize(data: Data) -> Self {
+                #name {
+                    #( #field_names: data.get(#field_names).unwrap().into() ),*
+                }
+            }
+
+            fn tokenize(&self) -> Data {
+                let mut data = HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
+
+                data
+            }
+        }
+    };
+    TokenStream::from(expanded)
+}
+
+pub fn contract_event_derive(input: TokenStream) -> TokenStream {
+    // get struct body
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    // get struct name
+    let name = input.ident;
+    // get struct fields
+    let fields = match input.data {
+        syn::Data::Struct(syn::DataStruct {
+            fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
+            ..
+        }) => named,
+        _ => panic!("Only support struct"),
+    };
+    // get field name and type
+    let mut field_names = Vec::new();
+    let mut field_types = Vec::new();
+    let mut token_to_field_functions = Vec::new();
+    for field in fields {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+        field_names.push(field_name);
+        field_types.push(field_type.clone());
+        // if field is String, use to_string() to convert
+        let func = match field_type.to_token_stream().to_string().as_str() {
+            "String" => quote! { to_string() },
+            "Vec<u8>" => quote! { into_arary().unwrap() },
+            "u128" => quote! { into_uint().unwrap().as_u128() },
+            "u64" => quote! { into_uint().unwrap().as_u64() },
+            "u32" => quote! { into_uint().unwrap().as_u32() },
+            "u16" => quote! { into_uint().unwrap().as_u16() },
+            "u8" => quote! { into_uint().unwrap().as_u8() },
+            "bool" => quote! { into_bool().unwrap() },
+            _ => quote! {},
+        };
+
+        token_to_field_functions.push(func);
+    }
+
+    let gen = quote! {
+    impl From<ic_solidity_bindgen::types::EventLog> for #name {
+            fn from(item: ic_solidity_bindgen::types::EventLog) -> Self {
+                let mut event = #name::default();
+                let mut params = item.event.params.iter();
+                #(
+                    let token = params.clone().find(|p| p.name == stringify!(#field_names)).unwrap().clone().value;
+                    // match type of field_name
+                    event.#field_names = token.#token_to_field_functions;
+
+                 )*
+                event
+            }
+        }
+    };
+    gen.into()
+}
 
 pub fn define_transform_for_web3() -> TokenStream {
     let output = quote! {
@@ -26,9 +133,6 @@ pub fn define_transform_for_web3() -> TokenStream {
         fn transform_get_filter_changes(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
             ic_web3_rs::transforms::processors::get_filter_changes_processor().transform(response)
         }
-
-        
-
     };
     output.into()
 }

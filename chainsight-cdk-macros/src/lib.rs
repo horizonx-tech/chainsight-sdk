@@ -59,3 +59,8 @@ pub fn define_web3_ctx(_input: TokenStream) -> TokenStream {
 pub fn define_get_ethereum_address(_input: TokenStream) -> TokenStream {
     web3::define_get_ethereum_address()
 }
+
+#[proc_macro_derive(ContarctEvent)]
+pub fn contract_event_derive(input: TokenStream) -> TokenStream {
+    web3::contract_event_derive(input)
+}
