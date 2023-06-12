@@ -1,6 +1,6 @@
 use std::str::FromStr;
 use chainsight_cdk_macros::{manage_single_state, setup_func, timer_task_func, cross_canister_call_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, monitoring_canister_metrics, did_export};
-use ic_web3::types::{Address, U256};
+use ic_web3_rs::types::{Address, U256};
 
 monitoring_canister_metrics!(60);
 ic_solidity_bindgen::contract_abi!("./src/relayer/abi/Oracle.json");
@@ -40,11 +40,12 @@ async fn sync() {
     let datum = price.unwrap();
 
     // temp: set gas_price, nonce
+    ic_cdk::println!("before sync: ts={}, value={:?}", &datum.timestamp, &datum.value);
     Oracle::new(
         Address::from_str(&get_target_addr()).unwrap(),
         &web3_ctx().unwrap()
-    ).update_state(U256::from_str(&datum.value).unwrap()).await.unwrap();
-    ic_cdk::println!("ts={}, value={:?}", datum.timestamp, datum.value);
+    ).update_state(U256::from_str(&datum.value).unwrap(), None).await.unwrap();
+    ic_cdk::println!("after sync: ts={}, value={:?}", &datum.timestamp, &datum.value);
 }
 
 did_export!("relayer");

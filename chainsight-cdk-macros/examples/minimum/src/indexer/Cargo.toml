@@ -9,14 +9,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.8"
-ic-cdk = "0.8.1"
-ic-cdk-macros = "0.6.10"
-ic-cdk-timers = "0.1" # Feel free to remove this dependency if you don't need timers
-serde = "1.0.163"
-hex = "0.4.3"
-chainsight-cdk-macros = { path = "../../../../" }
-chainsight-cdk = { path = "../../../../../chainsight-cdk" }
+candid.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+ic-cdk-timers.workspace = true
+serde.workspace = true
+hex.workspace = true
 
-ic-web3-rs = "0.1.1"
-ic-solidity-bindgen = "0.1.5"
+ic-web3-rs.workspace = true
+ic-solidity-bindgen.workspace = true
+chainsight-cdk.workspace = true
+chainsight-cdk-macros.workspace = true

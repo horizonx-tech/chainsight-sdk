@@ -9,13 +9,14 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.8"
-ic-cdk = "0.7"
-ic-cdk-macros = "0.6.10"
-ic-cdk-timers = "0.1" # Feel free to remove this dependency if you don't need timers
-serde = "1.0.163" # depend on by candid
-ic-web3 = { git = "https://github.com/horizonx-tech/ic-web3" }
+candid.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+ic-cdk-timers.workspace = true
+serde.workspace = true
+hex.workspace = true
 
-ic-solidity-bindgen = { git = "https://github.com/horizonx-tech/ic-solidity-bindgen" }
-chainsight-macros = { path = "../../../.." }
-chainsight-cdk = { path = "../../../../../chainsight-cdk" }
+ic-web3-rs.workspace = true
+ic-solidity-bindgen.workspace = true
+chainsight-cdk.workspace = true
+chainsight-cdk-macros.workspace = true
