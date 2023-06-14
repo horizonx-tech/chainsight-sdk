@@ -6,52 +6,6 @@ pub trait ContractEvent {
     fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
 
-pub trait Persist {
-    fn untokenize(data: Data) -> Self;
-    fn tokenize(&self) -> Data;
-}
-
-pub fn persist_derive(input: TokenStream) -> TokenStream {
-    // get struct body
-    let input = syn::parse_macro_input!(input as syn::DeriveInput);
-    // get struct name
-    let name = input.ident;
-    // get struct fields
-    let fields = match input.data {
-        syn::Data::Struct(syn::DataStruct {
-            fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
-            ..
-        }) => named,
-        _ => panic!("Only support struct"),
-    };
-    // get field name and type
-    let mut field_names = Vec::new();
-    let mut field_types = Vec::new();
-    for field in fields {
-        let field_name = field.ident.as_ref().unwrap();
-        let field_type = &field.ty;
-        field_names.push(field_name);
-        field_types.push(field_type.clone());
-    }
-    // generate impl Persist
-    let expanded = quote! {
-        impl Persist for #name {
-            fn untokenize(data: Data) -> Self {
-                #name {
-                    #( #field_names: data.get(#field_names).unwrap().into() ),*
-                }
-            }
-
-            fn tokenize(&self) -> Data {
-                let mut data = HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
-
-                data
-            }
-        }
-    };
-    TokenStream::from(expanded)
-}
-
 pub fn contract_event_derive(input: TokenStream) -> TokenStream {
     // get struct body
     let input = syn::parse_macro_input!(input as syn::DeriveInput);

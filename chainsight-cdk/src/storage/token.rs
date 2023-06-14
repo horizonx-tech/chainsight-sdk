@@ -4,7 +4,7 @@ use candid::CandidType;
 use primitive_types::U256;
 use serde::Deserialize;
 
-#[derive(Debug, PartialEq, Clone, Deserialize, CandidType)]
+#[derive(Debug, Clone, PartialEq, Deserialize, CandidType)]
 pub enum Token {
     String(String),
     Uint(Vec<u8>),
@@ -146,86 +146,6 @@ impl From<&Vec<u8>> for Token {
 impl From<&Vec<Token>> for Token {
     fn from(a: &Vec<Token>) -> Self {
         Token::Array(a.clone())
-    }
-}
-impl Into<String> for Token {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
-impl Into<u128> for Token {
-    fn into(self) -> u128 {
-        match self {
-            Token::Uint(u) => U256::from_big_endian(&u).as_u128(),
-            _ => panic!("Token is not a Uint"),
-        }
-    }
-}
-impl Into<u64> for Token {
-    fn into(self) -> u64 {
-        match self {
-            Token::Uint(u) => U256::from_big_endian(&u).as_u64(),
-            _ => panic!("Token is not a Uint"),
-        }
-    }
-}
-impl Into<u32> for Token {
-    fn into(self) -> u32 {
-        match self {
-            Token::Uint(u) => U256::from_big_endian(&u).as_u32(),
-            _ => panic!("Token is not a Uint"),
-        }
-    }
-}
-impl Into<Vec<u8>> for Token {
-    fn into(self) -> Vec<u8> {
-        match self {
-            Token::Uint(u) => u,
-            Token::Bytes(b) => b,
-            _ => panic!("Token is not a Uint or Bytes"),
-        }
-    }
-}
-impl Into<Vec<Token>> for Token {
-    fn into(self) -> Vec<Token> {
-        match self {
-            Token::Array(a) => a,
-            _ => panic!("Token is not an Array"),
-        }
-    }
-}
-impl Into<Vec<u8>> for &Token {
-    fn into(self) -> Vec<u8> {
-        match self {
-            Token::Uint(u) => u.clone(),
-            Token::Bytes(b) => b.clone(),
-            _ => panic!("Token is not a Uint or Bytes"),
-        }
-    }
-}
-impl Into<Vec<Token>> for &Token {
-    fn into(self) -> Vec<Token> {
-        match self {
-            Token::Array(a) => a.clone(),
-            _ => panic!("Token is not an Array"),
-        }
-    }
-}
-impl Into<Vec<u8>> for &mut Token {
-    fn into(self) -> Vec<u8> {
-        match self {
-            Token::Uint(u) => u.clone(),
-            Token::Bytes(b) => b.clone(),
-            _ => panic!("Token is not a Uint or Bytes"),
-        }
-    }
-}
-impl Into<Vec<Token>> for &mut Token {
-    fn into(self) -> Vec<Token> {
-        match self {
-            Token::Array(a) => a.clone(),
-            _ => panic!("Token is not an Array"),
-        }
     }
 }
 

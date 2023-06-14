@@ -64,3 +64,8 @@ pub fn define_get_ethereum_address(_input: TokenStream) -> TokenStream {
 pub fn contract_event_derive(input: TokenStream) -> TokenStream {
     web3::contract_event_derive(input)
 }
+
+#[proc_macro_derive(Persist)]
+pub fn persist_derive(input: TokenStream) -> TokenStream {
+    states::persist_derive(input)
+}
