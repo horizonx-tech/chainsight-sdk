@@ -1,6 +1,7 @@
+use chainsight_cdk::storage::Data;
 use proc_macro::TokenStream;
-use syn::{parse::Parse, Type, LitStr, parse_macro_input, Expr, LitBool};
-use quote::{quote};
+use quote::{quote, ToTokens};
+use syn::{parse::Parse, parse_macro_input, Expr, LitBool, LitStr, Type};
 
 struct SingleStateInput {
     name: LitStr,
@@ -8,6 +9,66 @@ struct SingleStateInput {
     is_expose_getter: LitBool,
     init: Option<Expr>,
 }
+
+pub trait Persist {
+    fn untokenize(data: Data) -> Self;
+    fn tokenize(&self) -> Data;
+}
+
+pub fn persist_derive(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    let name = input.ident;
+    let fields = match input.data {
+        syn::Data::Struct(syn::DataStruct {
+            fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
+            ..
+        }) => named,
+        _ => panic!("Only support struct"),
+    };
+    // get field name and type
+    let mut field_names = Vec::new();
+    let mut field_types = Vec::new();
+    let mut untokenize_functions = Vec::new();
+    for field in fields {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+        field_names.push(field_name);
+        field_types.push(field_type.clone());
+        // if field is String, use to_string() to convert
+        let untokenize_function = match field_type.to_token_stream().to_string().as_str() {
+            "String" => quote! {to_string() },
+            "u128" => quote! { to_u128().unwrap() },
+            "u64" => quote! { to_u64().unwrap() },
+            "u32" => quote! { to_u32().unwrap() },
+            "u16" => quote! { to_u16().unwrap() },
+            "u8" => quote! { to_u8().unwrap() },
+            "usize" => quote! { to_usize().unwrap() },
+            "i128" => quote! { to_i128().unwrap() },
+            "i64" => quote! { to_i64().unwrap() },
+            "i16" => quote! { to_i16().unwrap() },
+            "i8" => quote! { to_i8().unwrap() },
+            _ => quote! { to_string() },
+        };
+        untokenize_functions.push(untokenize_function);
+    }
+    let expanded = quote! {
+        impl #name {
+            fn untokenize(data: Data) -> Self {
+                #name {
+                    #( #field_names: data.get(stringify!(#field_names)).unwrap().#untokenize_functions ),*
+                }
+            }
+
+            fn tokenize(&self) -> Data {
+                let mut data = HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
+                #( data.insert(stringify!(#field_names).to_string(), chainsight_cdk::storage::Token::from(self.#field_names.clone())); )*
+                data
+            }
+        }
+    };
+    expanded.into()
+}
+
 impl Parse for SingleStateInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let name: LitStr = input.parse()?;
@@ -21,11 +82,21 @@ impl Parse for SingleStateInput {
         } else {
             None
         };
-        Ok(SingleStateInput { name, ty, is_expose_getter, init })
+        Ok(SingleStateInput {
+            name,
+            ty,
+            is_expose_getter,
+            init,
+        })
     }
 }
 pub fn manage_single_state(input: TokenStream) -> TokenStream {
-    let SingleStateInput { name, ty, is_expose_getter, init } = parse_macro_input!(input as SingleStateInput);
+    let SingleStateInput {
+        name,
+        ty,
+        is_expose_getter,
+        init,
+    } = parse_macro_input!(input as SingleStateInput);
 
     let var_ident = syn::Ident::new(&name.value().to_uppercase(), name.span());
     let get_ident = syn::Ident::new(&format!("get_{}", name.value()), name.span());
@@ -73,12 +144,20 @@ impl syn::parse::Parse for VecStateInput {
         let ty = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let is_expose_getter: LitBool = input.parse()?;
-        Ok(VecStateInput { name, ty, is_expose_getter })
+        Ok(VecStateInput {
+            name,
+            ty,
+            is_expose_getter,
+        })
     }
 }
 pub fn manage_vec_state(input: TokenStream) -> TokenStream {
-    let VecStateInput { name, ty, is_expose_getter } = parse_macro_input!(input as VecStateInput);
-    
+    let VecStateInput {
+        name,
+        ty,
+        is_expose_getter,
+    } = parse_macro_input!(input as VecStateInput);
+
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
     let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
@@ -150,11 +229,21 @@ impl syn::parse::Parse for MapStateInput {
         let val_ty = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let is_expose_getter: LitBool = input.parse()?;
-        Ok(MapStateInput { name, key_ty, val_ty, is_expose_getter })
+        Ok(MapStateInput {
+            name,
+            key_ty,
+            val_ty,
+            is_expose_getter,
+        })
     }
 }
 pub fn manage_map_state(input: TokenStream) -> TokenStream {
-    let MapStateInput { name, key_ty, val_ty, is_expose_getter } = parse_macro_input!(input as MapStateInput);
+    let MapStateInput {
+        name,
+        key_ty,
+        val_ty,
+        is_expose_getter,
+    } = parse_macro_input!(input as MapStateInput);
 
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
