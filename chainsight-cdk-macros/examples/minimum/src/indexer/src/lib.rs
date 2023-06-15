@@ -1,23 +1,22 @@
 use candid::CandidType;
 use chainsight_cdk::{
     indexer::{Event, Indexer},
+    storage::{Data, Token},
     web3::Web3Indexer,
 };
 use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
-    manage_single_state, monitoring_canister_metrics, setup_func,
+    manage_single_state, monitoring_canister_metrics, setup_func, ContarctEvent, Persist,
 };
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
     ethabi::Address,
     futures::{future::BoxFuture, FutureExt},
-    ic,
     transports::ic_http_client::CallOptions,
 };
 use std::{collections::HashMap, str::FromStr};
-
-monitoring_canister_metrics!(60);
 contract_abis!("src/indexer/abi");
+monitoring_canister_metrics!(60);
 define_web3_ctx!();
 define_transform_for_web3!();
 define_get_ethereum_address!();
@@ -51,28 +50,32 @@ fn get_logs(
     .boxed()
 }
 /// This is auto-generated from yaml
-#[derive(Debug, Clone, CandidType)]
+//#[derive(Debug, Clone, CandidType, Default, ContarctEvent, Persist)]
+#[derive(Debug, Clone, CandidType, Default, ContarctEvent)]
 pub struct TransferEvent {
     from: String,
     to: String,
-    value: u64,
+    value: u128,
 }
 
-/// This is auto-generated from yaml
-impl From<EventLog> for TransferEvent {
-    fn from(item: EventLog) -> Self {
+impl TransferEvent {
+    fn _tokenize(&self) -> chainsight_cdk::storage::Data {
+        let mut data: HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
+        data.insert("from".to_string(), Token::from(self.from.clone()));
+        data.insert("to".to_string(), Token::from(self.to.clone()));
+        data.insert("value".to_string(), Token::from(self.value.clone()));
+        Data::new(data)
+    }
+
+    fn _untokenize(data: Data) -> Self {
         TransferEvent {
-            from: item.event.params[0].value.to_string(),
-            to: item.event.params[1].value.to_string(),
-            value: item.event.params[2]
-                .clone()
-                .value
-                .into_uint()
-                .unwrap()
-                .as_u64(),
+            from: data.get("from").unwrap().to_string(),
+            to: data.get("to").unwrap().to_string(),
+            value: data.get("value").unwrap().to_u128().unwrap(),
         }
     }
 }
+
 /// This is auto-generated from yaml
 impl Event<EventLog> for TransferEvent {
     fn from(event: EventLog) -> Self
@@ -81,7 +84,16 @@ impl Event<EventLog> for TransferEvent {
     {
         event.into()
     }
+
+    fn tokenize(&self) -> chainsight_cdk::storage::Data {
+        self._tokenize()
+    }
+
+    fn untokenize(data: Data) -> Self {
+        TransferEvent::_untokenize(data)
+    }
 }
+
 async fn this_is_timer_task_entry_point() {
     indexer().index::<TransferEvent>().await;
 }
