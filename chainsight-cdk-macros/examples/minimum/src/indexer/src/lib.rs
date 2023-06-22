@@ -6,7 +6,7 @@ use chainsight_cdk::{
 };
 use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
-    manage_single_state, monitoring_canister_metrics, setup_func, ContarctEvent, Persist,
+    manage_single_state, monitoring_canister_metrics, setup_func, ContractEvent, Persist,
 };
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
@@ -50,8 +50,8 @@ fn get_logs(
     .boxed()
 }
 /// This is auto-generated from yaml
-//#[derive(Debug, Clone, CandidType, Default, ContarctEvent, Persist)]
-#[derive(Debug, Clone, CandidType, Default, ContarctEvent)]
+//#[derive(Debug, Clone, CandidType, Default, ContractEvent, Persist)]
+#[derive(Debug, Clone, CandidType, Default, ContractEvent)]
 pub struct TransferEvent {
     from: String,
     to: String,
