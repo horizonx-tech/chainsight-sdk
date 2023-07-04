@@ -22,6 +22,7 @@ define_transform_for_web3!();
 define_get_ethereum_address!();
 manage_single_state!("target_canister", String, false);
 manage_single_state!("target_addr", String, false);
+manage_single_state!("proxy_canister", String, false);
 setup_func!({
     target_canister: String,
     target_addr: String,
