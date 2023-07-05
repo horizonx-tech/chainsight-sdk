@@ -6,7 +6,7 @@ use chainsight_cdk::{
 };
 use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
-    manage_single_state, monitoring_canister_metrics, setup_func, ContractEvent, Persist,
+    manage_single_state, monitoring_canister_metrics, setup_func, ContractEvent,
 };
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
@@ -15,7 +15,7 @@ use ic_web3_rs::{
     transports::ic_http_client::CallOptions,
 };
 use std::{collections::HashMap, str::FromStr};
-contract_abis!("src/indexer/abi");
+contract_abis!("src/event_indexer/abi");
 monitoring_canister_metrics!(60);
 define_web3_ctx!();
 define_transform_for_web3!();

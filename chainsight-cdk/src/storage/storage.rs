@@ -12,17 +12,18 @@ use super::token::Token;
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Deserialize, CandidType, Clone)]
-pub struct Data {
-    values: HashMap<String, Token>,
-}
+pub struct Values(Vec<Data>);
+#[derive(Deserialize, CandidType, Clone)]
+
+pub struct Data(HashMap<String, Token>);
 
 impl Data {
-    pub fn new(values: HashMap<String, Token>) -> Self {
-        Self { values }
+    pub fn new(val: HashMap<String, Token>) -> Self {
+        Self(val)
     }
 }
 
-impl Storable for Data {
+impl Storable for Values {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
         Cow::Owned(Encode!(self).unwrap())
     }
@@ -31,36 +32,60 @@ impl Storable for Data {
         Decode!(bytes.as_ref(), Self).unwrap()
     }
 }
-impl BoundedStorable for Data {
+impl BoundedStorable for Values {
     const MAX_SIZE: u32 = 100_000;
     const IS_FIXED_SIZE: bool = false;
 }
 
+impl Values {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+    fn append(&mut self, data: Data) {
+        self.0.push(data);
+    }
+    pub fn to_vec(&self) -> Vec<Data> {
+        self.0.clone()
+    }
+}
+
 impl Data {
     pub fn get(&self, key: &str) -> Option<&Token> {
-        self.values.get(key)
+        self.0.get(key)
     }
 }
 
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static MAP: RefCell<StableBTreeMap<u64, Data, Memory>> = RefCell::new(
+    static MAP: RefCell<StableBTreeMap<u64, Values, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MANAGER.with(|m|m.borrow().get(MemoryId::new(0))),
         )
     )
 }
 
-pub fn get(key: u64) -> Option<Data> {
-    MAP.with(|m| m.borrow().get(&key))
+pub fn insert(key: u64, data: Data) {
+    MAP.with(
+        |m: &RefCell<StableBTreeMap<u64, Values, VirtualMemory<std::rc::Rc<RefCell<Vec<u8>>>>>>| {
+            m.borrow_mut()
+                .get(&key)
+                .get_or_insert(Values::new())
+                .append(data)
+        },
+    )
 }
 
-pub fn insert(key: u64, data: Data) -> Option<Data> {
-    MAP.with(|m| m.borrow_mut().insert(key, data))
+pub fn between(from: u64, to: u64) -> Vec<(u64, Values)> {
+    MAP.with(|m| {
+        m.borrow()
+            .range(from..to)
+            .map(|(k, v)| (k, v.clone()))
+            .collect()
+    })
 }
 
 // get last n
-pub fn last(n: u64) -> Vec<(u64, Data)> {
+pub fn last(n: u64) -> Vec<(u64, Values)> {
     let length = MAP.with(|m| m.borrow().len());
     if length <= n {
         MAP.with(|m| m.borrow().iter().map(|(k, v)| (k, v.clone())).collect())

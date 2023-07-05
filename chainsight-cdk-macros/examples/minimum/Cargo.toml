@@ -4,7 +4,8 @@ members = [
     "src/snapshot_chain",
     "src/snapshot_icp",
     "src/relayer",
-    "src/indexer",
+    "src/event_indexer",
+    "src/algorithm_indexer",
 ]
 
 [workspace.dependencies]
