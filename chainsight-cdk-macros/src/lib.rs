@@ -1,5 +1,6 @@
 mod functions;
 mod states;
+mod storages;
 mod utils;
 mod web3;
 
@@ -43,6 +44,26 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn manage_map_state(input: TokenStream) -> TokenStream {
     states::manage_map_state(input)
+}
+
+#[proc_macro]
+pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
+    storages::prepare_stable_structure()
+}
+
+#[proc_macro_derive(StableMemoryStorable, attributes(stable_mem_storable_opts))]
+pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
+    storages::derive_storable_in_stable_memory(input)
+}
+
+#[proc_macro]
+pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
+    storages::stable_memory_for_scalar(input)
+}
+
+#[proc_macro]
+pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
+    storages::stable_memory_for_vec(input)
 }
 
 #[proc_macro]
