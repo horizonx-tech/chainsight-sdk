@@ -3,13 +3,6 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse::Parse, parse_macro_input, Expr, LitBool, LitStr, Type};
 
-struct SingleStateInput {
-    name: LitStr,
-    ty: Type,
-    is_expose_getter: LitBool,
-    init: Option<Expr>,
-}
-
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
     fn tokenize(&self) -> Data;
@@ -67,6 +60,13 @@ pub fn persist_derive(input: TokenStream) -> TokenStream {
         }
     };
     expanded.into()
+}
+
+struct SingleStateInput {
+    name: LitStr,
+    ty: Type,
+    is_expose_getter: LitBool,
+    init: Option<Expr>,
 }
 
 impl Parse for SingleStateInput {
