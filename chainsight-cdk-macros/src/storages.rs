@@ -228,9 +228,12 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         pub fn #get_top_elems_func(n: u64) -> Vec<#ty> {
             #state_upper_name.with(|mem| {
                 let borrowed_mem = mem.borrow();
-                let start_index = borrowed_mem.len().saturating_sub(n);
-                let mut vec_var: Vec<#ty> = borrowed_mem.iter().collect(); // NOTE: Since StableVec does not have rev(), copy the entire StableVec to Vec
-                vec_var.split_off(start_index as usize).iter().rev().cloned().collect()
+                let len = borrowed_mem.len();
+                let mut res = Vec::new();
+                for i in 0..n {
+                    res.push(borrowed_mem.get(len - i - 1).unwrap());
+                }
+                res
             })
         }
 
