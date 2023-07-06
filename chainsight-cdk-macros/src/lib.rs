@@ -57,6 +57,11 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
+    storages::stable_memory_for_vec(input)
+}
+
+#[proc_macro]
 pub fn define_transform_for_web3(_input: TokenStream) -> TokenStream {
     web3::define_transform_for_web3()
 }

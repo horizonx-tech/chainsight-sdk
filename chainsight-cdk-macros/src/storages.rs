@@ -99,3 +99,107 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     };
     output.into()
 }
+
+struct StableMemoryForVecInput {
+    name: LitStr,
+    ty: Type,
+    memory_id: u8,
+    is_expose_getter: LitBool,
+}
+impl syn::parse::Parse for StableMemoryForVecInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let name = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let ty = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let lit_memory_id: LitInt = input.parse()?;
+        let memory_id = lit_memory_id.base10_parse::<u8>().unwrap();
+        input.parse::<syn::Token![,]>()?;
+        let is_expose_getter: LitBool = input.parse()?;
+        Ok(StableMemoryForVecInput {
+            name,
+            ty,
+            memory_id,
+            is_expose_getter,
+        })
+    }
+}
+pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
+    let StableMemoryForVecInput {
+        name,
+        ty,
+        memory_id,
+        is_expose_getter,
+    } = parse_macro_input!(input as StableMemoryForVecInput);
+
+    let state_name = name.value();
+    let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
+    let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
+    let get_len_func = syn::Ident::new(&format!("{}s_len", state_name), name.span());
+    let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
+    let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
+    let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
+    let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
+
+    let getter_derives = if is_expose_getter.value {
+        quote! {
+            #[ic_cdk::query]
+            #[candid::candid_method(query)]
+        }
+    } else {
+        quote! {}
+    };
+
+    let output = quote! {
+        thread_local! {
+            static #state_upper_name: std::cell::RefCell<ic_stable_structures::StableVec<#ty, Memory>> = std::cell::RefCell::new(
+                ic_stable_structures::StableVec::init(
+                    MEMORY_MANAGER.with(|mm| mm.borrow().get(
+                        ic_stable_structures::memory_manager::MemoryId::new(#memory_id)
+                    ))
+                ).unwrap()
+            );
+        }
+
+        #getter_derives
+        pub fn #get_vec_func() -> Vec<#ty> {
+            #state_upper_name.with(|mem| mem.borrow().iter().collect())
+        }
+
+        #getter_derives
+        pub fn #get_len_func() -> u64 {
+            #state_upper_name.with(|mem| mem.borrow().len())
+        }
+
+        #getter_derives
+        pub fn #get_last_elem_func() -> Option<#ty> {
+            #state_upper_name.with(|mem| {
+                let borrowed_mem = mem.borrow();
+                let len = borrowed_mem.len();
+                borrowed_mem.get(len - 1) // NOTE: Since StableVec does not have last()
+            })
+        }
+
+        #getter_derives
+        pub fn #get_top_elems_func(n: u64) -> Vec<#ty> {
+            #state_upper_name.with(|mem| {
+                let borrowed_mem = mem.borrow();
+                let start_index = borrowed_mem.len().saturating_sub(n);
+                let mut vec_var: Vec<#ty> = borrowed_mem.iter().collect(); // NOTE: Since StableVec does not have rev(), copy the entire StableVec to Vec
+                vec_var.split_off(start_index as usize).iter().rev().cloned().collect()
+            })
+        }
+
+        #getter_derives
+        pub fn #get_elem_func(idx: u64) -> Option<#ty> {
+            #state_upper_name.with(|mem| mem.borrow().get(idx))
+        }
+
+        pub fn #add_elem_func(value: #ty) -> Result<(), String> {
+            let res = #state_upper_name.with(|vec| vec.borrow_mut().push(&value));
+            res.map_err(|e| format!("{:?}", e))
+        }
+    };
+
+    output.into()
+}
