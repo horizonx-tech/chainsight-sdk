@@ -1,5 +1,6 @@
+use darling::FromDeriveInput;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, LitStr, Type, LitBool, Expr, parse::Parse, LitInt};
+use syn::{parse_macro_input, LitStr, Type, LitBool, Expr, parse::Parse, LitInt, DeriveInput};
 use quote::quote;
 
 pub fn prepare_stable_structure() -> TokenStream {
@@ -14,6 +15,49 @@ pub fn prepare_stable_structure() -> TokenStream {
             );
         }
     };
+    output.into()
+}
+
+#[derive(FromDeriveInput, Default)]
+#[darling(default, attributes(stable_mem_storable_opts), forward_attrs(allow, doc, cfg))]
+struct StableMemoryStorableOpts {
+    max_size: Option<u32>,
+    is_fixed_size: Option<bool>,
+}
+
+pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
+
+    let struct_name = &input.ident;
+
+    let storable_impl = quote! {
+        impl ic_stable_structures::Storable for #struct_name {
+            fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+                std::borrow::Cow::Owned(Encode!(self).unwrap())
+            }
+
+            fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+                Decode!(bytes.as_ref(), Self).unwrap()
+            }
+        }
+    };
+
+    let max_size = opts.max_size.unwrap_or(100000);
+    let is_fixed_size = opts.is_fixed_size.unwrap_or(false);
+
+    let bounded_storable_impl = quote! {
+        impl ic_stable_structures::BoundedStorable for #struct_name {
+            const MAX_SIZE: u32 = #max_size;
+            const IS_FIXED_SIZE: bool = #is_fixed_size;
+        }
+    };
+
+    let output = quote! {
+        #storable_impl
+        #bounded_storable_impl
+    };
+
     output.into()
 }
 

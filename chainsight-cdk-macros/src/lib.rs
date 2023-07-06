@@ -51,6 +51,11 @@ pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
     storages::prepare_stable_structure()
 }
 
+#[proc_macro_derive(StableMemoryStorable, attributes(stable_mem_storable_opts))]
+pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
+    storages::derive_storable_in_stable_memory(input)
+}
+
 #[proc_macro]
 pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_scalar(input)
