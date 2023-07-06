@@ -102,4 +102,4 @@ async fn this_is_timer_task_entry_point() {
 fn indexer() -> Web3Indexer {
     Web3Indexer::new(get_logs, None)
 }
-did_export!("indexer");
+did_export!("event_indexer");

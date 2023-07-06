@@ -82,4 +82,4 @@ fn indexer() -> AlgorithmIndexer<TransferEvent> {
         AlgorithmEventPersister::new(persist),
     )
 }
-did_export!("indexer");
+did_export!("algorithm_indexer");
