@@ -1,0 +1,19 @@
+type Result = variant { Ok; Err : text };
+service : {
+  get_last_score : () -> (opt nat) query;
+  get_last_year : () -> (opt nat16) query;
+  get_price : () -> (nat) query;
+  get_score : (nat64) -> (opt nat) query;
+  get_scores : () -> (vec nat) query;
+  get_timestamp : () -> (nat64) query;
+  get_top_scores : (nat64) -> (vec nat) query;
+  get_top_years : (nat64) -> (vec nat16) query;
+  get_year : (nat64) -> (opt nat16) query;
+  get_years : () -> (vec nat16) query;
+  insert_score : (nat) -> (Result);
+  insert_year : (nat16) -> (Result);
+  scores_len : () -> (nat64) query;
+  update_price : (nat) -> (Result);
+  update_timestamp : (nat64) -> (Result);
+  years_len : () -> (nat64) query;
+}
