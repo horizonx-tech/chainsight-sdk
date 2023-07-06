@@ -1,4 +1,3 @@
-use chainsight_cdk::storage::Data;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 
