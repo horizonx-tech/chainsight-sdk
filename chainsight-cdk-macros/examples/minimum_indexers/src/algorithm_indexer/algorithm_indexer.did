@@ -18,9 +18,12 @@ type Result_1 = variant { Ok; Err : text };
 type SampleDest = record { from : text };
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
 service : {
+  canister_type : () -> (text) query;
+  event_source : () -> (principal) query;
   events_from_to : (nat64, nat64) -> (
       vec record { nat64; vec SampleDest },
     ) query;
+  events_latest_n : (nat64) -> (vec record { nat64; vec SampleDest }) query;
   get_last_indexed : () -> (nat64) query;
   index : () -> ();
   init_in : (Env) -> (Result);

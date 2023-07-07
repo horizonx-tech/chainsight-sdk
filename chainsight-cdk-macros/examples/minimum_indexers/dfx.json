@@ -20,6 +20,11 @@
       "type": "rust",
       "package": "event_indexer",
       "candid": "src/event_indexer/event_indexer.did"
+    },
+    "algorithm_indexer": {
+      "type": "rust",
+      "package": "algorithm_indexer",
+      "candid": "src/algorithm_indexer/algorithm_indexer.did"
     }
   },
   "defaults": {

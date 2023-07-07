@@ -24,9 +24,12 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
+  canister_type : () -> (text) query;
+  event_source : () -> (text) query;
   events_from_to : (nat64, nat64) -> (
       vec record { nat64; vec TransferEvent },
     ) query;
+  events_latest_n : (nat64) -> (vec record { nat64; vec TransferEvent }) query;
   get_ethereum_address : (Env) -> (text);
   get_last_indexed : () -> (nat64) query;
   index : () -> ();

@@ -47,6 +47,17 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
         async fn index() {
             indexer().index::<#out_type>(get_config()).await.unwrap();
         }
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        async fn canister_type() -> String {
+            "event_indexer".to_string()
+        }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn event_source() -> String {
+            get_target_addr()
+        }
     }
     .into()
 }
@@ -69,6 +80,18 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         fn get_target() -> candid::Principal {
             candid::Principal::from_text(get_target_addr()).unwrap()
         }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn event_source() -> candid::Principal {
+            get_target()
+        }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        async fn canister_type() -> String {
+            "algorithm_indexer".to_string()
+        }
     }
     .into()
 }
@@ -80,6 +103,12 @@ pub fn indexer_common(out_type: syn::Type) -> TokenStream2 {
         #[candid::candid_method(query)]
         pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
             _events_from_to((from,to))
+        }
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        pub fn events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
+            let last_indexed = indexer().get_last_indexed().unwrap();
+            _events_from_to((last_indexed - n, last_indexed))
         }
         fn _events_from_to(input: (u64,  u64)) -> HashMap<u64, Vec<#out_type>> {
             indexer().between::<#out_type>(input.0,input.1).unwrap()
