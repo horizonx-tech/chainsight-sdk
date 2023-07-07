@@ -20,11 +20,10 @@ monitoring_canister_metrics!(60);
 define_web3_ctx!();
 define_transform_for_web3!();
 define_get_ethereum_address!();
-manage_single_state!("target_canister", String, false);
 manage_single_state!("target_addr", String, false);
 manage_single_state!("proxy_canister", String, false);
 setup_func!({
-    target_canister: String,
+    proxy_canister: String,
     target_addr: String,
     web3_ctx_param: Web3CtxParam
 });
@@ -94,7 +93,7 @@ impl Event<EventLog> for TransferEvent {
         TransferEvent::_untokenize(data)
     }
 }
-
+#[ic_cdk_macros::update]
 async fn this_is_timer_task_entry_point() {
     indexer().index::<TransferEvent>().await;
 }

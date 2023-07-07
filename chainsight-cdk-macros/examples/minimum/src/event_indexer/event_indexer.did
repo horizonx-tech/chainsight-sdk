@@ -18,9 +18,8 @@ service : {
   get_ethereum_address : (EcdsaKeyEnvs) -> (text);
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
-  set_task : (nat32, nat32) -> ();
   setup : (text, text, Web3CtxParam) -> (Result);
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
-}
+};

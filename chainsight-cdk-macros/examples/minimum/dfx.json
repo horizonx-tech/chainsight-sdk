@@ -1,20 +1,10 @@
 {
   "version": 1,
   "canisters": {
-    "snapshot_chain": {
+    "event_indexer": {
       "type": "rust",
-      "package": "snapshot_chain",
-      "candid": "src/snapshot_chain/snapshot_chain.did"
-    },
-    "snapshot_icp": {
-      "type": "rust",
-      "package": "snapshot_icp",
-      "candid": "src/snapshot_icp/snapshot_icp.did"
-    },
-    "relayer": {
-      "type": "rust",
-      "package": "relayer",
-      "candid": "src/relayer/relayer.did"
+      "package": "event_indexer",
+      "candid": "src/event_indexer/event_indexer.did"
     }
   },
   "defaults": {

@@ -26,4 +26,6 @@ service : {
   set_task : (nat32, nat32) -> ();
   setup : (text, Web3CtxParam) -> (Result);
   transform : (TransformArgs) -> (HttpResponse) query;
+  transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
+  transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
 }

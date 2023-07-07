@@ -73,6 +73,7 @@ impl Event<SampleDest> for SampleDest {
 async fn this_is_timer_task_entry_point() {
     indexer().index().await;
 }
+
 fn persist(input: HashMap<u64, Vec<TransferEvent>>) {}
 
 fn indexer() -> AlgorithmIndexer<TransferEvent> {
