@@ -64,5 +64,4 @@ impl Event<EventLog> for TransferEvent {
         TransferEvent::_untokenize(data)
     }
 }
-
 did_export!("event_indexer");

@@ -34,10 +34,13 @@ pub fn candid_exports(input: TokenStream) -> TokenStream {
     let output = quote! {
         manage_single_state!("proxy_canister", String, false);
         manage_single_state!("config", IndexingConfig, false);
-            #[ic_cdk::query]
+        #[ic_cdk::query]
         #[candid::candid_method(query)]
-        pub fn between(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
-            indexer().between::<#out_type>(from,to).unwrap()
+        pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
+            _events_from_to((from,to))
+        }
+        fn _events_from_to(input: (u64,  u64))-> HashMap<u64, Vec<#out_type>> {
+            indexer().between::<#out_type>(input.0,input.1).unwrap()
         }
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -51,6 +54,17 @@ pub fn candid_exports(input: TokenStream) -> TokenStream {
         }
         fn indexer() -> #indexer_impl {
             #indexer_impl::new(get_logs, None)
+        }
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        fn proxy_call(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            let proxy_canister = candid::Principal::from_text(get_proxy_canister()).unwrap();
+            chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), HashMap<u64, Vec<TransferEvent>>>::new(
+                proxy_canister,
+                _events_from_to.clone(),
+            )
+            .reply(input)
         }
     };
     output.into()
