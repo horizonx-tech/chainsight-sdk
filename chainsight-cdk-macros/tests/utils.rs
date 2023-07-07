@@ -1,5 +1,5 @@
 mod test_monitoring_canister_metrics {
-    use chainsight_cdk_macros::{monitoring_canister_metrics};
+    use chainsight_cdk_macros::monitoring_canister_metrics;
 
     monitoring_canister_metrics!(60);
 

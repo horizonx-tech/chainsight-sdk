@@ -4,12 +4,12 @@ pub struct Message {
     pub to: String,
     pub timestamp: u64,
     pub content: String,
-    pub version: u8
+    pub version: u8,
 }
 
 mod manage_single_state {
-    use chainsight_cdk_macros::manage_single_state;
     use super::Message;
+    use chainsight_cdk_macros::manage_single_state;
 
     manage_single_state!("last_timestamp", u64, false, 100);
     manage_single_state!("latest_result", String, false);
@@ -37,7 +37,7 @@ mod manage_single_state {
             to: String::from("to"),
             timestamp: 10,
             content: String::from("content"),
-            version: 1
+            version: 1,
         };
         set_latest_message(msg.clone());
         assert_eq!(get_latest_message(), msg.clone());
@@ -45,8 +45,8 @@ mod manage_single_state {
 }
 
 mod manage_vec_state {
-    use chainsight_cdk_macros::manage_vec_state;
     use super::Message;
+    use chainsight_cdk_macros::manage_vec_state;
 
     manage_vec_state!("result", String, false);
     manage_vec_state!("message", Message, false);
@@ -61,7 +61,10 @@ mod manage_vec_state {
         add_result(datum2.clone());
         add_result(datum3.clone());
         assert_eq!(results_len(), 3);
-        assert_eq!(get_results(), vec![datum1.clone(), datum2.clone(), datum3.clone()]);
+        assert_eq!(
+            get_results(),
+            vec![datum1.clone(), datum2.clone(), datum3.clone()]
+        );
         assert_eq!(get_last_result(), datum3.clone());
         assert_eq!(get_top_results(2), vec![datum3.clone(), datum2.clone()]);
         assert_eq!(get_result(0), datum1.clone());
@@ -76,27 +79,30 @@ mod manage_vec_state {
             to: String::from("to1"),
             timestamp: 10,
             content: String::from("content1"),
-            version: 1
+            version: 1,
         };
         let datum2 = Message {
             from: String::from("from2"),
             to: String::from("to2"),
             timestamp: 20,
             content: String::from("content2"),
-            version: 2
+            version: 2,
         };
         let datum3 = Message {
             from: String::from("from3"),
             to: String::from("to3"),
             timestamp: 30,
             content: String::from("content3"),
-            version: 3
+            version: 3,
         };
         add_message(datum1.clone());
         add_message(datum2.clone());
         add_message(datum3.clone());
         assert_eq!(messages_len(), 3);
-        assert_eq!(get_messages(), vec![datum1.clone(), datum2.clone(), datum3.clone()]);
+        assert_eq!(
+            get_messages(),
+            vec![datum1.clone(), datum2.clone(), datum3.clone()]
+        );
         assert_eq!(get_last_message(), datum3.clone());
         assert_eq!(get_top_messages(2), vec![datum3.clone(), datum2.clone()]);
         assert_eq!(get_message(0), datum1.clone());
@@ -105,8 +111,8 @@ mod manage_vec_state {
 }
 
 mod manage_map_state {
-    use chainsight_cdk_macros::manage_map_state;
     use super::Message;
+    use chainsight_cdk_macros::manage_map_state;
 
     manage_map_state!("balance", String, u64, false);
     manage_map_state!("username", u64, String, false);
@@ -144,14 +150,14 @@ mod manage_map_state {
             to: String::from("to1"),
             timestamp: 10,
             content: String::from("content1"),
-            version: 1
+            version: 1,
         };
         let datum2 = Message {
             from: String::from("from2"),
             to: String::from("to2"),
             timestamp: 20,
             content: String::from("content2"),
-            version: 2
+            version: 2,
         };
         insert_message(1, datum1.clone());
         insert_message(2, datum2.clone());
@@ -160,4 +166,3 @@ mod manage_map_state {
         assert_eq!(get_message(2), datum2.clone());
     }
 }
-

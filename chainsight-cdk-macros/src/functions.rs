@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Parser};
-use syn::{braced, Result, Ident, Type, Token, punctuated::Punctuated};
+use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
 struct SetupArgs {
     fields: Punctuated<NamedField, Token![,]>,
@@ -107,7 +107,10 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
     };
 
     let timer_state_name = format!("timer_task_{}", called_func_name);
-    let set_timer_state_name = syn::Ident::new(&format!("set_timer_task_{}", called_func_name), called_func_name.span());
+    let set_timer_state_name = syn::Ident::new(
+        &format!("set_timer_task_{}", called_func_name),
+        called_func_name.span(),
+    );
 
     let output = quote! {
         chainsight_cdk_macros::manage_single_state!(#timer_state_name, ic_cdk_timers::TimerId, false);

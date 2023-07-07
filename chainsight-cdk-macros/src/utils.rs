@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
+use quote::{format_ident, quote};
 use syn::parse_macro_input;
-use quote::{quote, format_ident};
 
 struct CrossCanisterCallFuncInput {
     fn_name: syn::LitStr,
@@ -14,12 +14,20 @@ impl syn::parse::Parse for CrossCanisterCallFuncInput {
         let args_type = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let result_type = input.parse()?;
-        Ok(CrossCanisterCallFuncInput { fn_name, args_type, result_type })
+        Ok(CrossCanisterCallFuncInput {
+            fn_name,
+            args_type,
+            result_type,
+        })
     }
 }
 
 pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
-    let CrossCanisterCallFuncInput { fn_name, args_type, result_type } = parse_macro_input!(input as CrossCanisterCallFuncInput);
+    let CrossCanisterCallFuncInput {
+        fn_name,
+        args_type,
+        result_type,
+    } = parse_macro_input!(input as CrossCanisterCallFuncInput);
 
     let call_fn_name = format_ident!("call_{}", &fn_name.value());
 
@@ -32,12 +40,10 @@ pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
             } else {
                 (args_type, quote! { call_args })
             }
-        },
-        _ => {
-            (args_type, quote! { (call_args,) })
         }
+        _ => (args_type, quote! { (call_args,) }),
     };
-    
+
     let output = quote! {
         async fn #call_fn_name(
             canister_id: candid::Principal,

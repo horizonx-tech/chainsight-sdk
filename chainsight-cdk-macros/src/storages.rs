@@ -1,7 +1,7 @@
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, LitStr, Type, LitBool, Expr, parse::Parse, LitInt, DeriveInput};
 use quote::quote;
+use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
 pub fn prepare_stable_structure() -> TokenStream {
     let output = quote! {
@@ -19,7 +19,11 @@ pub fn prepare_stable_structure() -> TokenStream {
 }
 
 #[derive(FromDeriveInput, Default)]
-#[darling(default, attributes(stable_mem_storable_opts), forward_attrs(allow, doc, cfg))]
+#[darling(
+    default,
+    attributes(stable_mem_storable_opts),
+    forward_attrs(allow, doc, cfg)
+)]
 struct StableMemoryStorableOpts {
     max_size: Option<u32>,
     is_fixed_size: Option<bool>,
