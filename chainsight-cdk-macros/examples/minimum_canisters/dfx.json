@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "canisters": {
+    "example_state": {
+      "type": "rust",
+      "package": "example_state",
+      "candid": "src/example_state/interface.did"
+    },
+    "example_stable_memory": {
+      "type": "rust",
+      "package": "example_stable_memory",
+      "candid": "src/example_stable_memory/interface.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "",
+      "args": ""
+    }
+  },
+  "output_env_file": ".env"
+}
