@@ -5,8 +5,6 @@ members = [
     "src/relayer",
     "src/event_indexer",
     "src/algorithm_indexer",
-    "src/example_canister",
-    "src/example_stable_memory",
 ]
 
 [workspace.dependencies]

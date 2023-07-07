@@ -1,6 +1,4 @@
-# minimum
-
-## indexers
+# minimum_indexers
 
 ```bash
 ./launch_local.sh
@@ -16,13 +14,4 @@
                          /- snapshot_icp
 contract - snapshot_chain
                          \- relayer - oracle
-```
-
-## example_canister
-
-```bash
-# pre: modify dfx.json
-dfx stop && dfx start --background --clean && dfx deploy example_canister
-dfx canister call example_canister setup '(record { a = 5; b = 3 })'
-dfx canister call example_canister set_task '(30, 5)'
 ```

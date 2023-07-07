@@ -1,4 +1,4 @@
-dfx stop && dfx start --background --clean && dfx deploy
+cargo make did && dfx stop && dfx start --background --clean && dfx deploy
 
 dfx canister call snapshot_chain setup "(
   \"bEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7\",
