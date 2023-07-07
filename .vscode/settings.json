@@ -6,6 +6,5 @@
         "./chainsight-cdk-macros/examples/minimum/src/event_indexer/Cargo.toml",
         "./chainsight-cdk-macros/examples/minimum/src/algorithm_indexer/Cargo.toml",
         "./chainsight-cdk/Cargo.toml",
-        "./chainsight-cdk/Cargo.toml"
     ],
 }

@@ -1,18 +1,16 @@
-use std::{cell::RefCell, collections::HashMap};
-
 use crate::{
     indexer::{Error, Finder, Indexer, IndexingConfig},
     rpc::{CallProvider, Caller, Message},
 };
 use async_trait::async_trait;
 use candid::{CandidType, Principal};
-use futures::{future::BoxFuture, FutureExt};
 use serde::de::DeserializeOwned;
+use std::collections::HashMap;
 pub struct AlgorithmIndexer<T>
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
-    finder: AlgorithmLogFinder<T>,
+    finder: AlgorithmLogFinder,
     persister: AlgorithmEventPersister<T>,
 }
 #[derive(Clone)]
@@ -33,66 +31,49 @@ where
 }
 
 #[derive(Clone)]
-pub struct AlgorithmLogFinder<T> {
-    find: fn(u64, u64) -> BoxFuture<'static, Result<HashMap<u64, Vec<T>>, Error>>,
-}
-
-thread_local! {
-    static PROXY: RefCell<Principal> = RefCell::new(Principal::anonymous());
-    static SOURCE: RefCell<Principal> = RefCell::new(Principal::anonymous());
-}
-
-fn proxy() -> Principal {
-    PROXY.with(|p| p.borrow().clone())
-}
-fn source() -> Principal {
-    SOURCE.with(|p| p.borrow().clone())
-}
-fn set_source(p: Principal) {
-    SOURCE.with(|s| *s.borrow_mut() = p);
-}
-fn set_proxy(p: Principal) {
-    PROXY.with(|s| *s.borrow_mut() = p);
+pub struct AlgorithmLogFinder {
+    proxy: Principal,
+    target: Principal,
 }
 
 #[async_trait]
-impl<T> Finder<T> for AlgorithmLogFinder<T>
+impl<T> Finder<T> for AlgorithmLogFinder
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
     async fn find(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<T>>, Error> {
-        let results = (self.find)(from, to).await?;
+        let results = self.get_logs(from, to).await?;
         Ok(results)
+    }
+}
+
+impl AlgorithmLogFinder {
+    fn new(proxy: Principal, target: Principal) -> Self {
+        Self { proxy, target }
+    }
+
+    async fn get_logs<T>(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<T>>, Error>
+    where
+        T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
+    {
+        let result = CallProvider::new(self.proxy)
+            .call(Message::new::<(u64, u64)>((from, to), self.target, "proxy_call").unwrap())
+            .await
+            .unwrap();
+        let rep: HashMap<u64, Vec<T>> = result.reply::<HashMap<u64, Vec<T>>>().unwrap();
+        Ok(rep)
     }
 }
 impl<T> AlgorithmIndexer<T>
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
-    pub fn new(proxy: Principal, src: Principal, persister: AlgorithmEventPersister<T>) -> Self {
-        set_proxy(proxy);
-        set_source(src);
+    pub fn new(proxy: Principal, src: Principal, persist: fn(HashMap<u64, Vec<T>>)) -> Self {
         Self {
-            finder: AlgorithmLogFinder {
-                find: get_logs::<T>,
-            },
-            persister: persister,
+            finder: AlgorithmLogFinder::new(proxy, src),
+            persister: AlgorithmEventPersister::new(persist),
         }
     }
-}
-fn get_logs<T>(from: u64, to: u64) -> BoxFuture<'static, Result<HashMap<u64, Vec<T>>, Error>>
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
-    async move {
-        let result = CallProvider::new(proxy())
-            .call(Message::new::<(u64, u64)>((from, to), source(), "between").unwrap())
-            .await
-            .unwrap();
-        let rep = result.reply::<HashMap<u64, Vec<T>>>().unwrap();
-        Ok(rep)
-    }
-    .boxed()
 }
 
 impl<T> AlgorithmIndexer<T>
@@ -115,13 +96,8 @@ impl<T> Indexer<T> for AlgorithmIndexer<T>
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
-    type Finder = AlgorithmLogFinder<T>;
+    type Finder = AlgorithmLogFinder;
     fn finder(&self) -> Self::Finder {
         self.finder.clone()
-    }
-
-    /// Index events.
-    async fn index<E>(&self, config: IndexingConfig) -> Result<(), Error> {
-        self.index(config).await
     }
 }

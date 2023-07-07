@@ -90,6 +90,10 @@ pub fn between(from: u64, to: u64) -> Vec<(u64, Values)> {
     })
 }
 
+pub fn get(id: u64) -> Option<Values> {
+    MAP.with(|m| m.borrow().get(&id))
+}
+
 // get last n
 pub fn last(n: u64) -> Vec<(u64, Values)> {
     let length = MAP.with(|m| m.borrow().len());

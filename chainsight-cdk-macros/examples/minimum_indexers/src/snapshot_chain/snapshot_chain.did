@@ -1,5 +1,5 @@
 type CanisterMetricsSnapshot = record { cycles : nat; timestamp : nat64 };
-type EcdsaKeyEnvs = variant { Production; Test; LocalDevelopment };
+type Env = variant { Production; Test; LocalDevelopment };
 type HttpHeader = record { value : text; name : text };
 type HttpResponse = record {
   status : nat;
@@ -10,7 +10,7 @@ type Result = variant { Ok; Err : text };
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
 type VirtualPrice = record { value : text; timestamp : nat64 };
 type Web3CtxParam = record {
-  key : EcdsaKeyEnvs;
+  env : Env;
   url : text;
   from : opt text;
   chain_id : nat64;

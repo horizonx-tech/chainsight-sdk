@@ -1,26 +1,28 @@
 use std::collections::HashMap;
 
 use crate::{
+    core::Env,
     indexer::{Error, Finder, Indexer},
-    types::EcdsaKeyEnvs,
 };
 use async_trait::async_trait;
+use candid::CandidType;
 use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
 use ic_solidity_bindgen::types::EventLog;
 use ic_web3_rs::{
     futures::future::BoxFuture,
     transports::ic_http_client::{CallOptions, CallOptionsBuilder},
 };
+use serde::Deserialize;
 pub struct Web3Indexer {
     finder: Web3LogFinder,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, CandidType, Deserialize)]
 pub struct Web3CtxParam {
     pub url: String,
     pub from: Option<String>,
     pub chain_id: u64,
-    pub key: EcdsaKeyEnvs,
+    pub env: Env,
 }
 
 #[derive(Clone)]

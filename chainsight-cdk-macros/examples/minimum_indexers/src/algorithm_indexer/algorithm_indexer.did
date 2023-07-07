@@ -15,26 +15,19 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
-type TransferEvent = record { to : text; value : nat; from : text };
+type SampleDest = record { from : text };
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
-type Web3CtxParam = record {
-  env : Env;
-  url : text;
-  from : opt text;
-  chain_id : nat64;
-};
 service : {
   events_from_to : (nat64, nat64) -> (
-      vec record { nat64; vec TransferEvent },
+      vec record { nat64; vec SampleDest },
     ) query;
-  get_ethereum_address : (Env) -> (text);
   get_last_indexed : () -> (nat64) query;
   index : () -> ();
   init_in : (Env) -> (Result);
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
   proxy_call : (vec nat8) -> (vec nat8);
-  setup : (text, Web3CtxParam, IndexingConfig) -> (Result_1);
+  setup : (text, IndexingConfig) -> (Result_1);
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;

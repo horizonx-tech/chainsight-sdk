@@ -28,6 +28,33 @@ impl Parse for NamedField {
         })
     }
 }
+pub fn init_in_env(_input: TokenStream) -> TokenStream {
+    quote! {
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        async fn init_in(env: chainsight_cdk::core::Env) -> Result<(), chainsight_cdk::initializer::InitError> {
+            assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
+            use chainsight_cdk::initializer::Initializer;
+            let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
+                chainsight_cdk::initializer::InitConfig { env },
+            );
+            let init_result = initializer.initialize().await?;
+            let proxy = init_result.proxy;
+            INITIALIZED.with(|f| *f.borrow_mut() = true);
+            PROXY.with(|f| *f.borrow_mut() = proxy);
+            Ok(())
+        }
+        fn proxy() -> candid::Principal {
+            PROXY.with(|proxy| proxy.borrow().clone())
+        }
+        thread_local! {
+            static INITIALIZED: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
+            static PROXY: std::cell::RefCell<candid::Principal> = std::cell::RefCell::new(candid::Principal::anonymous());
+        }
+    }
+    .into()
+}
+
 pub fn setup_func(input: TokenStream) -> TokenStream {
     let SetupArgs { fields } = syn::parse_macro_input!(input as SetupArgs);
 
@@ -53,7 +80,6 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
             Ok(())
         }
     };
-
     TokenStream::from(expanded)
 }
 

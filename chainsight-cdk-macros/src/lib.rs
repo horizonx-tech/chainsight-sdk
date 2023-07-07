@@ -17,8 +17,13 @@ pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn indexer_exports(input: TokenStream) -> TokenStream {
-    indexers::candid_exports(input)
+pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
+    indexers::web3_event_indexer(input)
+}
+
+#[proc_macro]
+pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
+    indexers::algorithm_indexer(input)
 }
 
 #[proc_macro]
@@ -39,6 +44,11 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn manage_single_state(input: TokenStream) -> TokenStream {
     states::manage_single_state(input)
+}
+
+#[proc_macro]
+pub fn init_in(input: TokenStream) -> TokenStream {
+    functions::init_in_env(input)
 }
 
 #[proc_macro]

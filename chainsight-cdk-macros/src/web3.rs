@@ -105,7 +105,7 @@ pub fn define_web3_ctx() -> TokenStream {
                 &param.url,
                 from,
                 param.chain_id,
-                param.key.to_key_name(),
+                param.env.ecdsa_key_name(),
             )
         }
     };
@@ -127,8 +127,8 @@ pub fn define_get_ethereum_address() -> TokenStream {
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        async fn get_ethereum_address(key: chainsight_cdk::types::EcdsaKeyEnvs) -> String {
-            match ethereum_address(key.to_key_name()).await {
+        async fn get_ethereum_address(env: chainsight_cdk::core::Env) -> String {
+            match ethereum_address(env.ecdsa_key_name()).await {
                 Ok(v) => format!("0x{}", hex::encode(v)),
                 Err(msg) => msg,
             }

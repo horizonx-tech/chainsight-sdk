@@ -2,11 +2,11 @@ use app::TransferEvent;
 use chainsight_cdk::{
     indexer::{Event, Indexer, IndexingConfig},
     storage::Data,
-    web3::{Web3CtxParam, Web3Indexer},
+    web3::Web3CtxParam,
 };
 use chainsight_cdk_macros::{
-    define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
-    indexer_exports, manage_single_state, monitoring_canister_metrics, setup_func,
+    define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
+    manage_single_state, monitoring_canister_metrics, setup_func, web3_event_indexer,
 };
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
@@ -23,12 +23,12 @@ define_transform_for_web3!();
 define_get_ethereum_address!();
 manage_single_state!("target_addr", String, false);
 setup_func!({
-    proxy_canister: String,
     target_addr: String,
     web3_ctx_param: Web3CtxParam,
     config: IndexingConfig,
 });
-indexer_exports!(EventLog, TransferEvent, Web3Indexer);
+web3_event_indexer!(TransferEvent);
+init_in!();
 
 fn get_logs(
     from: u64,
