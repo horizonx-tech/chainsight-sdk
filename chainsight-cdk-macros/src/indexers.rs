@@ -60,7 +60,7 @@ pub fn candid_exports(input: TokenStream) -> TokenStream {
         fn proxy_call(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             let proxy_canister = candid::Principal::from_text(get_proxy_canister()).unwrap();
-            chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), HashMap<u64, Vec<TransferEvent>>>::new(
+            chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), HashMap<u64, Vec<#out_type>>>::new(
                 proxy_canister,
                 _events_from_to.clone(),
             )
