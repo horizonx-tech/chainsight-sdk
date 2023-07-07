@@ -1,4 +1,4 @@
-use candid::CandidType;
+use candid::{candid_method, CandidType};
 use chainsight_cdk::{
     indexer::{Event, Indexer},
     storage::{Data, Token},
@@ -8,6 +8,7 @@ use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
     manage_single_state, monitoring_canister_metrics, setup_func, ContractEvent,
 };
+use ic_cdk_macros::update;
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
     ethabi::Address,
@@ -93,7 +94,8 @@ impl Event<EventLog> for TransferEvent {
         TransferEvent::_untokenize(data)
     }
 }
-#[ic_cdk_macros::update]
+#[update]
+#[candid_method(update)]
 async fn this_is_timer_task_entry_point() {
     indexer().index::<TransferEvent>().await;
 }

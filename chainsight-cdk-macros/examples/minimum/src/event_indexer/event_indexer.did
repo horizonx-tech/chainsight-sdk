@@ -19,7 +19,8 @@ service : {
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
   setup : (text, text, Web3CtxParam) -> (Result);
+  this_is_timer_task_entry_point : () -> ();
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
-};
+}
