@@ -65,14 +65,12 @@ thread_local! {
 }
 
 pub fn insert(key: u64, data: Data) {
-    MAP.with(
-        |m: &RefCell<StableBTreeMap<u64, Values, VirtualMemory<std::rc::Rc<RefCell<Vec<u8>>>>>>| {
-            m.borrow_mut()
-                .get(&key)
-                .get_or_insert(Values::new())
-                .append(data)
-        },
-    )
+    MAP.with(|m| {
+        m.borrow_mut()
+            .get(&key)
+            .get_or_insert(Values::new())
+            .append(data)
+    })
 }
 
 pub fn between(from: u64, to: u64) -> Vec<(u64, Values)> {
@@ -90,12 +88,16 @@ pub fn last(n: u64) -> Vec<(u64, Values)> {
     if length <= n {
         MAP.with(|m| m.borrow().iter().map(|(k, v)| (k, v.clone())).collect())
     } else {
-        MAP.with(|m| {
-            m.borrow()
-                .iter()
-                .skip((length - n) as usize)
-                .map(|(k, v)| (k, v.clone()))
-                .collect()
-        })
+        MAP.with(
+            |m: &RefCell<
+                StableBTreeMap<u64, Values, VirtualMemory<std::rc::Rc<RefCell<Vec<u8>>>>>,
+            >| {
+                m.borrow()
+                    .iter()
+                    .skip((length - n) as usize)
+                    .map(|(k, v)| (k, v.clone()))
+                    .collect()
+            },
+        )
     }
 }
