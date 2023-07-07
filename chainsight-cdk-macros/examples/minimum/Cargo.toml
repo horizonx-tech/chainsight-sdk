@@ -1,12 +1,12 @@
 [workspace]
 members = [
-    "src/example_canister",
-    "src/example_stable_memory",
     "src/snapshot_chain",
     "src/snapshot_icp",
     "src/relayer",
     "src/event_indexer",
     "src/algorithm_indexer",
+    "src/example_canister",
+    "src/example_stable_memory",
 ]
 
 [workspace.dependencies]

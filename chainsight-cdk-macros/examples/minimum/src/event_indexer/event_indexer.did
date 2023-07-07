@@ -25,6 +25,7 @@ service : {
   index : () -> ();
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
+  proxy_call : (vec nat8) -> (vec nat8);
   setup : (text, text, Web3CtxParam, IndexingConfig) -> (Result);
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
