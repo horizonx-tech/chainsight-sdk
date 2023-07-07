@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use crate::{
-    indexer::{Error, Finder, Indexer},
+    indexer::{Error, Finder, Indexer, IndexingConfig},
     rpc::{CallProvider, Caller, Message},
 };
 use async_trait::async_trait;
@@ -100,11 +100,11 @@ where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
     /// Index events.
-    pub async fn index(&self) -> Result<(), Error> {
+    pub async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
         let last_indexed = self.get_last_indexed()?;
-        let chunk_size = self.get_event_chunk_size()?;
-        let from = last_indexed + 1;
-        let to = last_indexed + chunk_size;
+        let chunk_size = cfg.chunk_size.unwrap_or(500);
+        let from = cfg.start_from.max(last_indexed + 1);
+        let to = from + chunk_size;
         let result: HashMap<u64, Vec<T>> = self.finder().find(from, to).await?;
         self.persister.persist.clone()(result);
         Ok(())
@@ -121,7 +121,7 @@ where
     }
 
     /// Index events.
-    async fn index<E>(&self) -> Result<(), Error> {
-        self.index().await
+    async fn index<E>(&self, config: IndexingConfig) -> Result<(), Error> {
+        self.index(config).await
     }
 }

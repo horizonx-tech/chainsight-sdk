@@ -1,7 +1,10 @@
-use std::str::FromStr;
-use chainsight_cdk_macros::{manage_single_state, setup_func, manage_vec_state, timer_task_func, define_transform_for_web3, define_web3_ctx, monitoring_canister_metrics, did_export};
+use chainsight_cdk::web3::Web3CtxParam;
+use chainsight_cdk_macros::{
+    define_transform_for_web3, define_web3_ctx, did_export, manage_single_state, manage_vec_state,
+    monitoring_canister_metrics, setup_func, timer_task_func,
+};
 use ic_web3_rs::types::Address;
-
+use std::str::FromStr;
 monitoring_canister_metrics!(60);
 ic_solidity_bindgen::contract_abi!("./src/snapshot_chain/abi/StableSwap.json");
 // contract_abi!("./src/snapshot_chain/abi/ERC20.json");
@@ -28,8 +31,11 @@ async fn get_virtual_price() {
     let current_ts_sec = ic_cdk::api::time() / 1000000;
     let price = StableSwap::new(
         Address::from_str(&get_target_addr()).unwrap(),
-        &web3_ctx().unwrap()
-    ).get_virtual_price(None).await.unwrap();
+        &web3_ctx().unwrap(),
+    )
+    .get_virtual_price(None)
+    .await
+    .unwrap();
     let datum = VirtualPrice {
         value: price.to_string(),
         timestamp: current_ts_sec,

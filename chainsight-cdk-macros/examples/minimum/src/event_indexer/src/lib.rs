@@ -1,14 +1,13 @@
-use candid::{candid_method, CandidType};
+use app::TransferEvent;
 use chainsight_cdk::{
-    indexer::{Event, Indexer},
-    storage::{Data, Token},
-    web3::Web3Indexer,
+    indexer::{Event, Indexer, IndexingConfig},
+    storage::Data,
+    web3::{Web3CtxParam, Web3Indexer},
 };
 use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export,
-    manage_single_state, monitoring_canister_metrics, setup_func, ContractEvent,
+    indexer_exports, manage_single_state, monitoring_canister_metrics, setup_func,
 };
-use ic_cdk_macros::update;
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
     ethabi::Address,
@@ -16,24 +15,21 @@ use ic_web3_rs::{
     transports::ic_http_client::CallOptions,
 };
 use std::{collections::HashMap, str::FromStr};
+mod app;
 contract_abis!("src/event_indexer/abi");
 monitoring_canister_metrics!(60);
 define_web3_ctx!();
 define_transform_for_web3!();
 define_get_ethereum_address!();
 manage_single_state!("target_addr", String, false);
-manage_single_state!("proxy_canister", String, false);
 setup_func!({
     proxy_canister: String,
     target_addr: String,
-    web3_ctx_param: Web3CtxParam
+    web3_ctx_param: Web3CtxParam,
+    config: IndexingConfig,
 });
+indexer_exports!(EventLog, TransferEvent, Web3Indexer);
 
-/// This is auto-generated from yaml
-/// inputs:
-/// - address(get_target_addr())
-/// - contract name(ERC20)
-/// - event name(event_transfer)
 fn get_logs(
     from: u64,
     to: u64,
@@ -49,32 +45,6 @@ fn get_logs(
         }
     }
     .boxed()
-}
-/// This is auto-generated from yaml
-//#[derive(Debug, Clone, CandidType, Default, ContractEvent, Persist)]
-#[derive(Debug, Clone, CandidType, Default, ContractEvent)]
-pub struct TransferEvent {
-    from: String,
-    to: String,
-    value: u128,
-}
-
-impl TransferEvent {
-    fn _tokenize(&self) -> chainsight_cdk::storage::Data {
-        let mut data: HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
-        data.insert("from".to_string(), Token::from(self.from.clone()));
-        data.insert("to".to_string(), Token::from(self.to.clone()));
-        data.insert("value".to_string(), Token::from(self.value.clone()));
-        Data::new(data)
-    }
-
-    fn _untokenize(data: Data) -> Self {
-        TransferEvent {
-            from: data.get("from").unwrap().to_string(),
-            to: data.get("to").unwrap().to_string(),
-            value: data.get("value").unwrap().to_u128().unwrap(),
-        }
-    }
 }
 
 /// This is auto-generated from yaml
@@ -94,13 +64,5 @@ impl Event<EventLog> for TransferEvent {
         TransferEvent::_untokenize(data)
     }
 }
-#[update]
-#[candid_method(update)]
-async fn this_is_timer_task_entry_point() {
-    indexer().index::<TransferEvent>().await;
-}
 
-fn indexer() -> Web3Indexer {
-    Web3Indexer::new(get_logs, None)
-}
 did_export!("event_indexer");

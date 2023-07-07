@@ -1,8 +1,9 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use candid::CandidType;
 use derive_more::Display;
+use serde::Deserialize;
 
 use crate::storage::{self, Data};
 
@@ -18,16 +19,18 @@ pub enum Error {
     OtherError(String),
 }
 
+#[derive(CandidType, Clone, Debug, Default, PartialEq, Deserialize)]
+pub struct IndexingConfig {
+    pub start_from: u64,
+    pub chunk_size: Option<u64>,
+}
+
 pub trait Event<T>: CandidType + Send + Sync + Clone + 'static {
     fn from(event: T) -> Self
     where
         T: Into<Self>;
     fn tokenize(&self) -> Data;
     fn untokenize(data: Data) -> Self;
-}
-
-thread_local! {
-    static CHUNK_SIZE: RefCell<u64> = RefCell::new(500);
 }
 
 #[async_trait]
@@ -49,15 +52,6 @@ pub trait Indexer<T> {
             storage::insert(id, data);
         });
     }
-    /// Get the event chunk size.
-    fn get_event_chunk_size(&self) -> Result<u64, Error> {
-        Ok(CHUNK_SIZE.with(|c| *c.borrow()))
-    }
-    /// Set the event chunk size.
-    fn set_event_chunk_size(&self, size: u64) -> Result<(), Error> {
-        CHUNK_SIZE.with(|c| *c.borrow_mut() = size);
-        Ok(())
-    }
     fn between<E>(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<E>>, Error>
     where
         E: Event<T>,
@@ -78,14 +72,14 @@ pub trait Indexer<T> {
         Ok(storage::last(1).iter().map(|e| e.0).max().unwrap_or(0))
     }
     /// Index events.
-    async fn index<E>(&self) -> Result<(), Error>
+    async fn index<E>(&self, cfg: IndexingConfig) -> Result<(), Error>
     where
         E: Event<T> + From<T>,
     {
         let last_indexed = self.get_last_indexed()?;
-        let chunk_size = self.get_event_chunk_size()?;
-        let from = last_indexed + 1;
-        let to = last_indexed + chunk_size;
+        let chunk_size = cfg.chunk_size.unwrap_or(500);
+        let from = cfg.start_from.max(last_indexed + 1);
+        let to = from + chunk_size;
         let elements = self.finder().find(from, to).await?;
         self.on_update::<E>(elements);
         Ok(())

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::indexer::{Error, Finder, Indexer};
+use crate::{
+    indexer::{Error, Finder, Indexer},
+    types::EcdsaKeyEnvs,
+};
 use async_trait::async_trait;
 use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
 use ic_solidity_bindgen::types::EventLog;
@@ -10,6 +13,14 @@ use ic_web3_rs::{
 };
 pub struct Web3Indexer {
     finder: Web3LogFinder,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
+pub struct Web3CtxParam {
+    pub url: String,
+    pub from: Option<String>,
+    pub chain_id: u64,
+    pub key: EcdsaKeyEnvs,
 }
 
 #[derive(Clone)]

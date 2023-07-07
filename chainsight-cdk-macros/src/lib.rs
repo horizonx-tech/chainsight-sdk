@@ -1,9 +1,9 @@
 mod functions;
+mod indexers;
 mod states;
 mod storages;
 mod utils;
 mod web3;
-
 use proc_macro::TokenStream;
 
 #[proc_macro]
@@ -14,6 +14,11 @@ pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
     utils::monitoring_canister_metrics(input)
+}
+
+#[proc_macro]
+pub fn indexer_exports(input: TokenStream) -> TokenStream {
+    indexers::candid_exports(input)
 }
 
 #[proc_macro]

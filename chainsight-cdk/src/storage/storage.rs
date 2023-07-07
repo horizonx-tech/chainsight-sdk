@@ -13,7 +13,7 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 #[derive(Deserialize, CandidType, Clone)]
 pub struct Values(Vec<Data>);
-#[derive(Deserialize, CandidType, Clone)]
+#[derive(Deserialize, CandidType, Clone, Debug)]
 
 pub struct Data(HashMap<String, Token>);
 
@@ -61,15 +61,23 @@ thread_local! {
         StableBTreeMap::init(
             MANAGER.with(|m|m.borrow().get(MemoryId::new(0))),
         )
-    )
+    );
 }
 
 pub fn insert(key: u64, data: Data) {
     MAP.with(|m| {
-        m.borrow_mut()
+        let mut values = values_of(key);
+        values.append(data);
+        m.borrow_mut().insert(key, values);
+    })
+}
+
+fn values_of(key: u64) -> Values {
+    MAP.with(|m| {
+        m.borrow()
             .get(&key)
-            .get_or_insert(Values::new())
-            .append(data)
+            .unwrap_or_else(|| Values::new())
+            .clone()
     })
 }
 

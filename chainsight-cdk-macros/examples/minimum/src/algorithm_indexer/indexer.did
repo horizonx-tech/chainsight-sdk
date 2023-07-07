@@ -6,9 +6,7 @@ type HttpResponse = record {
   body : vec nat8;
   headers : vec HttpHeader;
 };
-type IndexingConfig = record { start_from : nat64; chunk_size : opt nat64 };
 type Result = variant { Ok; Err : text };
-type TransferEvent = record { to : text; value : nat; from : text };
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
 type Web3CtxParam = record {
   key : EcdsaKeyEnvs;
@@ -17,13 +15,11 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
-  between : (nat64, nat64) -> (vec record { nat64; vec TransferEvent }) query;
   get_ethereum_address : (EcdsaKeyEnvs) -> (text);
-  get_last_indexed : () -> (nat64) query;
-  index : () -> ();
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
-  setup : (text, text, Web3CtxParam, IndexingConfig) -> (Result);
+  setup : (text, Web3CtxParam) -> (Result);
+  this_is_timer_task_entry_point : () -> ();
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;

@@ -92,14 +92,8 @@ pub fn define_transform_for_web3() -> TokenStream {
 
 pub fn define_web3_ctx() -> TokenStream {
     let output = quote! {
-        #[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
-        pub struct Web3CtxParam {
-            pub url: String,
-            pub from: Option<String>,
-            pub chain_id: u64,
-            pub key: chainsight_cdk::types::EcdsaKeyEnvs,
-        }
-        manage_single_state!("web3_ctx_param", Web3CtxParam, false);
+
+        manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
 
         pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
             let param = get_web3_ctx_param();
