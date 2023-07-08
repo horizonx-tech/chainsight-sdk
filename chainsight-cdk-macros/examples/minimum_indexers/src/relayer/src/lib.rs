@@ -1,4 +1,3 @@
-use chainsight_cdk::web3::Web3CtxParam;
 use chainsight_cdk_macros::{
     cross_canister_call_func, define_get_ethereum_address, define_transform_for_web3,
     define_web3_ctx, did_export, manage_single_state, monitoring_canister_metrics, setup_func,
@@ -16,7 +15,7 @@ manage_single_state!("target_addr", String, false);
 setup_func!({
     target_canister: String,
     target_addr: String,
-    web3_ctx_param: Web3CtxParam
+    web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
 
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize)]

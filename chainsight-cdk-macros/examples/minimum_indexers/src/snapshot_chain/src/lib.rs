@@ -1,4 +1,3 @@
-use chainsight_cdk::web3::Web3CtxParam;
 use chainsight_cdk_macros::{
     define_transform_for_web3, define_web3_ctx, did_export, manage_single_state, manage_vec_state,
     monitoring_canister_metrics, setup_func, timer_task_func,
@@ -7,14 +6,12 @@ use ic_web3_rs::types::Address;
 use std::str::FromStr;
 monitoring_canister_metrics!(60);
 ic_solidity_bindgen::contract_abi!("./src/snapshot_chain/abi/StableSwap.json");
-// contract_abi!("./src/snapshot_chain/abi/ERC20.json");
-// contract_abi!("./src/snapshot_chain/abi/UniswapV3Pool.json"); // NOTE: fail because some types cannot be converted
 define_web3_ctx!();
 define_transform_for_web3!();
 manage_single_state!("target_addr", String, false);
 setup_func!({
     target_addr: String,
-    web3_ctx_param: Web3CtxParam
+    web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
 
 // storage
