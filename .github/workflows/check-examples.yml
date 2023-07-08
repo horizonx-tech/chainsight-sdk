@@ -24,7 +24,7 @@ jobs:
         run: |
           rustup update ${{ env.RUST_VERSION }} --no-self-update
           rustup default ${{ env.RUST_VERSION }}
-          rustup component add rustfmt
+          rustup target add wasm32-unknown-unknown
       - name: Move to target example
         run: cd chainsight-cdk-macros/examples/minimum_canisters
       - name: Check compilable to WASM
@@ -46,7 +46,7 @@ jobs:
         run: |
           rustup update ${{ env.RUST_VERSION }} --no-self-update
           rustup default ${{ env.RUST_VERSION }}
-          rustup component add rustfmt
+          rustup target add wasm32-unknown-unknown
       - name: Move to target example
         run: cd chainsight-cdk-macros/examples/minimum_indexers
       - name: Check compilable to WASM
