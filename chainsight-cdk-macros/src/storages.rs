@@ -220,12 +220,12 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         }
 
         #getter_derives
-        pub fn #get_last_elem_func() -> Option<#ty> {
+        pub fn #get_last_elem_func() -> #ty {
             #state_upper_name.with(|mem| {
                 let borrowed_mem = mem.borrow();
                 let len = borrowed_mem.len();
                 borrowed_mem.get(len - 1) // NOTE: Since StableVec does not have last()
-            })
+            }).unwrap() // temp: unwrap to not return opt
         }
 
         #getter_derives
@@ -242,8 +242,8 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         }
 
         #getter_derives
-        pub fn #get_elem_func(idx: u64) -> Option<#ty> {
-            #state_upper_name.with(|mem| mem.borrow().get(idx))
+        pub fn #get_elem_func(idx: u64) -> #ty {
+            #state_upper_name.with(|mem| mem.borrow().get(idx)).unwrap() // temp: unwrap to not return opt
         }
 
         pub fn #add_elem_func(value: #ty) -> Result<(), String> {
