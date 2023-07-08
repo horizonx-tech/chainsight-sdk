@@ -1,0 +1,53 @@
+name: Check examples
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+env:
+  RUST_VERSION: 1.67.1
+jobs:
+  check-canisters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v3
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-canisters
+      - name: Install Rust
+        run: |
+          rustup update ${{ env.RUST_VERSION }} --no-self-update
+          rustup default ${{ env.RUST_VERSION }}
+          rustup component add rustfmt
+      - name: Move to target example
+        run: cd chainsight-cdk-macros/examples/minimum_canisters
+      - name: Check compilable to WASM
+        run: cargo check --target wasm32-unknown-unknown --workspace
+  check-indexers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v3
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-indexers
+      - name: Install Rust
+        run: |
+          rustup update ${{ env.RUST_VERSION }} --no-self-update
+          rustup default ${{ env.RUST_VERSION }}
+          rustup component add rustfmt
+      - name: Move to target example
+        run: cd chainsight-cdk-macros/examples/minimum_indexers
+      - name: Check compilable to WASM
+        run: cargo check --target wasm32-unknown-unknown --workspace
