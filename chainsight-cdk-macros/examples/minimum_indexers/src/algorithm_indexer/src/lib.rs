@@ -1,18 +1,17 @@
 use candid::CandidType;
 use chainsight_cdk::{
     indexer::{Event, IndexingConfig},
-    storage::{Data, Token},
+    storage::Data,
 };
 use chainsight_cdk_macros::{
-    algorithm_indexer, define_transform_for_web3, did_export, init_in, manage_single_state,
-    monitoring_canister_metrics, setup_func,
+    algorithm_indexer, did_export, init_in, manage_single_state, monitoring_canister_metrics,
+    setup_func, Persist,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 monitoring_canister_metrics!(60);
-define_transform_for_web3!();
-manage_single_state!("target_addr", String, false);
 init_in!();
+manage_single_state!("target_addr", String, false);
 
 setup_func!({
     target_addr: String,
@@ -30,7 +29,7 @@ pub struct TransferEvent {
     value: u128,
 }
 
-#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize, Persist)]
 pub struct SampleDest {
     from: String,
 }
@@ -46,20 +45,6 @@ impl Event<TransferEvent> for SampleDest {
 
     fn untokenize(data: Data) -> Self {
         SampleDest::_untokenize(data)
-    }
-}
-
-impl SampleDest {
-    fn _tokenize(&self) -> chainsight_cdk::storage::Data {
-        let mut data: HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
-        data.insert("from".to_string(), Token::from(self.from.clone()));
-        Data::new(data)
-    }
-
-    fn _untokenize(data: Data) -> Self {
-        SampleDest {
-            from: data.get("from").unwrap().to_string(),
-        }
     }
 }
 
