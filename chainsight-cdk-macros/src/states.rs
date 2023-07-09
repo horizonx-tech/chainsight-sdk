@@ -22,43 +22,75 @@ pub fn persist_derive(input: TokenStream) -> TokenStream {
     let mut field_names = Vec::new();
     let mut field_types = Vec::new();
     let mut untokenize_functions = Vec::new();
+    // let mut tokenize_functions = Vec::new();
     for field in fields {
         let field_name = field.ident.as_ref().unwrap();
         let field_type = &field.ty;
         field_names.push(field_name);
-        field_types.push(field_type.clone());
-        // if field is String, use to_string() to convert
+        field_types.push(field_type);
         let untokenize_function = match field_type.to_token_stream().to_string().as_str() {
-            "String" => quote! {to_string() },
-            "u128" => quote! { to_u128().unwrap() },
-            "u64" => quote! { to_u64().unwrap() },
-            "u32" => quote! { to_u32().unwrap() },
-            "u16" => quote! { to_u16().unwrap() },
-            "u8" => quote! { to_u8().unwrap() },
-            "usize" => quote! { to_usize().unwrap() },
-            "i128" => quote! { to_i128().unwrap() },
-            "i64" => quote! { to_i64().unwrap() },
-            "i16" => quote! { to_i16().unwrap() },
-            "i8" => quote! { to_i8().unwrap() },
-            _ => quote! { to_string() },
+            "String" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_string(),
+            },
+            "u128" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_u128().unwrap(),
+            },
+            "u64" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_u64().unwrap(),
+            },
+            "u32" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_u32().unwrap(),
+            },
+            "u16" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_u16().unwrap(),
+            },
+            "u8" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_u8().unwrap(),
+            },
+            "i128" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_i128().unwrap(),
+            },
+            "i64" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_i64().unwrap(),
+            },
+            "i32" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_i32().unwrap(),
+            },
+            "i16" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_i16().unwrap(),
+            },
+            "i8" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_i8().unwrap(),
+            },
+            "bool" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_bool().unwrap(),
+            },
+            "Vec<u8>" => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_vec().unwrap(),
+            },
+            _ => quote! {
+                #field_name: data.get(stringify!(#field_name)).unwrap().to_string(),
+            },
         };
         untokenize_functions.push(untokenize_function);
     }
     let expanded = quote! {
         impl #name {
-            fn untokenize(data: Data) -> Self {
-                #name {
-                    #( #field_names: data.get(stringify!(#field_names)).unwrap().#untokenize_functions ),*
-                }
+            pub fn _tokenize(&self) -> chainsight_cdk::storage::Data {
+                let mut data: HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
+                #(
+                    data.insert(stringify!(#field_names).to_string(), chainsight_cdk::storage::Token::from(self.#field_names.clone()));
+                )*
+                Data::new(data)
             }
-
-            fn tokenize(&self) -> Data {
-                let mut data = HashMap<std::string::String, chainsight_cdk::storage::Token> = HashMap::new();
-                #( data.insert(stringify!(#field_names).to_string(), chainsight_cdk::storage::Token::from(self.#field_names.clone())); )*
-                data
+            pub fn _untokenize(data: Data) -> Self {
+                Self {
+                    #(#untokenize_functions)*
+                }
             }
         }
     };
+
     expanded.into()
 }
 
