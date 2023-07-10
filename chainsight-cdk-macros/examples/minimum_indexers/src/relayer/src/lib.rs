@@ -1,7 +1,7 @@
+use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
-    cross_canister_call_func, define_get_ethereum_address, define_transform_for_web3,
-    define_web3_ctx, did_export, manage_single_state, monitoring_canister_metrics, setup_func,
-    timer_task_func,
+    define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
+    manage_single_state, monitoring_canister_metrics, setup_func, timer_task_func,
 };
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
@@ -17,22 +17,27 @@ setup_func!({
     target_addr: String,
     web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
+init_in!();
 
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize)]
 pub struct VirtualPrice {
     pub value: String,
     pub timestamp: u64,
 }
-
-// timer task
-type CallCanisterArgs = ();
 type CallCanisterResponse = VirtualPrice;
-cross_canister_call_func!("get_last_price", CallCanisterArgs, CallCanisterResponse);
 
 timer_task_func!("set_task", "sync", true);
 async fn sync() {
     let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
-    let price = call_get_last_price(target_canister, ()).await;
+    let call_result = CallProvider::new(proxy())
+        .call(Message::new::<()>((), target_canister.clone(), "get_last_price").unwrap())
+        .await;
+    if let Err(err) = call_result {
+        ic_cdk::println!("error: {:?}", err);
+        return;
+    }
+
+    let price = call_result.unwrap().reply::<CallCanisterResponse>();
     if let Err(err) = price {
         ic_cdk::println!("error: {:?}", err);
         return;
