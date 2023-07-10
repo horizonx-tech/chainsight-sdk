@@ -5,7 +5,7 @@ use chainsight_cdk::{
 };
 use chainsight_cdk_macros::{
     algorithm_indexer, did_export, init_in, manage_single_state, monitoring_canister_metrics,
-    setup_func, Persist,
+    setup_func, timer_task_func, Persist,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,6 +19,7 @@ setup_func!({
 });
 use chainsight_cdk::indexer::Indexer;
 algorithm_indexer!(TransferEvent, SampleDest);
+timer_task_func!("set_task", "index", true);
 
 /// This is auto-generated from yaml
 //#[derive(Debug, Clone, CandidType, Default, ContractEvent, Persist)]

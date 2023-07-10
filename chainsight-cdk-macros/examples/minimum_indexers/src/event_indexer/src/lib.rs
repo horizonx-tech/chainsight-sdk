@@ -1,4 +1,4 @@
-use app::TransferEvent;
+use candid::CandidType;
 use chainsight_cdk::{
     indexer::{Event, Indexer, IndexingConfig},
     storage::Data,
@@ -6,7 +6,8 @@ use chainsight_cdk::{
 };
 use chainsight_cdk_macros::{
     define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-    manage_single_state, monitoring_canister_metrics, setup_func, web3_event_indexer,
+    manage_single_state, monitoring_canister_metrics, setup_func, timer_task_func,
+    web3_event_indexer, ContractEvent, Persist,
 };
 use ic_solidity_bindgen::{contract_abis, types::EventLog};
 use ic_web3_rs::{
@@ -14,8 +15,8 @@ use ic_web3_rs::{
     futures::{future::BoxFuture, FutureExt},
     transports::ic_http_client::CallOptions,
 };
+use serde::Serialize;
 use std::{collections::HashMap, str::FromStr};
-mod app;
 contract_abis!("src/event_indexer/abi");
 monitoring_canister_metrics!(60);
 define_web3_ctx!();
@@ -27,8 +28,10 @@ setup_func!({
     web3_ctx_param: Web3CtxParam,
     config: IndexingConfig,
 });
-web3_event_indexer!(TransferEvent);
 init_in!();
+timer_task_func!("set_task", "index", true);
+
+web3_event_indexer!(TransferEvent);
 
 fn get_logs(
     from: u64,
@@ -45,6 +48,14 @@ fn get_logs(
         }
     }
     .boxed()
+}
+
+/// This is auto-generated from yaml
+#[derive(Debug, Clone, CandidType, Default, ContractEvent, Serialize, Persist)]
+pub struct TransferEvent {
+    from: String,
+    to: String,
+    value: u128,
 }
 
 /// This is auto-generated from yaml
