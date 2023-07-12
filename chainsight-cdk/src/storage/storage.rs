@@ -386,11 +386,7 @@ pub fn get(id: u64) -> Option<Values> {
 pub fn last(n: u64) -> Vec<(u64, Values)> {
     let length = MAP.with(|m| m.borrow().len());
     if length <= n {
-        MAP.with(
-            |m: &RefCell<
-                StableBTreeMap<u64, Values, VirtualMemory<std::rc::Rc<RefCell<Vec<u8>>>>>,
-            >| m.borrow().iter().map(|(k, v)| (k, v.clone())).collect(),
-        )
+        MAP.with(|m| m.borrow().iter().map(|(k, v)| (k, v.clone())).collect())
     } else {
         MAP.with(|m| {
             m.borrow()
