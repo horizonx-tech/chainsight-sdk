@@ -370,14 +370,12 @@ fn values_of(key: u64) -> Values {
 }
 
 pub fn between(from: u64, to: u64) -> Vec<(u64, Values)> {
-    MAP.with(
-        |m: &RefCell<StableBTreeMap<u64, Values, VirtualMemory<std::rc::Rc<RefCell<Vec<u8>>>>>>| {
-            m.borrow()
-                .range(from..to)
-                .map(|(k, v)| (k, v.clone()))
-                .collect()
-        },
-    )
+    MAP.with(|m| {
+        m.borrow()
+            .range(from..to)
+            .map(|(k, v)| (k, v.clone()))
+            .collect()
+    })
 }
 
 pub fn get(id: u64) -> Option<Values> {
