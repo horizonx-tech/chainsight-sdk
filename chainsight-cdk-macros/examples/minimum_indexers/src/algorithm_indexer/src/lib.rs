@@ -1,11 +1,8 @@
 use candid::CandidType;
-use chainsight_cdk::{
-    indexer::{Event, IndexingConfig},
-    storage::Data,
-};
+use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
 use chainsight_cdk_macros::{
     algorithm_indexer, did_export, init_in, manage_single_state, monitoring_canister_metrics,
-    setup_func, timer_task_func, Persist,
+    setup_func, timer_task_func, KeyValueStore, KeyValuesStore, Persist,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,12 +14,10 @@ setup_func!({
     target_addr: String,
     config: IndexingConfig
 });
-use chainsight_cdk::indexer::Indexer;
-algorithm_indexer!(TransferEvent, SampleDest);
+algorithm_indexer!(TransferEvent);
 timer_task_func!("set_task", "index", true);
 
 /// This is auto-generated from yaml
-//#[derive(Debug, Clone, CandidType, Default, ContractEvent, Persist)]
 #[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize)]
 pub struct TransferEvent {
     from: String,
@@ -30,41 +25,22 @@ pub struct TransferEvent {
     value: u128,
 }
 
-#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize, Persist)]
-pub struct SampleDest {
-    from: String,
+#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize, Persist, KeyValueStore)]
+#[memory_id(1)]
+pub struct TotalSupply {
+    value: String,
 }
 
-impl Event<TransferEvent> for SampleDest {
-    fn from(_event: TransferEvent) -> Self {
-        Self::default()
-    }
-
-    fn tokenize(&self) -> chainsight_cdk::storage::Data {
-        self._tokenize()
-    }
-
-    fn untokenize(data: Data) -> Self {
-        SampleDest::_untokenize(data)
-    }
+#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize, Persist, KeyValueStore)]
+#[memory_id(2)]
+pub struct Balance {
+    value: String,
 }
 
-/// This is auto-generated from yaml
-impl Event<SampleDest> for SampleDest {
-    fn from(event: SampleDest) -> Self
-    where
-        SampleDest: Into<Self>,
-    {
-        event.into()
-    }
-
-    fn tokenize(&self) -> chainsight_cdk::storage::Data {
-        self._tokenize()
-    }
-
-    fn untokenize(data: Data) -> Self {
-        SampleDest::_untokenize(data)
-    }
+#[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize, Persist, KeyValuesStore)]
+#[memory_id(1)]
+pub struct Account {
+    value: String,
 }
 
 did_export!("algorithm_indexer");

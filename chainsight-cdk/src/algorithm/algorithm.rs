@@ -13,6 +13,7 @@ where
     finder: AlgorithmLogFinder,
     persister: AlgorithmEventPersister<T>,
 }
+
 #[derive(Clone)]
 pub struct AlgorithmEventPersister<T>
 where
@@ -91,6 +92,7 @@ where
         Ok(())
     }
 }
+
 #[async_trait]
 impl<T> Indexer<T> for AlgorithmIndexer<T>
 where

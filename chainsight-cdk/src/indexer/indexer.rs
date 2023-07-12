@@ -80,7 +80,7 @@ pub trait Indexer<T> {
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
-        let elements: HashMap<u64, Vec<T>> = self.finder().find(from, to).await?;
+        let elements = self.finder().find(from, to).await?;
         self.on_update::<E>(elements);
         Ok(())
     }

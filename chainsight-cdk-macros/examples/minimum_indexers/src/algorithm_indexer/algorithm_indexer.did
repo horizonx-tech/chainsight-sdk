@@ -1,11 +1,6 @@
+type Account = record { value : text };
 type CanisterMetricsSnapshot = record { cycles : nat; timestamp : nat64 };
 type Env = variant { Production; Test; LocalDevelopment };
-type HttpHeader = record { value : text; name : text };
-type HttpResponse = record {
-  status : nat;
-  body : vec nat8;
-  headers : vec HttpHeader;
-};
 type IndexingConfig = record { start_from : nat64; chunk_size : opt nat64 };
 type InitError = variant {
   InvalidDestination : text;
@@ -15,23 +10,41 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
-type SampleDest = record { from : text };
-type TransformArgs = record { context : vec nat8; response : HttpResponse };
 service : {
-  canister_type : () -> (text) query;
-  event_source : () -> (principal) query;
-  events_from_to : (nat64, nat64) -> (
-      vec record { nat64; vec SampleDest },
+  between_account : (record { text; text }) -> (
+      vec record { text; vec Account },
     ) query;
-  events_latest_n : (nat64) -> (vec record { nat64; vec SampleDest }) query;
-  get_last_indexed : () -> (nat64) query;
+  between_balance : (record { text; text }) -> (
+      vec record { text; Account },
+    ) query;
+  between_totalsupply : (record { text; text }) -> (
+      vec record { text; Account },
+    ) query;
+  event_source : () -> (principal) query;
+  get_account : (text) -> (vec Account) query;
+  get_balance : (text) -> (opt Account) query;
+  get_totalsupply : (text) -> (opt Account) query;
   index : () -> ();
   init_in : (Env) -> (Result);
+  last_account : (nat64) -> (vec record { text; vec Account }) query;
+  last_balance : (nat64) -> (vec record { text; Account }) query;
+  last_totalsupply : (nat64) -> (vec record { text; Account }) query;
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
-  proxy_call : (vec nat8) -> (vec nat8);
+  proxy_between_account : (vec nat8) -> (vec nat8);
+  proxy_between_balance : (vec nat8) -> (vec nat8);
+  proxy_between_totalsupply : (vec nat8) -> (vec nat8);
+  proxy_canister_metrics_snapshots_len : (vec nat8) -> (vec nat8);
+  proxy_get_account : (vec nat8) -> (vec nat8);
+  proxy_get_balance : (vec nat8) -> (vec nat8);
+  proxy_get_canister_metrics_snapshot : (vec nat8) -> (vec nat8);
+  proxy_get_canister_metrics_snapshots : (vec nat8) -> (vec nat8);
+  proxy_get_last_canister_metrics_snapshot : (vec nat8) -> (vec nat8);
+  proxy_get_top_canister_metrics_snapshots : (vec nat8) -> (vec nat8);
+  proxy_get_totalsupply : (vec nat8) -> (vec nat8);
+  proxy_last_account : (vec nat8) -> (vec nat8);
+  proxy_last_balance : (vec nat8) -> (vec nat8);
+  proxy_last_totalsupply : (vec nat8) -> (vec nat8);
+  set_task : (nat32, nat32) -> ();
   setup : (text, IndexingConfig) -> (Result_1);
-  transform : (TransformArgs) -> (HttpResponse) query;
-  transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
-  transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
 }

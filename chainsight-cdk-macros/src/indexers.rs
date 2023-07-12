@@ -12,18 +12,12 @@ pub struct Web3EventIndexerInput {
 
 pub struct AlgorithmIndexerInput {
     in_type: syn::Type,
-    out_type: syn::Type,
 }
 
 impl Parse for AlgorithmIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let out_type: Type = input.parse()?;
-        Ok(AlgorithmIndexerInput {
-            in_type: in_ty,
-            out_type,
-        })
+        Ok(AlgorithmIndexerInput { in_type: in_ty })
     }
 }
 
@@ -36,7 +30,7 @@ impl Parse for Web3EventIndexerInput {
 
 pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     let Web3EventIndexerInput { out_type } = parse_macro_input!(input as Web3EventIndexerInput);
-    let common = indexer_common(out_type.clone());
+    let common = event_indexer_common(out_type.clone());
     quote! {
         #common
         fn indexer() -> chainsight_cdk::web3::Web3Indexer {
@@ -63,12 +57,11 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 }
 
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
-    let AlgorithmIndexerInput { in_type, out_type } =
-        parse_macro_input!(input as AlgorithmIndexerInput);
-    let common = indexer_common(out_type.clone());
+    let AlgorithmIndexerInput { in_type } = parse_macro_input!(input as AlgorithmIndexerInput);
     quote! {
-        #common
         mod app;
+        manage_single_state!("config", IndexingConfig, false);
+
         fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new(proxy(), get_target(), app::persist)
         }
@@ -87,16 +80,11 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
             get_target()
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        async fn canister_type() -> String {
-            "algorithm_indexer".to_string()
-        }
     }
     .into()
 }
 
-pub fn indexer_common(out_type: syn::Type) -> TokenStream2 {
+pub fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
     let output = quote! {
         manage_single_state!("config", IndexingConfig, false);
         #[ic_cdk::query]

@@ -89,6 +89,14 @@ pub fn persist_derive(input: TokenStream) -> TokenStream {
                 }
             }
         }
+        impl chainsight_cdk::storage::Persist for #name {
+            fn untokenize(data: Data) -> Self {
+                Self::_untokenize(data)
+            }
+            fn tokenize(&self) -> Data {
+                self._tokenize()
+            }
+        }
     };
 
     expanded.into()
@@ -193,10 +201,22 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
     let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
+    let _get_vec_func = syn::Ident::new(&format!("_get_{}s", state_name), name.span());
+    let proxy_get_vec_func = syn::Ident::new(&format!("proxy_get_{}s", state_name), name.span());
     let get_len_func = syn::Ident::new(&format!("{}s_len", state_name), name.span());
+    let _get_len_func = syn::Ident::new(&format!("_{}s_len", state_name), name.span());
+    let proxy_get_len_func = syn::Ident::new(&format!("proxy_{}s_len", state_name), name.span());
     let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
+    let _get_last_elem_func = syn::Ident::new(&format!("_get_last_{}", state_name), name.span());
+    let proxy_get_last_elem_func =
+        syn::Ident::new(&format!("proxy_get_last_{}", state_name), name.span());
     let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
+    let _get_top_elems_func = syn::Ident::new(&format!("_get_top_{}s", state_name), name.span());
+    let proxy_get_top_elems_func =
+        syn::Ident::new(&format!("proxy_get_top_{}s", state_name), name.span());
     let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
+    let _get_elem_func = syn::Ident::new(&format!("_get_{}", state_name), name.span());
+    let proxy_get_elem_func = syn::Ident::new(&format!("proxy_get_{}", state_name), name.span());
     let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
@@ -207,6 +227,10 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
     } else {
         quote! {}
     };
+    let update_derive = quote! {
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+    };
 
     let expanded = quote! {
         thread_local! {
@@ -214,28 +238,101 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #getter_derives
-        pub fn #get_vec_func() -> Vec<#ty> {
+        fn #get_vec_func() -> Vec<#ty> {
+            #_get_vec_func()
+        }
+
+        pub fn #_get_vec_func() -> Vec<#ty> {
             #state_upper_name.with(|state| state.borrow().clone())
         }
 
+        #update_derive
+        fn #proxy_get_vec_func(input: Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<#ty>>::new(
+                proxy(),
+                #_get_vec_func,
+            )
+            .reply(input)
+        }
+
         #getter_derives
-        pub fn #get_len_func() -> usize {
+        fn #get_len_func() -> usize {
+            #_get_len_func()
+        }
+
+        pub fn #_get_len_func() -> usize {
             #state_upper_name.with(|state| state.borrow().len())
         }
 
+        #update_derive
+        fn #proxy_get_len_func(input: Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<usize>::new(
+                proxy(),
+                #_get_len_func,
+            )
+            .reply(input)
+        }
+
+
         #getter_derives
-        pub fn #get_last_elem_func() -> #ty {
+        fn #get_last_elem_func() -> #ty {
+            #_get_last_elem_func()
+        }
+
+        pub fn #_get_last_elem_func() -> #ty {
             #state_upper_name.with(|state| state.borrow().last().unwrap().clone())
         }
 
+        #update_derive
+        fn #proxy_get_last_elem_func(input: Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#ty>::new(
+                proxy(),
+                #_get_last_elem_func,
+            )
+            .reply(input)
+        }
+
+
         #getter_derives
-        pub fn #get_top_elems_func(n: usize) -> Vec<#ty> {
+        fn #get_top_elems_func(n: usize) -> Vec<#ty> {
+            #_get_top_elems_func(n)
+        }
+
+        pub fn #_get_top_elems_func(n: usize) -> Vec<#ty> {
             #state_upper_name.with(|state| state.borrow().iter().rev().take(n).cloned().collect::<Vec<_>>())
         }
 
+        #update_derive
+        fn #proxy_get_top_elems_func(input: Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<usize, Vec<#ty>>::new(
+                proxy(),
+                #_get_top_elems_func,
+            )
+            .reply(input)
+        }
+
+
         #getter_derives
-        pub fn #get_elem_func(idx: usize) -> #ty {
+        fn #get_elem_func(idx: usize) -> #ty {
+            #_get_elem_func(idx)
+        }
+
+        pub fn #_get_elem_func(idx: usize) -> #ty {
             #state_upper_name.with(|state| state.borrow()[idx].clone())
+        }
+
+        #update_derive
+        fn #proxy_get_elem_func(input: Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<usize, #ty>::new(
+                proxy(),
+                #_get_elem_func,
+            )
+            .reply(input)
         }
 
         pub fn #add_elem_func(value: #ty) {

@@ -24,13 +24,17 @@ pub struct VirtualPrice {
     pub value: String,
     pub timestamp: u64,
 }
-type CallCanisterResponse = VirtualPrice;
 
+type CallCanisterArgs = ();
+type CallCanisterResponse = VirtualPrice;
 timer_task_func!("set_task", "sync", true);
 async fn sync() {
     let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
     let call_result = CallProvider::new(proxy())
-        .call(Message::new::<()>((), target_canister.clone(), "get_last_price").unwrap())
+        .call(
+            Message::new::<CallCanisterArgs>((), target_canister.clone(), "get_last_price")
+                .unwrap(),
+        )
         .await;
     if let Err(err) = call_result {
         ic_cdk::println!("error: {:?}", err);

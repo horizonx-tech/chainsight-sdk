@@ -1,67 +1,11 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::parse_macro_input;
-
-struct CrossCanisterCallFuncInput {
-    fn_name: syn::LitStr,
-    args_type: syn::Type,
-    result_type: syn::Type,
-}
-impl syn::parse::Parse for CrossCanisterCallFuncInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let fn_name = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let args_type = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let result_type = input.parse()?;
-        Ok(CrossCanisterCallFuncInput {
-            fn_name,
-            args_type,
-            result_type,
-        })
-    }
-}
-
-pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
-    let CrossCanisterCallFuncInput {
-        fn_name,
-        args_type,
-        result_type,
-    } = parse_macro_input!(input as CrossCanisterCallFuncInput);
-
-    let call_fn_name = format_ident!("call_{}", &fn_name.value());
-
-    let (args_type, args) = match args_type.clone() {
-        syn::Type::Tuple(type_tuple) => {
-            if type_tuple.elems.len() == 1 {
-                // same as in the case of primitive type
-                let single_arg_type = type_tuple.elems.first().unwrap().clone();
-                (single_arg_type.clone(), quote! { (call_args,) })
-            } else {
-                (args_type, quote! { call_args })
-            }
-        }
-        _ => (args_type, quote! { (call_args,) }),
-    };
-
-    let output = quote! {
-        async fn #call_fn_name(
-            canister_id: candid::Principal,
-            call_args: #args_type,
-        ) -> Result<#result_type, String> {
-            let res = ic_cdk::api::call::call::<_, (#result_type,)>(canister_id, #fn_name, #args)
-                .await
-                .map_err(|e| format!("call error: {:?}", e))?;
-            Ok(res.0)
-        }
-    };
-    output.into()
-}
 
 pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as syn::LitInt);
     let output = quote! {
-        #[derive(Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
+        #[derive(Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize)]
         pub struct CanisterMetricsSnapshot {
             pub timestamp: u64,
             pub cycles: u128,

@@ -7,11 +7,6 @@ mod web3;
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn cross_canister_call_func(input: TokenStream) -> TokenStream {
-    utils::cross_canister_call_func(input)
-}
-
-#[proc_macro]
 pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
     utils::monitoring_canister_metrics(input)
 }
@@ -104,4 +99,14 @@ pub fn contract_event_derive(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(Persist)]
 pub fn persist_derive(input: TokenStream) -> TokenStream {
     states::persist_derive(input)
+}
+
+#[proc_macro_derive(KeyValueStore, attributes(memory_id))]
+pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
+    storages::key_value_store_derive(input)
+}
+
+#[proc_macro_derive(KeyValuesStore, attributes(memory_id))]
+pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
+    storages::key_values_store_derive(input)
 }

@@ -1,8 +1,9 @@
 use chainsight_cdk_macros::{
-    define_transform_for_web3, define_web3_ctx, did_export, manage_single_state, manage_vec_state,
-    monitoring_canister_metrics, setup_func, timer_task_func,
+    define_transform_for_web3, define_web3_ctx, did_export, init_in, manage_single_state,
+    manage_vec_state, monitoring_canister_metrics, setup_func, timer_task_func,
 };
 use ic_web3_rs::types::Address;
+use serde::Serialize;
 use std::str::FromStr;
 monitoring_canister_metrics!(60);
 ic_solidity_bindgen::contract_abi!("./src/snapshot_chain/abi/StableSwap.json");
@@ -13,9 +14,9 @@ setup_func!({
     target_addr: String,
     web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
-
+init_in!();
 // storage
-#[derive(Debug, Clone, candid::CandidType, candid::Deserialize)]
+#[derive(Debug, Clone, candid::CandidType, candid::Deserialize, Serialize)]
 pub struct VirtualPrice {
     pub value: String,
     pub timestamp: u64,

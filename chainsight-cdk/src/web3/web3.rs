@@ -45,6 +45,7 @@ impl Web3Indexer {
             u64,
             CallOptions,
         ) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, Error>>,
+
         call_options: Option<CallOptions>,
     ) -> Self {
         Self {

@@ -172,6 +172,269 @@ impl syn::parse::Parse for StableMemoryForVecInput {
         })
     }
 }
+
+fn mem_id(input: DeriveInput) -> u8 {
+    let memory_id = input
+        .attrs
+        .iter()
+        .find_map(|attr| {
+            if attr.path().is_ident("memory_id") {
+                attr.parse_args::<LitInt>().ok()
+            } else {
+                None
+            }
+        })
+        .map(|lit| lit.base10_parse::<u8>().unwrap())
+        .expect("memory_id is required. e.g. #[memory_id(1)]");
+    assert!(memory_id < 6, "memory_id must be less than 6");
+    memory_id
+}
+
+pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    let name = input.clone().ident;
+    let memory_id = mem_id(input);
+    let query = quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+    };
+    let update = quote! {
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+    };
+    let getter = syn::Ident::new(
+        &format!("get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _getter = syn::Ident::new(
+        &format!("_get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_getter = syn::Ident::new(
+        &format!("proxy_get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let between = syn::Ident::new(
+        &format!("between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _between = syn::Ident::new(
+        &format!("_between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_between = syn::Ident::new(
+        &format!("proxy_between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let last = syn::Ident::new(
+        &format!("last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _last = syn::Ident::new(
+        &format!("_last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_last = syn::Ident::new(
+        &format!("proxy_last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+
+    quote! {
+        #query
+        fn #getter(id: String) -> Vec<#name> {
+            #_getter(id)
+        }
+        fn #_getter(id: String) -> Vec<#name> {
+            #name::get(id.as_str())
+        }
+        #update
+        fn #proxy_getter(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<String, Vec<#name>>::new(
+                proxy(),
+                #_getter,
+            )
+            .reply(input)
+        }
+
+        #query
+        fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
+            #_between(a)
+        }
+        fn #_between(a: (String, String)) -> HashMap<String, Vec<#name>> {
+            #name::between(a.0.as_str(), a.1.as_str())
+        }
+
+        #update
+        fn #proxy_between(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<(String, String), HashMap<String, Vec<#name>>>::new(
+                proxy(),
+                #_between,
+            )
+            .reply(input)
+        }
+        #query
+        fn #last(n: u64) -> HashMap<String, Vec<#name>> {
+            #_last(n)
+        }
+        fn #_last(n: u64) -> HashMap<String, Vec<#name>> {
+            #name::last(n)
+        }
+        #update
+        fn #proxy_last(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<u64, HashMap<String, Vec<#name>>>::new(
+                proxy(),
+                #_last,
+            )
+            .reply(input)
+        }
+
+        impl #name {
+
+            pub fn get(id: &str) -> Vec<Self> {
+                Self::get_store().get(id)
+            }
+
+            pub fn put(id: &str, e: Vec<Self>) {
+                Self::get_store().set(id, e)
+            }
+            pub fn between(from:&str, to: &str) -> HashMap<String, Vec<Self>> {
+                Self::get_store().between(from, to)
+            }
+            pub fn last(n: u64) -> HashMap<String, Vec<Self>> {
+                Self::get_store().last_elems(n)
+            }
+            fn get_store() -> chainsight_cdk::storage::KeyValuesStore {
+                chainsight_cdk::storage::KeyValuesStore::new(#memory_id)
+            }
+        }
+    }
+    .into()
+}
+
+pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    let name = input.clone().ident;
+    let memory_id = mem_id(input);
+    let query = quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+    };
+    let update = quote! {
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+    };
+    let getter = syn::Ident::new(
+        &format!("get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _getter = syn::Ident::new(
+        &format!("_get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_getter = syn::Ident::new(
+        &format!("proxy_get_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let between = syn::Ident::new(
+        &format!("between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _between = syn::Ident::new(
+        &format!("_between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_between = syn::Ident::new(
+        &format!("proxy_between_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let last = syn::Ident::new(
+        &format!("last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let _last = syn::Ident::new(
+        &format!("_last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+    let proxy_last = syn::Ident::new(
+        &format!("proxy_last_{}", name.to_string().to_lowercase()),
+        name.span(),
+    );
+
+    quote! {
+
+        #query
+        fn #getter(id: String) -> Option<#name> {
+            #_getter(id)
+        }
+        fn #_getter(id: String) -> Option<#name> {
+            #name::get(id.as_str())
+        }
+        #update
+        fn #proxy_getter(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<String, Option<#name>>::new(
+                proxy(),
+                #_getter,
+            )
+            .reply(input)
+        }
+        #query
+        fn #between(a:(String, String)) -> Vec<(String, #name)> {
+            #_between(a)
+        }
+        fn #_between(a:(String, String)) -> Vec<(String, #name)> {
+            #name::between(a.0.as_str(), a.1.as_str())
+        }
+        #update
+        fn #proxy_between(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<(String, String), Vec<(String, #name)>>::new(
+                proxy(),
+                #_between,
+            )
+            .reply(input)
+        }
+        #query
+        fn #last(n: u64) -> Vec<(String, #name)> {
+            #_last(n)
+        }
+        fn #_last(n: u64) -> Vec<(String, #name)> {
+            #name::last(n)
+        }
+        #update
+        fn #proxy_last(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<(String, #name)>>::new(
+                proxy(),
+                #_last,
+            )
+            .reply(input)
+        }
+
+        impl #name {
+            pub fn get(id: &str) -> Option<Self> {
+                Self::get_store().get(id)
+            }
+            pub fn put(&self, id: &str) {
+                Self::get_store().set(id, self.clone())
+            }
+            pub fn between(from:&str, to: &str) -> Vec<(String, Self)> {
+                Self::get_store().between(from, to)
+            }
+            pub fn last(n: u64) -> Vec<(String, Self)> {
+                Self::get_store().last(n)
+            }
+            fn get_store() -> chainsight_cdk::storage::KeyValueStore {
+                chainsight_cdk::storage::KeyValueStore::new(#memory_id)
+            }
+        }
+    }
+    .into()
+}
+
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
     let StableMemoryForVecInput {
         name,
@@ -183,10 +446,22 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
     let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
+    let _get_vec_func = syn::Ident::new(&format!("_get_{}s", state_name), name.span());
+    let proxy_get_vec_func = syn::Ident::new(&format!("proxy_get_{}s", state_name), name.span());
     let get_len_func = syn::Ident::new(&format!("{}s_len", state_name), name.span());
+    let _get_len_func = syn::Ident::new(&format!("_{}s_len", state_name), name.span());
+    let proxy_get_len_func = syn::Ident::new(&format!("proxy_{}s_len", state_name), name.span());
     let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
+    let _get_last_elem_func = syn::Ident::new(&format!("_get_last_{}", state_name), name.span());
+    let proxy_get_last_elem_func =
+        syn::Ident::new(&format!("proxy_get_last_{}", state_name), name.span());
     let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
+    let _get_top_elems_func = syn::Ident::new(&format!("_get_top_{}s", state_name), name.span());
+    let proxy_get_top_elems_func =
+        syn::Ident::new(&format!("proxy_get_top_{}s", state_name), name.span());
     let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
+    let _get_elem_func = syn::Ident::new(&format!("_get_{}", state_name), name.span());
+    let proxy_get_elem_func = syn::Ident::new(&format!("proxy_get_{}", state_name), name.span());
     let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
@@ -196,6 +471,10 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         }
     } else {
         quote! {}
+    };
+    let update_derives = quote! {
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
     };
 
     let output = quote! {
@@ -210,17 +489,50 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         }
 
         #getter_derives
-        pub fn #get_vec_func() -> Vec<#ty> {
+        fn #get_vec_func() -> Vec<#ty> {
+            #_get_vec_func()
+        }
+
+        pub fn #_get_vec_func() -> Vec<#ty> {
             #state_upper_name.with(|mem| mem.borrow().iter().collect())
         }
 
-        #getter_derives
-        pub fn #get_len_func() -> u64 {
-            #state_upper_name.with(|mem| mem.borrow().len())
+        #update_derives
+        fn #proxy_get_vec_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<(), Vec<#ty>>::new(
+                proxy(),
+                #_get_vec_func,
+            )
+            .reply(input)
         }
 
         #getter_derives
-        pub fn #get_last_elem_func() -> #ty {
+        fn #get_len_func() -> u64 {
+            #_get_len_func()
+        }
+
+        pub fn #_get_len_func() -> u64 {
+            #state_upper_name.with(|mem| mem.borrow().len())
+        }
+
+        #update_derives
+        fn #proxy_get_len_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<(), u64>::new(
+                proxy(),
+                #_get_len_func,
+            )
+            .reply(input)
+        }
+
+
+        #getter_derives
+        fn #get_last_elem_func() -> #ty {
+           #_get_last_elem_func()
+        }
+
+        pub fn #_get_last_elem_func() -> #ty {
             #state_upper_name.with(|mem| {
                 let borrowed_mem = mem.borrow();
                 let len = borrowed_mem.len();
@@ -228,8 +540,22 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
             }).unwrap() // temp: unwrap to not return opt
         }
 
+        #update_derives
+        fn #proxy_get_last_elem_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<(), #ty>::new(
+                proxy(),
+                #_get_last_elem_func,
+            )
+            .reply(input)
+        }
+
         #getter_derives
         pub fn #get_top_elems_func(n: u64) -> Vec<#ty> {
+            #_get_top_elems_func(n)
+        }
+
+        pub fn #_get_top_elems_func(n: u64) -> Vec<#ty> {
             #state_upper_name.with(|mem| {
                 let borrowed_mem = mem.borrow();
                 let len = borrowed_mem.len();
@@ -241,9 +567,34 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
             })
         }
 
+        #update_derives
+        fn #proxy_get_top_elems_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<#ty>>::new(
+                proxy(),
+                #_get_top_elems_func,
+            )
+            .reply(input)
+        }
+
+
         #getter_derives
-        pub fn #get_elem_func(idx: u64) -> #ty {
+        fn #get_elem_func(idx: u64) -> #ty {
+            #_get_elem_func(idx)
+        }
+
+        pub fn #_get_elem_func(idx: u64) -> #ty {
             #state_upper_name.with(|mem| mem.borrow().get(idx)).unwrap() // temp: unwrap to not return opt
+        }
+
+        #update_derives
+        fn #proxy_get_elem_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProvider::<u64, #ty>::new(
+                proxy(),
+                #_get_elem_func,
+            )
+            .reply(input)
         }
 
         pub fn #add_elem_func(value: #ty) -> Result<(), String> {
