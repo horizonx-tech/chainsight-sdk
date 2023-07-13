@@ -14,7 +14,7 @@ setup_func!({
     target_addr: String,
     config: IndexingConfig
 });
-algorithm_indexer!(TransferEvent);
+algorithm_indexer!(HashMap<u64, Vec<TransferEvent>>, "proxy_call");
 timer_task_func!("set_task", "index", true);
 
 /// This is auto-generated from yaml

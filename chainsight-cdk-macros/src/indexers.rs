@@ -12,12 +12,18 @@ pub struct Web3EventIndexerInput {
 
 pub struct AlgorithmIndexerInput {
     in_type: syn::Type,
+    call_method: syn::LitStr,
 }
 
 impl Parse for AlgorithmIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
-        Ok(AlgorithmIndexerInput { in_type: in_ty })
+        input.parse::<syn::Token![,]>()?;
+        let call_method_str: syn::LitStr = input.parse()?;
+        Ok(AlgorithmIndexerInput {
+            in_type: in_ty,
+            call_method: call_method_str,
+        })
     }
 }
 
@@ -33,18 +39,13 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     let common = event_indexer_common(out_type.clone());
     quote! {
         #common
-        fn indexer() -> chainsight_cdk::web3::Web3Indexer {
+        fn indexer() -> chainsight_cdk::web3::Web3Indexer<#out_type> {
             chainsight_cdk::web3::Web3Indexer::new(get_logs, None)
         }
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
-            indexer().index::<#out_type>(get_config()).await.unwrap();
-        }
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        async fn canister_type() -> String {
-            "event_indexer".to_string()
+            indexer().index(get_config()).await.unwrap();
         }
 
         #[ic_cdk::query]
@@ -57,18 +58,27 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 }
 
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
-    let AlgorithmIndexerInput { in_type } = parse_macro_input!(input as AlgorithmIndexerInput);
+    let AlgorithmIndexerInput {
+        in_type,
+        call_method,
+    } = parse_macro_input!(input as AlgorithmIndexerInput);
     quote! {
         mod app;
         manage_single_state!("config", IndexingConfig, false);
-
+        use chainsight_cdk::indexer::Indexer;
         fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
-            chainsight_cdk::algorithm::AlgorithmIndexer::new(proxy(), get_target(), app::persist)
+            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(proxy(), get_target(),stringify!(#call_method), app::persist)
         }
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
-            indexer().index(get_config()).await.unwrap();
+            let mut config = get_config();
+            let stored = chainsight_cdk::storage::get_last_key();
+            let stored_u64 = stored.parse::<u64>().unwrap_or(0);
+            if stored_u64 > config.start_from {
+                config.start_from = stored_u64;
+            }
+            indexer().index(config).await.unwrap();
         }
         fn get_target() -> candid::Principal {
             candid::Principal::from_text(get_target_addr()).unwrap()
@@ -99,7 +109,7 @@ pub fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
             _events_from_to((last_indexed - n, last_indexed))
         }
         fn _events_from_to(input: (u64,  u64)) -> HashMap<u64, Vec<#out_type>> {
-            indexer().between::<#out_type>(input.0,input.1).unwrap()
+            indexer().between(input.0,input.1).unwrap()
         }
         #[ic_cdk::query]
         #[candid::candid_method(query)]

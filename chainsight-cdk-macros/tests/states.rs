@@ -1,4 +1,6 @@
-#[derive(Default, Clone, Debug, PartialEq)]
+use candid::CandidType;
+
+#[derive(Default, Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct Message {
     pub from: String,
     pub to: String,
@@ -46,8 +48,8 @@ mod manage_single_state {
 
 mod manage_vec_state {
     use super::Message;
-    use chainsight_cdk_macros::manage_vec_state;
-
+    use chainsight_cdk_macros::{init_in, manage_vec_state};
+    init_in!();
     manage_vec_state!("result", String, false);
     manage_vec_state!("message", Message, false);
 

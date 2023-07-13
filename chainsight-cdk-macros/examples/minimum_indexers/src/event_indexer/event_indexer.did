@@ -24,7 +24,6 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
-  canister_type : () -> (text) query;
   event_source : () -> (text) query;
   events_from_to : (nat64, nat64) -> (
       vec record { nat64; vec TransferEvent },

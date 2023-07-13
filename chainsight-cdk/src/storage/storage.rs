@@ -79,12 +79,6 @@ impl BoundedStorable for Values {
 }
 
 impl Values {
-    fn new() -> Self {
-        Self(Vec::new())
-    }
-    fn append(&mut self, data: Data) {
-        self.0.push(data);
-    }
     pub fn to_vec(&self) -> Vec<Data> {
         self.0.clone()
     }
@@ -154,11 +148,21 @@ thread_local! {
             MANAGER.with(|m|m.borrow().get(MemoryId::new(10))),
         )
     );
+    static LAST_KEY_STORE: RefCell<String> = RefCell::new(String::new());
 
 }
 
 pub struct KeyValuesStore {
     store: &'static std::thread::LocalKey<RefCell<StableBTreeMap<Id, Values, Memory>>>,
+}
+
+pub fn set_last_key(key: String) {
+    LAST_KEY_STORE.with(|m| {
+        *m.borrow_mut() = key;
+    });
+}
+pub fn get_last_key() -> String {
+    LAST_KEY_STORE.with(|m| m.borrow().clone())
 }
 
 impl KeyValuesStore {
@@ -349,51 +353,5 @@ impl KeyValueStore {
             })
             .into_iter()
             .collect()
-    }
-}
-
-pub fn insert(key: u64, data: Data) {
-    MAP.with(|m| {
-        let mut values = values_of(key);
-        values.append(data);
-        m.borrow_mut().insert(key, values);
-    })
-}
-
-fn values_of(key: u64) -> Values {
-    MAP.with(|m| {
-        m.borrow()
-            .get(&key)
-            .unwrap_or_else(|| Values::new())
-            .clone()
-    })
-}
-
-pub fn between(from: u64, to: u64) -> Vec<(u64, Values)> {
-    MAP.with(|m| {
-        m.borrow()
-            .range(from..to)
-            .map(|(k, v)| (k, v.clone()))
-            .collect()
-    })
-}
-
-pub fn get(id: u64) -> Option<Values> {
-    MAP.with(|m| m.borrow().get(&id))
-}
-
-// get last n
-pub fn last(n: u64) -> Vec<(u64, Values)> {
-    let length = MAP.with(|m| m.borrow().len());
-    if length <= n {
-        MAP.with(|m| m.borrow().iter().map(|(k, v)| (k, v.clone())).collect())
-    } else {
-        MAP.with(|m| {
-            m.borrow()
-                .iter()
-                .skip((length - n) as usize)
-                .map(|(k, v)| (k, v.clone()))
-                .collect()
-        })
     }
 }

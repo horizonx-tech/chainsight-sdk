@@ -60,13 +60,6 @@ pub struct TransferEvent {
 
 /// This is auto-generated from yaml
 impl Event<EventLog> for TransferEvent {
-    fn from(event: EventLog) -> Self
-    where
-        EventLog: Into<Self>,
-    {
-        event.into()
-    }
-
     fn tokenize(&self) -> chainsight_cdk::storage::Data {
         self._tokenize()
     }

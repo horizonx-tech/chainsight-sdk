@@ -1,32 +1,24 @@
 use crate::{
-    indexer::{Error, Finder, Indexer, IndexingConfig},
+    indexer::{Error, Indexer, IndexingConfig},
     rpc::{CallProvider, Caller, Message},
+    storage,
 };
 use async_trait::async_trait;
 use candid::{CandidType, Principal};
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
-pub struct AlgorithmIndexer<T>
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
+pub struct AlgorithmIndexer<Logs> {
     finder: AlgorithmLogFinder,
-    persister: AlgorithmEventPersister<T>,
+    persister: AlgorithmEventPersister<Logs>,
 }
 
 #[derive(Clone)]
-pub struct AlgorithmEventPersister<T>
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
-    persist: fn(HashMap<u64, Vec<T>>),
+pub struct AlgorithmEventPersister<Logs> {
+    persist: fn(Logs),
 }
 
-impl<T> AlgorithmEventPersister<T>
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
-    pub fn new(func: fn(HashMap<u64, Vec<T>>)) -> Self {
+impl<Logs> AlgorithmEventPersister<Logs> {
+    pub fn new(func: fn(Logs)) -> Self {
         Self { persist: func }
     }
 }
@@ -35,71 +27,141 @@ where
 pub struct AlgorithmLogFinder {
     proxy: Principal,
     target: Principal,
+    method: String,
 }
 
-#[async_trait]
-impl<T> Finder<T> for AlgorithmLogFinder
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
-    async fn find(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<T>>, Error> {
-        let results = self.get_logs(from, to).await?;
+impl AlgorithmLogFinder {
+    async fn find<T, Args, Reply>(&self, args: Args) -> Result<Reply, Error>
+    where
+        T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
+        Args: serde::Serialize + Send,
+        Reply: serde::de::DeserializeOwned,
+    {
+        let results = self.get_logs::<T, Args, Reply>(args).await?;
         Ok(results)
     }
 }
 
 impl AlgorithmLogFinder {
     fn new(proxy: Principal, target: Principal) -> Self {
-        Self { proxy, target }
+        Self {
+            proxy,
+            target,
+            method: "proxy_call".to_string(),
+        }
+    }
+    fn new_with_method(proxy: Principal, target: Principal, method: &str) -> Self {
+        Self {
+            proxy,
+            target,
+            method: method.to_string(),
+        }
     }
 
-    async fn get_logs<T>(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<T>>, Error>
+    async fn get_logs<T, Args, Reply>(&self, args: Args) -> Result<Reply, Error>
     where
         T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
+        Args: serde::Serialize,
+        Reply: serde::de::DeserializeOwned,
     {
         let result = CallProvider::new(self.proxy)
-            .call(Message::new::<(u64, u64)>((from, to), self.target, "proxy_call").unwrap())
+            .call(Message::new::<Args>(args, self.target, &self.method).unwrap())
             .await
             .unwrap();
-        let rep: HashMap<u64, Vec<T>> = result.reply::<HashMap<u64, Vec<T>>>().unwrap();
+        let rep = result.reply::<Reply>().unwrap();
         Ok(rep)
     }
 }
-impl<T> AlgorithmIndexer<T>
-where
-    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
-{
-    pub fn new(proxy: Principal, src: Principal, persist: fn(HashMap<u64, Vec<T>>)) -> Self {
+impl<Logs> AlgorithmIndexer<Logs> {
+    pub fn new(proxy: Principal, src: Principal, persist: fn(Logs)) -> Self {
         Self {
             finder: AlgorithmLogFinder::new(proxy, src),
             persister: AlgorithmEventPersister::new(persist),
         }
     }
+    pub fn new_with_method(
+        proxy: Principal,
+        src: Principal,
+        method: &str,
+        persist: fn(Logs),
+    ) -> Self {
+        Self {
+            finder: AlgorithmLogFinder::new_with_method(proxy, src, method),
+            persister: AlgorithmEventPersister::new(persist),
+        }
+    }
 }
 
-impl<T> AlgorithmIndexer<T>
+#[async_trait]
+impl<T> Indexer<T, HashMap<u64, Vec<T>>, (u64, u64)> for AlgorithmIndexer<HashMap<u64, Vec<T>>>
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
-    /// Index events.
-    pub async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
-        let last_indexed = self.get_last_indexed()?;
+    async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        let last_indexed = cfg.start_from;
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
-        let result: HashMap<u64, Vec<T>> = self.finder().find(from, to).await?;
-        self.persister.persist.clone()(result);
+        let result: HashMap<u64, Vec<T>> = self
+            .finder
+            .find::<T, (u64, u64), HashMap<u64, Vec<T>>>((from, to))
+            .await?;
+        self.persister.persist.clone()(result.clone());
+        // get last result and update last indexed
+        let last_indexed = result.keys().max();
+        if let Some(last_indexed) = last_indexed {
+            storage::set_last_key(last_indexed.to_string());
+        }
+
         Ok(())
     }
 }
 
 #[async_trait]
-impl<T> Indexer<T> for AlgorithmIndexer<T>
+impl<T> Indexer<T, HashMap<String, Vec<T>>, (String, String)>
+    for AlgorithmIndexer<HashMap<String, Vec<T>>>
 where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
-    type Finder = AlgorithmLogFinder;
-    fn finder(&self) -> Self::Finder {
-        self.finder.clone()
+    async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        let last_indexed = cfg.start_from;
+        let chunk_size = cfg.chunk_size.unwrap_or(500);
+        let from = cfg.start_from.max(last_indexed + 1);
+        let to = from + chunk_size;
+
+        let result: HashMap<String, Vec<T>> = self
+            .finder
+            .find::<T, (String, String), HashMap<String, Vec<T>>>((
+                from.to_string(),
+                to.to_string(),
+            ))
+            .await?;
+        self.persister.persist.clone()(result.clone());
+        // get last result and update last indexed
+        let last_indexed = result.keys().max();
+        if let Some(last_indexed) = last_indexed {
+            storage::set_last_key(last_indexed.to_string());
+        }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl<T> Indexer<T, Vec<T>, (String, String)> for AlgorithmIndexer<Vec<T>>
+where
+    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
+{
+    async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        let last_indexed = cfg.start_from;
+        let chunk_size = cfg.chunk_size.unwrap_or(500);
+        let from = cfg.start_from.max(last_indexed + 1);
+        let to = from + chunk_size;
+
+        let result: Vec<T> = self
+            .finder
+            .find::<T, (String, String), Vec<T>>((from.to_string(), to.to_string()))
+            .await?;
+        self.persister.persist.clone()(result);
+        Ok(())
     }
 }
