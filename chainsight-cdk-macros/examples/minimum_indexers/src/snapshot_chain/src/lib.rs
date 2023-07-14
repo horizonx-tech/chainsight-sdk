@@ -1,11 +1,11 @@
 use chainsight_cdk_macros::{
-    define_transform_for_web3, define_web3_ctx, did_export, init_in, manage_single_state,
-    manage_vec_state, monitoring_canister_metrics, setup_func, timer_task_func,
+    chainsight_common, define_transform_for_web3, define_web3_ctx, did_export, init_in,
+    manage_single_state, manage_vec_state, setup_func, timer_task_func,
 };
 use ic_web3_rs::types::Address;
 use serde::Serialize;
 use std::str::FromStr;
-monitoring_canister_metrics!(60);
+chainsight_common!(60);
 ic_solidity_bindgen::contract_abi!("./src/snapshot_chain/abi/StableSwap.json");
 define_web3_ctx!();
 define_transform_for_web3!();

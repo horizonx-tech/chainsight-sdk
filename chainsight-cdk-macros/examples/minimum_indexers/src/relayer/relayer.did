@@ -22,7 +22,7 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
-  get_ethereum_address : (Env) -> (text);
+  get_ethereum_address : () -> (text);
   init_in : (Env) -> (Result);
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
@@ -36,4 +36,4 @@ service : {
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
-}
+};

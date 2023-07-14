@@ -1,6 +1,9 @@
-use chainsight_cdk_macros::{manage_single_state, setup_func, manage_vec_state, timer_task_func, manage_map_state, monitoring_canister_metrics, did_export};
+use chainsight_cdk_macros::{
+    chainsight_common, did_export, manage_map_state, manage_single_state, manage_vec_state,
+    setup_func, timer_task_func,
+};
 
-monitoring_canister_metrics!(60);
+chainsight_common!(60);
 #[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
 pub struct Parameter {
     pub a: u64,

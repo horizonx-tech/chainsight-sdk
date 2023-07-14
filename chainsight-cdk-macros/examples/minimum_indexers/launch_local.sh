@@ -24,7 +24,7 @@ dfx canister call relayer setup "(
     key = variant { LocalDevelopment };
   }
 )"
-dfx canister call relayer get_ethereum_address "(variant { LocalDevelopment })"
+dfx canister call relayer get_ethereum_address
 # pre: need to transfer gas to this canister's address
 dfx canister call relayer set_task '(30, 5)'
 

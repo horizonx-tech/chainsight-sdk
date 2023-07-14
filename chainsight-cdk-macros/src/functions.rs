@@ -36,20 +36,25 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
             assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
             use chainsight_cdk::initializer::Initializer;
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
-                chainsight_cdk::initializer::InitConfig { env },
+                chainsight_cdk::initializer::InitConfig { env: env.clone() },
             );
             let init_result = initializer.initialize().await?;
             let proxy = init_result.proxy;
             INITIALIZED.with(|f| *f.borrow_mut() = true);
             PROXY.with(|f| *f.borrow_mut() = proxy);
+            ENV.with(|f| *f.borrow_mut() = env);
             Ok(())
         }
         fn proxy() -> candid::Principal {
             PROXY.with(|proxy| proxy.borrow().clone())
         }
+        fn get_env() -> chainsight_cdk::core::Env {
+            ENV.with(|env| env.borrow().clone())
+        }
         thread_local! {
             static INITIALIZED: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
             static PROXY: std::cell::RefCell<candid::Principal> = std::cell::RefCell::new(candid::Principal::anonymous());
+            static ENV: std::cell::RefCell<chainsight_cdk::core::Env> = std::cell::RefCell::new(chainsight_cdk::core::Env::default());
         }
     }
     .into()
@@ -124,11 +129,13 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
         quote! {
             ic_cdk::spawn(async move {
                 #called_func_name().await;
+                update_last_executed();
             });
         }
     } else {
         quote! {
             #called_func_name();
+            update_last_executed();
         }
     };
 

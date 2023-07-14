@@ -1,10 +1,9 @@
 use chainsight_cdk_macros::{
-    did_export, init_in, manage_single_state, manage_vec_state, monitoring_canister_metrics,
-    setup_func,
+    chainsight_common, did_export, init_in, manage_single_state, manage_vec_state, setup_func,
 };
 use serde::Serialize;
 
-monitoring_canister_metrics!(60);
+chainsight_common!(60);
 
 manage_single_state!("target_canister", String, false);
 setup_func!({ target_canister: String });

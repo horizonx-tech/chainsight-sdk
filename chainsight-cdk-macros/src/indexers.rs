@@ -48,11 +48,6 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
             indexer().index(get_config()).await.unwrap();
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn event_source() -> String {
-            get_target_addr()
-        }
     }
     .into()
 }

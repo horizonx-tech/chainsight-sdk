@@ -26,10 +26,10 @@ type Web3CtxParam = record {
 service : {
   event_source : () -> (text) query;
   events_from_to : (nat64, nat64) -> (
-      vec record { nat64; vec TransferEvent },
-    ) query;
+    vec record { nat64; vec TransferEvent }
+  ) query;
   events_latest_n : (nat64) -> (vec record { nat64; vec TransferEvent }) query;
-  get_ethereum_address : (Env) -> (text);
+  get_ethereum_address : () -> (text);
   get_last_indexed : () -> (nat64) query;
   index : () -> ();
   init_in : (Env) -> (Result);
@@ -46,4 +46,4 @@ service : {
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
-}
+};

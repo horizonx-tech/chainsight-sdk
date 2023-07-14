@@ -1,11 +1,11 @@
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
-    define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-    manage_single_state, monitoring_canister_metrics, setup_func, timer_task_func,
+    chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
+    did_export, init_in, manage_single_state, setup_func, timer_task_func,
 };
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
-monitoring_canister_metrics!(60);
+chainsight_common!(60);
 ic_solidity_bindgen::contract_abi!("./src/relayer/abi/Oracle.json");
 define_web3_ctx!();
 define_transform_for_web3!();

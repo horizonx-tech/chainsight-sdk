@@ -34,27 +34,20 @@ pub struct Web3CtxParam {
 #[derive(Clone)]
 pub struct Web3LogFinder {
     call_options: CallOptions,
-    find:
-        fn(u64, u64, CallOptions) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, Error>>,
+    find: FindFunc,
 }
 impl Web3LogFinder {
     async fn find(&self, args: (u64, u64)) -> Result<HashMap<u64, Vec<EventLog>>, Error> {
         (self.find)(args.0, args.1, self.call_options.clone()).await
     }
 }
-
+pub type FindFunc =
+    fn(u64, u64, CallOptions) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, Error>>;
 impl<E> Web3Indexer<E>
 where
     E: Event<EventLog> + Persist,
 {
-    pub fn new(
-        find: fn(
-            u64,
-            u64,
-            CallOptions,
-        ) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, Error>>,
-        call_options: Option<CallOptions>,
-    ) -> Self {
+    pub fn new(find: FindFunc, call_options: Option<CallOptions>) -> Self {
         Self {
             _phantom: PhantomData,
             finder: Web3LogFinder {
@@ -98,7 +91,7 @@ where
     fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
         logs.iter().for_each(|(block_number, logs)| {
             let tokens: Vec<E> = logs
-                .into_iter()
+                .iter()
                 .map(|log| {
                     E::from(EventLog {
                         event: log.event.clone(),
