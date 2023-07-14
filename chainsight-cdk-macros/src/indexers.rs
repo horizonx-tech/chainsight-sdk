@@ -67,7 +67,7 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
-            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(proxy(), get_target(),stringify!(#call_method), app::persist)
+            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(proxy(), get_target(),#call_method, app::persist)
         }
         #[ic_cdk::update]
         #[candid::candid_method(update)]
