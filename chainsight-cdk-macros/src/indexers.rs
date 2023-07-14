@@ -74,7 +74,9 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         async fn index() {
             let mut config = get_config();
             let stored = chainsight_cdk::storage::get_last_key();
+            ic_cdk::println!("stored: {:?}", stored);
             let stored_u64 = stored.parse::<u64>().unwrap_or(0);
+            ic_cdk::println!("stored_u64: {:?}", stored_u64);
             if stored_u64 > config.start_from {
                 config.start_from = stored_u64;
             }
