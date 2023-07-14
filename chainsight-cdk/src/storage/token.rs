@@ -148,18 +148,18 @@ impl From<&Vec<Token>> for Token {
         Token::Array(a.clone())
     }
 }
+#[allow(clippy::all)]
 
 impl Token {
     pub fn to_string(&self) -> String {
         match self {
             Token::String(s) => s.clone(),
-            Token::Uint(u) => format!(
-                "{}",
-                u.to_vec()
-                    .into_iter()
-                    .map(|x| format!("{:02x}", x))
-                    .collect::<String>()
-            ),
+            Token::Uint(u) => u
+                .to_vec()
+                .iter()
+                .copied()
+                .map(|x| format!("{:02x}", x))
+                .collect::<String>(),
             Token::Bool(b) => b.to_string(),
             Token::Array(a) => {
                 let mut s = String::from("[");
@@ -169,7 +169,7 @@ impl Token {
                     }
                     s.push_str(&t.to_string());
                 }
-                s.push_str("]");
+                s.push(']');
                 s
             }
             Token::Bytes(b) => format!("{:?}", b),

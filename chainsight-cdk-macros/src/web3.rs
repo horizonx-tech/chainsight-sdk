@@ -127,8 +127,8 @@ pub fn define_get_ethereum_address() -> TokenStream {
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        async fn get_ethereum_address(env: chainsight_cdk::core::Env) -> String {
-            match ethereum_address(env.ecdsa_key_name()).await {
+        async fn get_ethereum_address() -> String {
+            match ethereum_address(get_env().ecdsa_key_name()).await {
                 Ok(v) => format!("0x{}", hex::encode(v)),
                 Err(msg) => msg,
             }
