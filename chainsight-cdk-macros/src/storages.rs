@@ -500,7 +500,7 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         #update_derives
         fn #proxy_get_vec_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<(), Vec<#ty>>::new(
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<#ty>>::new(
                 proxy(),
                 #_get_vec_func,
             )
@@ -519,7 +519,7 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         #update_derives
         fn #proxy_get_len_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<(), u64>::new(
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(
                 proxy(),
                 #_get_len_func,
             )
@@ -543,7 +543,7 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         #update_derives
         fn #proxy_get_last_elem_func(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<(), #ty>::new(
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#ty>::new(
                 proxy(),
                 #_get_last_elem_func,
             )
