@@ -102,10 +102,12 @@ where
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
+        ic_cdk::println!("from: {}, to: {}", from, to);
         let result: HashMap<u64, Vec<T>> = self
             .finder
             .find::<T, (u64, u64), HashMap<u64, Vec<T>>>((from, to))
             .await?;
+        ic_cdk::println!("{:?}", result.len());
         self.persister.persist.clone()(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
@@ -128,6 +130,7 @@ where
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
+        ic_cdk::println!("from: {}, to: {}", from, to);
 
         let result: HashMap<String, Vec<T>> = self
             .finder
@@ -136,6 +139,7 @@ where
                 to.to_string(),
             ))
             .await?;
+        ic_cdk::println!("{:?}", result.len());
         self.persister.persist.clone()(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
@@ -156,11 +160,13 @@ where
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
+        ic_cdk::println!("from: {}, to: {}", from, to);
 
         let result: Vec<T> = self
             .finder
             .find::<T, (String, String), Vec<T>>((from.to_string(), to.to_string()))
             .await?;
+        ic_cdk::println!("{:?}", result.len());
         self.persister.persist.clone()(result);
         Ok(())
     }
