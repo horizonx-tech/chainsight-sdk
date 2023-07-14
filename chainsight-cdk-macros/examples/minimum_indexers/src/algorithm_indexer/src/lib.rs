@@ -1,12 +1,12 @@
 use candid::CandidType;
 use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
 use chainsight_cdk_macros::{
-    algorithm_indexer, did_export, init_in, manage_single_state, monitoring_canister_metrics,
-    setup_func, timer_task_func, KeyValueStore, KeyValuesStore, Persist,
+    algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
+    timer_task_func, KeyValueStore, KeyValuesStore, Persist,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-monitoring_canister_metrics!(60);
+chainsight_common!(60);
 init_in!();
 manage_single_state!("target_addr", String, false);
 

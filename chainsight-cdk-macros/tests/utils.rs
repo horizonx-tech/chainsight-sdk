@@ -1,7 +1,7 @@
 mod test_monitoring_canister_metrics {
-    use chainsight_cdk_macros::{init_in, monitoring_canister_metrics};
+    use chainsight_cdk_macros::{chainsight_common, init_in};
     init_in!();
-    monitoring_canister_metrics!(60);
+    chainsight_common!(60);
 
     #[test]
     fn test() {

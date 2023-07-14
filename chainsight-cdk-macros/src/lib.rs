@@ -7,8 +7,8 @@ mod web3;
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
-    utils::monitoring_canister_metrics(input)
+pub fn chainsight_common(input: TokenStream) -> TokenStream {
+    utils::chainsight_common(input)
 }
 
 #[proc_macro]

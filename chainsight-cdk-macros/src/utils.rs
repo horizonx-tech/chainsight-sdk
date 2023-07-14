@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
 
-pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
+pub fn chainsight_common(input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as syn::LitInt);
     let output = quote! {
         #[derive(Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize)]
@@ -11,6 +11,20 @@ pub fn monitoring_canister_metrics(input: TokenStream) -> TokenStream {
             pub cycles: u128,
         }
         chainsight_cdk_macros::manage_vec_state!("canister_metrics_snapshot", CanisterMetricsSnapshot, false);
+        thread_local! {
+            static LAST_EXECUTED: std::cell::RefCell<u64> = std::cell::RefCell::new(0);
+        }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn last_executed() -> u64 {
+            LAST_EXECUTED.with(|x| *x.borrow())
+        }
+
+        fn update_last_executed() {
+            let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
+            LAST_EXECUTED.with(|x| *x.borrow_mut() = current_time_sec as u64);
+        }
 
         fn setup_monitoring_canister_metrics() {
             let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;

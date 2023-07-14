@@ -129,11 +129,13 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
         quote! {
             ic_cdk::spawn(async move {
                 #called_func_name().await;
+                update_last_executed();
             });
         }
     } else {
         quote! {
             #called_func_name();
+            update_last_executed();
         }
     };
 
