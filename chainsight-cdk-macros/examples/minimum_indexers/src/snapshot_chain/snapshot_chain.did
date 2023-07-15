@@ -28,6 +28,7 @@ service : {
   get_prices : () -> (vec VirtualPrice) query;
   get_top_prices : (nat64) -> (vec VirtualPrice) query;
   init_in : (Env) -> (Result);
+  last_executed : () -> (nat64) query;
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
   prices_len : () -> (nat64) query;

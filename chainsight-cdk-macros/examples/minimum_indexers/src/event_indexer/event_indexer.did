@@ -24,15 +24,15 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
-  event_source : () -> (text) query;
   events_from_to : (nat64, nat64) -> (
-    vec record { nat64; vec TransferEvent }
-  ) query;
+      vec record { nat64; vec TransferEvent },
+    ) query;
   events_latest_n : (nat64) -> (vec record { nat64; vec TransferEvent }) query;
   get_ethereum_address : () -> (text);
   get_last_indexed : () -> (nat64) query;
   index : () -> ();
   init_in : (Env) -> (Result);
+  last_executed : () -> (nat64) query;
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
   proxy_call : (vec nat8) -> (vec nat8);
@@ -46,4 +46,4 @@ service : {
   transform : (TransformArgs) -> (HttpResponse) query;
   transform_get_filter_changes : (TransformArgs) -> (HttpResponse) query;
   transform_send_transaction : (TransformArgs) -> (HttpResponse) query;
-};
+}

@@ -28,6 +28,7 @@ service : {
   init_in : (Env) -> (Result);
   last_account : (nat64) -> (vec record { text; vec Account }) query;
   last_balance : (nat64) -> (vec record { text; Account }) query;
+  last_executed : () -> (nat64) query;
   last_totalsupply : (nat64) -> (vec record { text; Account }) query;
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;

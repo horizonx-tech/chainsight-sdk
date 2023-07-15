@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream, Parser};
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
@@ -25,6 +25,23 @@ impl Parse for NamedField {
             name: input.parse()?,
             _colon_token: input.parse()?,
             ty: input.parse()?,
+        })
+    }
+}
+
+struct LensArgs {
+    func_arg: Type,
+    func_output: Type,
+}
+
+impl Parse for LensArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let func_arg: Type = input.parse()?;
+        let _comma: Token![,] = input.parse()?;
+        let func_output: Type = input.parse()?;
+        Ok(LensArgs {
+            func_arg,
+            func_output,
         })
     }
 }
@@ -164,4 +181,39 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
     };
 
     output.into()
+}
+
+pub fn lens_method(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as LensArgs);
+
+    let getter_name = format_ident!("{}", "get_result");
+    let proxy_name = format_ident!("{}", "get_result_proxy");
+
+    let arg = args.func_arg;
+    let out = args.func_output;
+    quote! {
+        use app::{calculate};
+        type Args = (candid::Principal, #arg);
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        async fn #getter_name(target: candid::Principal, input: #arg) -> #out {
+            _calc((target, input)).await
+        }
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        async fn #proxy_name(input:Vec<u8>) -> Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::AsyncReceiverProvider::<Args, #out>::new(
+                proxy(),
+                _calc,
+            )
+            .reply(input)
+        }
+
+        fn _calc(args: Args) -> BoxFuture<'static, #out> {
+            async move { app::calculate(args.0, args.1).await }.boxed()
+        }
+
+    }
+    .into()
 }
