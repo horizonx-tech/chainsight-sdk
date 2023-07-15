@@ -1,5 +1,5 @@
 mod call_provider;
-mod caller;
+pub mod caller;
 mod message;
 mod receive_provider;
 mod receiver;

@@ -110,3 +110,8 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     storages::key_values_store_derive(input)
 }
+
+#[proc_macro]
+pub fn lens_method(input: TokenStream) -> TokenStream {
+    functions::lens_method(input)
+}

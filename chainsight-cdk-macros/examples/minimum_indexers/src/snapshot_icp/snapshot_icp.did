@@ -16,6 +16,7 @@ service : {
   get_snapshots : () -> (vec Snapshot) query;
   get_top_snapshots : (nat64) -> (vec Snapshot) query;
   init_in : (Env) -> (Result);
+  last_executed : () -> (nat64) query;
   metric : () -> (CanisterMetricsSnapshot) query;
   metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
   proxy_canister_metrics_snapshots_len : (vec nat8) -> (vec nat8);

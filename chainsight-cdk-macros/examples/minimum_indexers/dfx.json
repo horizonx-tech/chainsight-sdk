@@ -21,6 +21,11 @@
       "package": "event_indexer",
       "candid": "src/event_indexer/event_indexer.did"
     },
+    "lens": {
+      "type": "rust",
+      "package": "lens",
+      "candid": "src/lens/lens.did"
+    },
     "algorithm_indexer": {
       "type": "rust",
       "package": "algorithm_indexer",
