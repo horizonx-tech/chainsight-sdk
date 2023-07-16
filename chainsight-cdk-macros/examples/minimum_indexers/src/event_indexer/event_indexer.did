@@ -15,13 +15,25 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
-type TransferEvent = record { to : text; value : nat; from : text };
+type SourceType = variant { evm; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : Web3EventIndexerSourceAttrs;
+  source_type : SourceType;
+};
+type TransferEvent = record { to : text; value : U256; from : text };
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
+type U256 = record { value : text };
 type Web3CtxParam = record {
   env : Env;
   url : text;
   from : opt text;
   chain_id : nat64;
+};
+type Web3EventIndexerSourceAttrs = record {
+  chain_id : nat64;
+  event_name : text;
 };
 service : {
   events_from_to : (nat64, nat64) -> (
@@ -30,6 +42,7 @@ service : {
   events_latest_n : (nat64) -> (vec record { nat64; vec TransferEvent }) query;
   get_ethereum_address : () -> (text);
   get_last_indexed : () -> (nat64) query;
+  get_sources : () -> (vec Sources) query;
   index : () -> ();
   init_in : (Env) -> (Result);
   last_executed : () -> (nat64) query;

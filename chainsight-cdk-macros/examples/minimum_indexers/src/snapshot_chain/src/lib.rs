@@ -1,6 +1,6 @@
 use chainsight_cdk_macros::{
     chainsight_common, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-    manage_single_state, manage_vec_state, setup_func, timer_task_func,
+    manage_single_state, manage_vec_state, setup_func, snapshot_web3_source, timer_task_func,
 };
 use ic_web3_rs::types::Address;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub struct VirtualPrice {
     pub timestamp: u64,
 }
 manage_vec_state!("price", VirtualPrice, true);
-
+snapshot_web3_source!("get_virtual_price");
 // timer task
 timer_task_func!("set_task", "get_virtual_price", true);
 async fn get_virtual_price() {

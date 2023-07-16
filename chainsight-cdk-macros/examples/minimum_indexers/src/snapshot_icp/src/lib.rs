@@ -8,6 +8,7 @@ chainsight_common!(60);
 manage_single_state!("target_canister", String, false);
 setup_func!({ target_canister: String });
 init_in!();
+//snapshot_icp_source!("get_last_price");
 // storage
 #[derive(Clone, candid::CandidType, Serialize, candid::Deserialize)]
 pub struct Snapshot {
