@@ -1,5 +1,6 @@
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, manage_single_state, manage_vec_state, setup_func,
+    snapshot_icp_source,
 };
 use serde::Serialize;
 
@@ -8,7 +9,7 @@ chainsight_common!(60);
 manage_single_state!("target_canister", String, false);
 setup_func!({ target_canister: String });
 init_in!();
-//snapshot_icp_source!("get_last_price");
+snapshot_icp_source!("get_last_price");
 // storage
 #[derive(Clone, candid::CandidType, Serialize, candid::Deserialize)]
 pub struct Snapshot {
@@ -21,7 +22,9 @@ pub struct VirtualPrice {
     pub timestamp: u64,
 }
 manage_vec_state!("snapshot", Snapshot, true);
-
+fn get_timer_duration() -> u32 {
+    0
+}
 // timer task
 //type CallCanisterArgs = ();
 //type CallCanisterResponse = VirtualPrice;

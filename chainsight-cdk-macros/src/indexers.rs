@@ -103,10 +103,10 @@ pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
             vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_snapshot_indexer(
-            get_target_addr(),
-            get_timer_duration(),
-            #func_name.to_string())
-            ]
+                get_target_canister(),
+                get_timer_duration(),
+                #func_name.to_string(),
+            )]
         }
     }.into()
 }
