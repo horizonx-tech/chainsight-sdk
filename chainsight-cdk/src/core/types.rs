@@ -60,6 +60,7 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
     pub chain_id: u64,
     pub function_name: String,
 }
+type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
     AlgorithmIndexer,
@@ -125,12 +126,12 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         interval: u32,
         chain_id: u64,
         function_name: String,
-    ) -> Sources<Web3AlgorithmIndexerSourceAttrs> {
+    ) -> Sources<Web3SnapshotIndexerSourceAttrs> {
         Sources::new(
             SourceType::Evm,
             address,
             Some(interval),
-            Web3AlgorithmIndexerSourceAttrs {
+            Web3SnapshotIndexerSourceAttrs {
                 chain_id,
                 function_name,
             },

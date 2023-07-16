@@ -116,8 +116,8 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3AlgorithmIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3AlgorithmIndexerSourceAttrs>::new_web3_snapshot_indexer(
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>> {
+            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>::new_web3_snapshot_indexer(
                 get_target_addr(),
                 get_timer_duration(),
                 get_web3_ctx_param().chain_id,
