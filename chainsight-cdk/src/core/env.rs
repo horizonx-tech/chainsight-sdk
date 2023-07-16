@@ -12,8 +12,8 @@ impl Env {
     pub fn initializer(&self) -> Principal {
         match self {
             Env::LocalDevelopment => Principal::from_text("7fpuj-hqaaa-aaaal-acg7q-cai").unwrap(),
-            Env::Production => Principal::from_text("qoctq-giaaa-aaaaa-aaaea-cai").unwrap(), //TODO
-            Env::Test => Principal::from_text("qoctq-giaaa-aaaaa-aaaea-cai").unwrap(),       //TODO
+            Env::Production => Principal::from_text("qb3bd-piaaa-aaaap-qbkaa-cai").unwrap(),
+            Env::Test => Principal::from_text("qoctq-giaaa-aaaaa-aaaea-cai").unwrap(), //TODO
         }
     }
     pub fn ecdsa_key_name(&self) -> String {

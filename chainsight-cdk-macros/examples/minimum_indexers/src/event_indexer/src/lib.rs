@@ -1,6 +1,6 @@
 use candid::CandidType;
 use chainsight_cdk::{
-    core::U256,
+    core::*,
     indexer::{Event, Indexer, IndexingConfig},
     storage::Data,
     web3::Web3CtxParam,
