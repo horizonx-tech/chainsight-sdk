@@ -70,7 +70,19 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
 pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_scalar(input)
 }
+#[proc_macro]
+pub fn relayer_source(_input: TokenStream) -> TokenStream {
+    indexers::relayer_source()
+}
 
+#[proc_macro]
+pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
+    indexers::snapshot_icp_source(input)
+}
+#[proc_macro]
+pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
+    indexers::snapshot_web3_source(input)
+}
 #[proc_macro]
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_vec(input)

@@ -1,7 +1,7 @@
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
     chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
-    did_export, init_in, manage_single_state, setup_func, timer_task_func,
+    did_export, init_in, manage_single_state, relayer_source, setup_func, timer_task_func,
 };
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
@@ -18,6 +18,7 @@ setup_func!({
     web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
 init_in!();
+relayer_source!();
 
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize)]
 pub struct VirtualPrice {

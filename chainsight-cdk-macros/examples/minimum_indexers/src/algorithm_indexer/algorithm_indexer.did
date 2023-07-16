@@ -10,6 +10,13 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
+type SourceType = variant { evm; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : vec record { text; text };
+  source_type : SourceType;
+};
 service : {
   between_account : (record { text; text }) -> (
       vec record { text; vec Account },
@@ -23,6 +30,7 @@ service : {
   event_source : () -> (principal) query;
   get_account : (text) -> (vec Account) query;
   get_balance : (text) -> (opt Account) query;
+  get_sources : () -> (vec Sources) query;
   get_totalsupply : (text) -> (opt Account) query;
   index : () -> ();
   init_in : (Env) -> (Result);

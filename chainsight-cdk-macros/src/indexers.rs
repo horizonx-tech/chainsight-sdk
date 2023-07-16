@@ -5,7 +5,6 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Type,
 };
-
 pub struct Web3EventIndexerInput {
     out_type: syn::Type,
 }
@@ -37,7 +36,9 @@ impl Parse for Web3EventIndexerInput {
 pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     let Web3EventIndexerInput { out_type } = parse_macro_input!(input as Web3EventIndexerInput);
     let common = event_indexer_common(out_type.clone());
+    let source = generate_event_indexer_source(out_type.clone());
     quote! {
+        #source
         #common
         fn indexer() -> chainsight_cdk::web3::Web3Indexer<#out_type> {
             chainsight_cdk::web3::Web3Indexer::new(get_logs, None)
@@ -52,11 +53,86 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     .into()
 }
 
+fn generate_event_indexer_source(tt: syn::Type) -> TokenStream2 {
+    let type_str = stringify!(tt).to_string();
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3EventIndexerSourceAttrs>> {
+            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3EventIndexerSourceAttrs>::new_event_indexer(
+            get_target_addr(),
+            get_timer_duration(),
+            chainsight_cdk::core::Web3EventIndexerSourceAttrs {
+                chain_id: get_web3_ctx_param().chain_id,
+                event_name: #type_str.to_string(),
+            })
+            ]
+        }
+    }.into()
+}
+
+fn generate_algorithm_indexer_source() -> TokenStream2 {
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+            vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_algorithm_indexer(
+            get_target_addr(),
+            get_timer_duration())
+            ]
+        }
+    }.into()
+}
+
+pub fn relayer_source() -> TokenStream {
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+            vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
+            get_target_addr(),
+            get_timer_duration())
+            ]
+        }
+    }.into()
+}
+pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
+    let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+            vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_snapshot_indexer(
+            get_target_addr(),
+            get_timer_duration(),
+            #func_name)
+            ]
+        }
+    }.into()
+}
+
+pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
+    let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3AlgorithmIndexerSourceAttrs>> {
+            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3AlgorithmIndexerSourceAttrs>::new_web3_snapshot_indexer(
+                get_target_addr(),
+                get_timer_duration(),
+                get_web3_ctx_param().chain_id,
+                #func_name.to_string(),
+            )]
+        }
+    }.into()
+}
+
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
     let AlgorithmIndexerInput {
         in_type,
         call_method,
     } = parse_macro_input!(input as AlgorithmIndexerInput);
+    let source = generate_algorithm_indexer_source();
     quote! {
         mod app;
         manage_single_state!("config", IndexingConfig, false);
@@ -64,6 +140,7 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(proxy(), get_target(),#call_method, app::persist)
         }
+        #source
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
