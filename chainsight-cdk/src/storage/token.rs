@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use candid::CandidType;
-use primitive_types::U256;
+use primitive_types::{H256, U256};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, CandidType)]
@@ -96,11 +96,20 @@ impl From<i16> for Token {
         Token::Uint(u.to_be_bytes().to_vec())
     }
 }
+impl From<crate::core::U256> for Token {
+    fn from(u: crate::core::U256) -> Self {
+        let mut value = H256::default();
+        u.value().to_big_endian(&mut value[..]);
+        Token::Uint(value.0.to_vec())
+    }
+}
+
 impl From<i32> for Token {
     fn from(u: i32) -> Self {
         Token::Uint(u.to_be_bytes().to_vec())
     }
 }
+
 impl From<i64> for Token {
     fn from(u: i64) -> Self {
         Token::Uint(u.to_be_bytes().to_vec())
@@ -241,6 +250,12 @@ impl Token {
             _ => None,
         }
     }
+    pub fn to_u256(&self) -> Option<crate::core::U256> {
+        match self {
+            Token::Uint(u) => Some(primitive_types::U256::from_big_endian(u).into()),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -326,5 +341,12 @@ pub mod tests {
         let v: Vec<u8> = vec![1, 2, 3];
         let token: Token = (&v).into();
         assert_eq!(token, Token::Bytes(vec![1, 2, 3]));
+    }
+    #[test]
+    fn test_from_u256() {
+        let u: crate::core::U256 = primitive_types::U256::from(123).into();
+        let token: Token = u.clone().into();
+        let result = token.to_u256();
+        assert_eq!(u, result.unwrap());
     }
 }

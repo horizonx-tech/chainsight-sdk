@@ -37,6 +37,7 @@ pub fn contract_event_derive(input: TokenStream) -> TokenStream {
             "u16" => quote! { into_uint().unwrap().as_u16() },
             "u8" => quote! { into_uint().unwrap().as_u8() },
             "bool" => quote! { into_bool().unwrap() },
+            "U256" => quote! { into_uint().unwrap().into() },
             _ => quote! {},
         };
 

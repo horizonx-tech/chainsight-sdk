@@ -1,5 +1,6 @@
 use candid::CandidType;
 use chainsight_cdk::{
+    core::U256,
     indexer::{Event, Indexer, IndexingConfig},
     storage::Data,
     web3::Web3CtxParam,
@@ -55,7 +56,7 @@ fn get_logs(
 pub struct TransferEvent {
     from: String,
     to: String,
-    value: u128,
+    value: U256,
 }
 
 /// This is auto-generated from yaml

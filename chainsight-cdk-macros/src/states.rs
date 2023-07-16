@@ -68,6 +68,12 @@ pub fn persist_derive(input: TokenStream) -> TokenStream {
             "Vec<u8>" => quote! {
                 #field_name: data.get(stringify!(#field_name)).unwrap().to_vec().unwrap(),
             },
+            "chainsight_cdk::core::U256" => quote! {
+               #field_name: data.get(stringify!(#field_name)).unwrap().to_u256().unwrap(),
+            },
+            "U256" => quote! {
+               #field_name: data.get(stringify!(#field_name)).unwrap().to_u256().unwrap(),
+            },
             _ => quote! {
                 #field_name: data.get(stringify!(#field_name)).unwrap().to_string(),
             },
