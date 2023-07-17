@@ -219,6 +219,11 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             )
             .reply(input)
         }
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+            vec![]
+        }
 
         fn _calc(args: Args) -> BoxFuture<'static, #out> {
             async move { app::calculate(args.0, args.1).await }.boxed()
