@@ -60,7 +60,7 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
     pub chain_id: u64,
     pub function_name: String,
 }
-type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
+pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
     AlgorithmIndexer,
