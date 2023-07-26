@@ -12,6 +12,12 @@ pub struct AlgorithmIndexer<Logs> {
     persister: AlgorithmEventPersister<Logs>,
 }
 
+pub struct AlgorithmIndexerWithArgs<Logs, Args> {
+    finder: AlgorithmLogFinder,
+    persister: AlgorithmEventPersister<Logs>,
+    args: Args,
+}
+
 #[derive(Clone)]
 pub struct AlgorithmEventPersister<Logs> {
     persist: fn(Logs),
@@ -89,6 +95,35 @@ impl<Logs> AlgorithmIndexer<Logs> {
             finder: AlgorithmLogFinder::new_with_method(proxy, src, method),
             persister: AlgorithmEventPersister::new(persist),
         }
+    }
+}
+
+impl<Logs, Args> AlgorithmIndexerWithArgs<Logs, Args> {
+    pub fn new_with_method(
+        proxy: Principal,
+        src: Principal,
+        method: &str,
+        persist: fn(Logs),
+        args: Args,
+    ) -> Self {
+        Self {
+            finder: AlgorithmLogFinder::new_with_method(proxy, src, method),
+            persister: AlgorithmEventPersister::new(persist),
+            args,
+        }
+    }
+}
+
+#[async_trait]
+impl<T, Args> Indexer<T, T, Args> for AlgorithmIndexerWithArgs<T, Args>
+where
+    T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
+    Args: serde::Serialize + Clone + Send + Sync,
+{
+    async fn index(&self, _cfg: IndexingConfig) -> Result<(), Error> {
+        let result = self.finder.find::<T, Args, T>(self.args.clone()).await?;
+        self.persister.persist.clone()(result.clone());
+        Ok(())
     }
 }
 

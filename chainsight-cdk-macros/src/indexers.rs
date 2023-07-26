@@ -14,6 +14,27 @@ pub struct AlgorithmIndexerInput {
     call_method: syn::LitStr,
 }
 
+pub struct AlgorithmIndexerWithArgsInput {
+    in_type: syn::Type,
+    args: syn::Type,
+    call_method: syn::LitStr,
+}
+
+impl Parse for AlgorithmIndexerWithArgsInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let in_ty: Type = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let args_ty: Type = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let call_method_str: syn::LitStr = input.parse()?;
+        Ok(AlgorithmIndexerWithArgsInput {
+            in_type: in_ty,
+            args: args_ty,
+            call_method: call_method_str,
+        })
+    }
+}
+
 impl Parse for AlgorithmIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
@@ -125,6 +146,57 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
             )]
         }
     }.into()
+}
+
+pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
+    let AlgorithmIndexerWithArgsInput {
+        in_type,
+        args,
+        call_method,
+    } = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
+    let source = generate_algorithm_indexer_source();
+    quote! {
+        mod app;
+        manage_single_state!("config", IndexingConfig, false);
+        thread_local!{
+            static ARGS: std::cell::RefCell<Option<#args>> = std::cell::RefCell::new(None);
+        }
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        fn set_args(args: #args) {
+            ARGS.with(|cell| {
+                *cell.borrow_mut() = Some(args);
+            });
+        }
+        fn get_args() -> #args {
+            ARGS.with(|cell| {
+                cell.borrow().clone().unwrap()
+            })
+        }
+
+        
+        use chainsight_cdk::indexer::Indexer;
+        fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
+            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(proxy(), get_target(), #call_method, app::persist, get_args())
+        }
+        #source
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        async fn index() {
+            indexer().index(chainsight_cdk::indexer::IndexingConfig::default()).await.unwrap()
+        }
+        fn get_target() -> candid::Principal {
+            candid::Principal::from_text(get_target_addr()).unwrap()
+        }
+
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn event_source() -> candid::Principal {
+            get_target()
+        }
+
+    }
+    .into()
 }
 
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {

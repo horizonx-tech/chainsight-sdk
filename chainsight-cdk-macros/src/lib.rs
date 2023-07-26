@@ -20,6 +20,10 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
     indexers::algorithm_indexer(input)
 }
+#[proc_macro]
+pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
+    indexers::algorithm_indexer_with_args(input)
+}
 
 #[proc_macro]
 pub fn did_export(input: TokenStream) -> TokenStream {
