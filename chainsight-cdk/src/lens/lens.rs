@@ -35,6 +35,10 @@ where
     async fn find<Args>(&self, args: Args) -> Result<Resp, Error>
     where
         Args: serde::Serialize + Send;
+
+    async fn find_unwrap<Args>(&self, args: Args) -> Resp
+    where
+        Args: serde::Serialize + Send;
 }
 
 pub struct AlgorithmLensFinder<Resp>
@@ -80,5 +84,13 @@ where
             return Err(Error::InvalidRequest(stringify!(err).to_string()));
         }
         Ok(resp.unwrap())
+    }
+
+    async fn find_unwrap<Args>(&self, args: Args) -> Resp
+    where
+        Args: serde::Serialize + Send,
+        Resp: serde::de::DeserializeOwned,
+    {
+        self.find(args).await.unwrap()
     }
 }

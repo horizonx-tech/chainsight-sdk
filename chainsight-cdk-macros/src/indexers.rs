@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{quote, format_ident};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Type,
@@ -18,6 +18,13 @@ pub struct AlgorithmIndexerWithArgsInput {
     in_type: syn::Type,
     args: syn::Type,
     call_method: syn::LitStr,
+}
+
+pub struct AlgorithmLensFinderInput {
+    id: syn::LitStr,
+    call_method: syn::LitStr,
+    return_ty: syn::Type,
+    args_ty: Option<syn::Type>,
 }
 
 impl Parse for AlgorithmIndexerWithArgsInput {
@@ -43,6 +50,28 @@ impl Parse for AlgorithmIndexerInput {
         Ok(AlgorithmIndexerInput {
             in_type: in_ty,
             call_method: call_method_str,
+        })
+    }
+}
+
+impl Parse for AlgorithmLensFinderInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let id_str: syn::LitStr = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let call_method_str: syn::LitStr = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let return_ty: Type = input.parse()?;
+        let args_ty = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(AlgorithmLensFinderInput {
+            id: id_str,
+            call_method: call_method_str,
+            return_ty,
+            args_ty,
         })
     }
 }
@@ -238,6 +267,61 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
 
     }
     .into()
+}
+
+pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
+    let AlgorithmLensFinderInput {
+        id,
+        call_method,
+        return_ty,
+        args_ty
+    } = parse_macro_input!(input as AlgorithmLensFinderInput);
+
+    let finder_method_name = format_ident!("finder_{}", id.value().to_lowercase());
+    let get_method_name = format_ident!("get_{}", id.value().to_lowercase());
+    let get_unwrap_method_name = format_ident!("get_{}_unwrap", id.value().to_lowercase());
+
+    let call_functions = match args_ty {
+        Some(args_ty) => {
+            quote! {
+                async fn #get_method_name(target_principal: String, args: #args_ty) -> Result<#return_ty, String> {
+                    #finder_method_name(target_principal.clone()).find(args).await.map_err(|e| format!("{:?}", e))
+                }
+
+                async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
+                    #finder_method_name(target_principal.clone()).find_unwrap(args).await
+                }
+            }
+        }
+        None => {
+            quote! {
+                async fn #get_method_name(target_principal: String) -> Result<#return_ty, String> {
+                    #finder_method_name(target_principal.clone()).find(()).await.map_err(|e| format!("{:?}", e))
+                }
+
+                async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
+                    #finder_method_name(target_principal.clone()).find_unwrap(()).await
+                }
+            }
+        }
+    };
+
+    quote! {
+        fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+            use chainsight_cdk::lens::LensFinder;
+
+            let recipient = candid::Principal::from_text(target_principal).unwrap();
+            chainsight_cdk::lens::AlgorithmLensFinder::new(
+                proxy(),
+                chainsight_cdk::lens::LensTarget::<#return_ty>::new(
+                    recipient,
+                    #call_method,
+                )
+            )
+        }
+
+        #call_functions
+    }.into()
 }
 
 pub fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
