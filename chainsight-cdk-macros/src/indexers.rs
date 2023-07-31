@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote, format_ident};
+use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Type,
@@ -203,7 +203,6 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
             })
         }
 
-        
         use chainsight_cdk::indexer::Indexer;
         fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
             chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(proxy(), get_target(), #call_method, app::persist, get_args())
@@ -274,7 +273,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
         id,
         call_method,
         return_ty,
-        args_ty
+        args_ty,
     } = parse_macro_input!(input as AlgorithmLensFinderInput);
 
     let finder_method_name = format_ident!("finder_{}", id.value().to_lowercase());
