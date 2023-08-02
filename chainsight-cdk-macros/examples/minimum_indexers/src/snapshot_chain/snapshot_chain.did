@@ -14,8 +14,19 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
+type SourceType = variant { evm; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : Web3AlgorithmIndexerSourceAttrs;
+  source_type : SourceType;
+};
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
 type VirtualPrice = record { value : text; timestamp : nat64 };
+type Web3AlgorithmIndexerSourceAttrs = record {
+  chain_id : nat64;
+  function_name : text;
+};
 type Web3CtxParam = record {
   env : Env;
   url : text;
@@ -26,6 +37,7 @@ service : {
   get_last_price : () -> (VirtualPrice) query;
   get_price : (nat64) -> (VirtualPrice) query;
   get_prices : () -> (vec VirtualPrice) query;
+  get_sources : () -> (vec Sources) query;
   get_top_prices : (nat64) -> (vec VirtualPrice) query;
   init_in : (Env) -> (Result);
   last_executed : () -> (nat64) query;

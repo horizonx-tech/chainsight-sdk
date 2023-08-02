@@ -9,11 +9,19 @@ type InitError = variant {
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
 type Snapshot = record { value : VirtualPrice; timestamp : nat64 };
+type SourceType = variant { evm; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : vec record { text; text };
+  source_type : SourceType;
+};
 type VirtualPrice = record { value : text; timestamp : nat64 };
 service : {
   get_last_snapshot : () -> (Snapshot) query;
   get_snapshot : (nat64) -> (Snapshot) query;
   get_snapshots : () -> (vec Snapshot) query;
+  get_sources : () -> (vec Sources) query;
   get_top_snapshots : (nat64) -> (vec Snapshot) query;
   init_in : (Env) -> (Result);
   last_executed : () -> (nat64) query;

@@ -14,6 +14,13 @@ type InitError = variant {
 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
+type SourceType = variant { evm; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : vec record { text; text };
+  source_type : SourceType;
+};
 type TransformArgs = record { context : vec nat8; response : HttpResponse };
 type Web3CtxParam = record {
   env : Env;
@@ -23,6 +30,7 @@ type Web3CtxParam = record {
 };
 service : {
   get_ethereum_address : () -> (text);
+  get_sources : () -> (vec Sources) query;
   init_in : (Env) -> (Result);
   last_executed : () -> (nat64) query;
   metric : () -> (CanisterMetricsSnapshot) query;
