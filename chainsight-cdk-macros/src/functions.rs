@@ -30,18 +30,22 @@ impl Parse for NamedField {
 }
 
 struct LensArgs {
-    func_arg: Type,
     func_output: Type,
+    func_arg: Option<Type>,
 }
 
 impl Parse for LensArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let func_arg: Type = input.parse()?;
-        let _comma: Token![,] = input.parse()?;
         let func_output: Type = input.parse()?;
+        let func_arg = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
         Ok(LensArgs {
-            func_arg,
             func_output,
+            func_arg,
         })
     }
 }
@@ -197,38 +201,73 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(input as LensArgs);
 
     let getter_name = format_ident!("{}", "get_result");
-    let proxy_name = format_ident!("{}", "get_result_proxy");
+    let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
-    let arg = args.func_arg;
     let out = args.func_output;
+
+    let (getter_func, receiver_provider, inter_calc_func) = match args.func_arg {
+        Some(arg_ty) => (
+            quote! {
+                #[ic_cdk::query]
+                #[candid::candid_method(query)]
+                async fn #getter_name(input: #arg_ty) -> #out {
+                    _calc(input).await
+                }
+            },
+            quote! {
+                chainsight_cdk::rpc::AsyncReceiverProvider::<#arg_ty, #out>::new(
+                    proxy(),
+                    _calc,
+                )
+            },
+            quote! {
+                fn _calc(args: #arg_ty) -> BoxFuture<'static, #out> {
+                    async move { app::calculate(args).await }.boxed()
+                }
+            },
+        ),
+        None => (
+            quote! {
+                #[ic_cdk::query]
+                #[candid::candid_method(query)]
+                async fn #getter_name() -> #out {
+                    _calc().await
+                }
+            },
+            quote! {
+                chainsight_cdk::rpc::AsyncReceiverProviderWithoutArgs::<#out>::new(
+                    proxy(),
+                    _calc,
+                )
+            },
+            quote! {
+                fn _calc() -> BoxFuture<'static, #out> {
+                    async move { app::calculate().await }.boxed()
+                }
+            },
+        ),
+    };
+
     quote! {
         use app::{calculate};
-        type Args = (candid::Principal, #arg);
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        async fn #getter_name(target: candid::Principal, input: #arg) -> #out {
-            _calc((target, input)).await
-        }
+
+        #getter_func
+
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        async fn #proxy_name(input:Vec<u8>) -> Vec<u8> {
+        async fn #proxy_getter_name(input:Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::AsyncReceiverProvider::<Args, #out>::new(
-                proxy(),
-                _calc,
-            )
-            .reply(input)
+            let reciever_provider = #receiver_provider;
+            reciever_provider.reply(input)
         }
+
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
             vec![]
         }
 
-        fn _calc(args: Args) -> BoxFuture<'static, #out> {
-            async move { app::calculate(args.0, args.1).await }.boxed()
-        }
-
+        #inter_calc_func
     }
     .into()
 }
