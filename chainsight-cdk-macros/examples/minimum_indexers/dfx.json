@@ -21,10 +21,15 @@
       "package": "event_indexer",
       "candid": "src/event_indexer/event_indexer.did"
     },
-    "lens": {
+    "lens_with_args": {
       "type": "rust",
-      "package": "lens",
-      "candid": "src/lens/lens.did"
+      "package": "lens_with_args",
+      "candid": "src/lens_with_args/lens_with_args.did"
+    },
+    "lens_without_args": {
+      "type": "rust",
+      "package": "lens_without_args",
+      "candid": "src/lens_without_args/lens_without_args.did"
     },
     "algorithm_indexer": {
       "type": "rust",

@@ -26,6 +26,11 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
+    indexers::algorithm_lens_finder(input)
+}
+
+#[proc_macro]
 pub fn did_export(input: TokenStream) -> TokenStream {
     utils::did_export(input)
 }
