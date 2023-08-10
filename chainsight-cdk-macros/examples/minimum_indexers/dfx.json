@@ -11,6 +11,11 @@
       "package": "snapshot_icp",
       "candid": "src/snapshot_icp/snapshot_icp.did"
     },
+    "snapshot_web2": {
+      "type": "rust",
+      "package": "snapshot_web2",
+      "candid": "src/snapshot_web2/snapshot_web2.did"
+    },
     "relayer": {
       "type": "rust",
       "package": "relayer",

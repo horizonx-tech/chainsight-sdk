@@ -6,8 +6,7 @@ members = [
     "src/event_indexer",
     "src/algorithm_indexer",
     "src/algorithm_indexer_with_args",
-    "src/lens_with_args",
-    "src/lens_without_args"
+    "src/snapshot_web2",
 ]
 
 [workspace.dependencies]
