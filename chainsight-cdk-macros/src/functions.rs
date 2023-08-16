@@ -239,8 +239,11 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             quote! {
                 #[ic_cdk::query]
                 #[candid::candid_method(query)]
-                async fn #getter_name() -> #out {
-                    _calc().await
+                async fn #getter_name(targets: Vec<String>) -> #out {
+                    if targets.len() != #target_count {
+                        panic!("Expected {} targets", #target_count);
+                    }
+                    _calc(targets).await
                 }
             },
             quote! {
@@ -250,8 +253,8 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
                 )
             },
             quote! {
-                fn _calc() -> BoxFuture<'static, #out> {
-                    async move { app::calculate().await }.boxed()
+                fn _calc(targets: Vec<String>) -> BoxFuture<'static, #out> {
+                    async move { app::calculate(targets).await }.boxed()
                 }
             },
         ),
