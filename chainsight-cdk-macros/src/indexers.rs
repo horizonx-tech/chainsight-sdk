@@ -283,22 +283,22 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
     let call_functions = match args_ty {
         Some(args_ty) => {
             quote! {
-                async fn #get_method_name(target_principal: String, args: #args_ty) -> Result<#return_ty, String> {
+                pub async fn #get_method_name(target_principal: String, args: #args_ty) -> Result<#return_ty, String> {
                     #finder_method_name(target_principal.clone()).find(args).await.map_err(|e| format!("{:?}", e))
                 }
 
-                async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
+                pub async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
                     #finder_method_name(target_principal.clone()).find_unwrap(args).await
                 }
             }
         }
         None => {
             quote! {
-                async fn #get_method_name(target_principal: String) -> Result<#return_ty, String> {
+                pub async fn #get_method_name(target_principal: String) -> Result<#return_ty, String> {
                     #finder_method_name(target_principal.clone()).find(()).await.map_err(|e| format!("{:?}", e))
                 }
 
-                async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
+                pub async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
                     #finder_method_name(target_principal.clone()).find_unwrap(()).await
                 }
             }
