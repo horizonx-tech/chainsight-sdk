@@ -224,7 +224,7 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
                 }
             },
             quote! {
-                chainsight_cdk::rpc::AsyncReceiverProvider::<#arg_ty, #out>::new(
+                chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #out>::new(
                     proxy(),
                     _calc,
                 )
@@ -247,7 +247,7 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
                 }
             },
             quote! {
-                chainsight_cdk::rpc::AsyncReceiverProviderWithoutArgs::<#out>::new(
+                chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #out>::new(
                     proxy(),
                     _calc,
                 )
