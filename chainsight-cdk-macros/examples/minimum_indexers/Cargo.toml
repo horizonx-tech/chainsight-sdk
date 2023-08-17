@@ -6,6 +6,7 @@ members = [
     "src/event_indexer",
     "src/algorithm_indexer",
     "src/algorithm_indexer_with_args",
+    "src/algorithm_lens",
     "src/snapshot_web2",
 ]
 
@@ -16,6 +17,7 @@ ic-cdk-macros = "0.6.10"
 ic-cdk-timers = "0.1"
 ic-stable-structures = "0.5.5"
 serde = "1.0.163"
+serde_bytes = "0.11.12"
 hex = "0.4.3"
 
 ic-web3-rs = { version = "0.1.1" }

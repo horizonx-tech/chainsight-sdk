@@ -214,8 +214,8 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     let (getter_func, receiver_provider, inter_calc_func) = match args.func_arg {
         Some(arg_ty) => (
             quote! {
-                #[ic_cdk::query]
-                #[candid::candid_method(query)]
+                #[ic_cdk::update]
+                #[candid::candid_method(update)]
                 async fn #getter_name(targets: Vec<String>, input: #arg_ty) -> #out {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
@@ -237,8 +237,8 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
         ),
         None => (
             quote! {
-                #[ic_cdk::query]
-                #[candid::candid_method(query)]
+                #[ic_cdk::update]
+                #[candid::candid_method(update)]
                 async fn #getter_name(targets: Vec<String>) -> #out {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
