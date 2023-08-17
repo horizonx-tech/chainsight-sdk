@@ -23,7 +23,7 @@ impl Caller for CallProvider {
         let result: MessageCallResult = call::call(
             self.proxy,
             "proxy_call",
-            (ic_cdk::caller(), m.recipient, m.method_name, m.content),
+            (ic_cdk::id(), m.recipient, m.method_name, m.content),
         )
         .await;
         match result {
