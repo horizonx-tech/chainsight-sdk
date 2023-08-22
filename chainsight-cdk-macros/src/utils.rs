@@ -66,6 +66,11 @@ pub fn chainsight_common(input: TokenStream) -> TokenStream {
         pub fn metrics(n: usize) -> Vec<CanisterMetricsSnapshot> {
             get_top_canister_metrics_snapshots(n)
         }
+
+        async fn _get_target_proxy(target: candid::Principal) -> candid::Principal {
+            let out: ic_cdk::api::call::CallResult<(candid::Principal,)> = ic_cdk::api::call::call(target, "get_proxy", ()).await;
+            out.unwrap().0
+        }
     };
     output.into()
 }
