@@ -45,7 +45,6 @@ pub struct AlgorithmLensFinder<Resp>
 where
     Resp: serde::de::DeserializeOwned,
 {
-    pub proxy: Principal,
     pub target: LensTarget<Resp>,
 }
 
@@ -53,8 +52,8 @@ impl<Resp> AlgorithmLensFinder<Resp>
 where
     Resp: serde::de::DeserializeOwned,
 {
-    pub fn new(proxy: Principal, target: LensTarget<Resp>) -> Self {
-        Self { proxy, target }
+    pub fn new(target: LensTarget<Resp>) -> Self {
+        Self { target }
     }
 }
 

@@ -46,7 +46,8 @@ async fn sync() {
         return;
     }
 
-    let price = call_result.unwrap().reply::<CallCanisterResponse>();
+    let price: Result<VirtualPrice, chainsight_cdk::rpc::Error> =
+        call_result.unwrap().reply::<CallCanisterResponse>();
     if let Err(err) = price {
         ic_cdk::println!("error: {:?}", err);
         return;
