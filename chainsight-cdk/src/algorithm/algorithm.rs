@@ -31,7 +31,6 @@ impl<Logs> AlgorithmEventPersister<Logs> {
 
 #[derive(Clone)]
 pub struct AlgorithmLogFinder {
-    proxy: Principal,
     target: Principal,
     method: String,
 }
@@ -49,16 +48,14 @@ impl AlgorithmLogFinder {
 }
 
 impl AlgorithmLogFinder {
-    fn new(proxy: Principal, target: Principal) -> Self {
+    fn new(target: Principal) -> Self {
         Self {
-            proxy,
             target,
             method: "proxy_call".to_string(),
         }
     }
-    fn new_with_method(proxy: Principal, target: Principal, method: &str) -> Self {
+    fn new_with_method(target: Principal, method: &str) -> Self {
         Self {
-            proxy,
             target,
             method: method.to_string(),
         }
@@ -70,7 +67,7 @@ impl AlgorithmLogFinder {
         Args: serde::Serialize,
         Reply: serde::de::DeserializeOwned,
     {
-        let result = CallProvider::new(self.proxy)
+        let result = CallProvider::new()
             .call(Message::new::<Args>(args, self.target, &self.method).unwrap())
             .await
             .unwrap();
@@ -79,35 +76,24 @@ impl AlgorithmLogFinder {
     }
 }
 impl<Logs> AlgorithmIndexer<Logs> {
-    pub fn new(proxy: Principal, src: Principal, persist: fn(Logs)) -> Self {
+    pub fn new(src: Principal, persist: fn(Logs)) -> Self {
         Self {
-            finder: AlgorithmLogFinder::new(proxy, src),
+            finder: AlgorithmLogFinder::new(src),
             persister: AlgorithmEventPersister::new(persist),
         }
     }
-    pub fn new_with_method(
-        proxy: Principal,
-        src: Principal,
-        method: &str,
-        persist: fn(Logs),
-    ) -> Self {
+    pub fn new_with_method(src: Principal, method: &str, persist: fn(Logs)) -> Self {
         Self {
-            finder: AlgorithmLogFinder::new_with_method(proxy, src, method),
+            finder: AlgorithmLogFinder::new_with_method(src, method),
             persister: AlgorithmEventPersister::new(persist),
         }
     }
 }
 
 impl<Logs, Args> AlgorithmIndexerWithArgs<Logs, Args> {
-    pub fn new_with_method(
-        proxy: Principal,
-        src: Principal,
-        method: &str,
-        persist: fn(Logs),
-        args: Args,
-    ) -> Self {
+    pub fn new_with_method(src: Principal, method: &str, persist: fn(Logs), args: Args) -> Self {
         Self {
-            finder: AlgorithmLogFinder::new_with_method(proxy, src, method),
+            finder: AlgorithmLogFinder::new_with_method(src, method),
             persister: AlgorithmEventPersister::new(persist),
             args,
         }

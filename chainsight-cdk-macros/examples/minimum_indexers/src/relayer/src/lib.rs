@@ -31,10 +31,14 @@ type CallCanisterResponse = VirtualPrice;
 timer_task_func!("set_task", "sync", true);
 async fn sync() {
     let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
-    let call_result = CallProvider::new(_get_target_proxy(target_canister).await)
+    let call_result = CallProvider::new()
         .call(
-            Message::new::<CallCanisterArgs>((), target_canister.clone(), "get_last_price")
-                .unwrap(),
+            Message::new::<CallCanisterArgs>(
+                (),
+                _get_target_proxy(target_canister).await,
+                "get_last_price",
+            )
+            .unwrap(),
         )
         .await;
     if let Err(err) = call_result {
