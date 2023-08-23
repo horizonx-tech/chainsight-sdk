@@ -204,14 +204,14 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
         }
 
         use chainsight_cdk::indexer::Indexer;
-        fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
-            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(proxy(), get_target(), #call_method, app::persist, get_args())
+        async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
+            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist, get_args())
         }
         #source
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
-            indexer().index(chainsight_cdk::indexer::IndexingConfig::default()).await.unwrap()
+            indexer().await.index(chainsight_cdk::indexer::IndexingConfig::default()).await.unwrap()
         }
         fn get_target() -> candid::Principal {
             candid::Principal::from_text(get_target_addr()).unwrap()
@@ -237,8 +237,8 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         mod app;
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
-        fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
-            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(proxy(), get_target(),#call_method, app::persist)
+        async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
+            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist)
         }
         #source
         #[ic_cdk::update]
@@ -252,7 +252,7 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
             if stored_u64 > config.start_from {
                 config.start_from = stored_u64;
             }
-            indexer().index(config).await.unwrap();
+            indexer().await.index(config).await.unwrap();
         }
         fn get_target() -> candid::Principal {
             candid::Principal::from_text(get_target_addr()).unwrap()
@@ -295,25 +295,24 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
         None => {
             quote! {
                 pub async fn #get_method_name(target_principal: String) -> Result<#return_ty, String> {
-                    #finder_method_name(target_principal.clone()).find(()).await.map_err(|e| format!("{:?}", e))
+                    #finder_method_name(target_principal.clone()).await.find(()).await.map_err(|e| format!("{:?}", e))
                 }
 
                 pub async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
-                    #finder_method_name(target_principal.clone()).find_unwrap(()).await
+                    #finder_method_name(target_principal.clone()).await.find_unwrap(()).await
                 }
             }
         }
     };
 
     quote! {
-        fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+        async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
             use chainsight_cdk::lens::LensFinder;
 
             let recipient = candid::Principal::from_text(target_principal).unwrap();
             chainsight_cdk::lens::AlgorithmLensFinder::new(
-                proxy(),
                 chainsight_cdk::lens::LensTarget::<#return_ty>::new(
-                    recipient,
+                    _get_target_proxy(recipient).await,
                     #call_method,
                 )
             )

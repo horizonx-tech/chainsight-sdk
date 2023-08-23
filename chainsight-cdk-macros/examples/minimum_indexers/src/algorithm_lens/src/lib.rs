@@ -1,7 +1,7 @@
 use candid::CandidType;
 use chainsight_cdk::lens::LensFinder;
 use chainsight_cdk_macros::{
-    algorithm_lens_finder, chainsight_common, did_export, init_in, lens_method
+    algorithm_lens_finder, chainsight_common, did_export, init_in, lens_method,
 };
 use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
 mod app;

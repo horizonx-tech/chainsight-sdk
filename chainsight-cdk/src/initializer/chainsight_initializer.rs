@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use candid::Principal;
+use candid::{CandidType, Principal};
 use ic_cdk::api::call::CallResult;
 
 use super::{InitConfig, InitError, InitResult, Initializer};
@@ -14,19 +14,19 @@ impl ChainsightInitializer {
     }
 }
 
+#[derive(CandidType, serde::Deserialize, Clone, Copy)]
+pub struct InitializeOutput {
+    pub proxy: Principal,
+    pub db: Principal,
+}
+
 #[async_trait]
 impl Initializer for ChainsightInitializer {
     async fn initialize(&self) -> Result<InitResult, InitError> {
-        let _: CallResult<(Principal,)> = ic_cdk::api::call::call(
-            self.config.env.initializer(),
-            "deploy_vault_of",
-            (ic_cdk::id(),),
-        )
-        .await;
-        let px: CallResult<(Principal,)> =
-            ic_cdk::api::call::call(self.config.env.initializer(), "get_proxy", ()).await;
+        let out: CallResult<(InitializeOutput,)> =
+            ic_cdk::api::call::call(self.config.env.initializer(), "initialize", ()).await;
         Ok(InitResult {
-            proxy: px.unwrap().0,
+            proxy: out.unwrap().0.proxy,
         })
     }
 }

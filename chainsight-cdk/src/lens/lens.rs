@@ -45,7 +45,6 @@ pub struct AlgorithmLensFinder<Resp>
 where
     Resp: serde::de::DeserializeOwned,
 {
-    pub proxy: Principal,
     pub target: LensTarget<Resp>,
 }
 
@@ -53,8 +52,8 @@ impl<Resp> AlgorithmLensFinder<Resp>
 where
     Resp: serde::de::DeserializeOwned,
 {
-    pub fn new(proxy: Principal, target: LensTarget<Resp>) -> Self {
-        Self { proxy, target }
+    pub fn new(target: LensTarget<Resp>) -> Self {
+        Self { target }
     }
 }
 
@@ -68,7 +67,7 @@ where
         Args: serde::Serialize + Send,
         Resp: serde::de::DeserializeOwned,
     {
-        let call_result = CallProvider::new(self.proxy)
+        let call_result = CallProvider::new()
             .call(
                 Message::new::<Args>(args, self.target.target, self.target.method.as_str())
                     .unwrap(),
