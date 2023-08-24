@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use candid::{CandidType, Principal};
 use futures::future::BoxFuture;
 use serde::{de::DeserializeOwned, Serialize};
@@ -48,12 +49,13 @@ where
     }
 }
 
+#[async_trait]
 impl<In, Out> Receiver<In, Out> for ReceiverProvider<In, Out>
 where
-    In: CandidType + DeserializeOwned,
-    Out: CandidType + Serialize,
+    In: CandidType + DeserializeOwned + Send,
+    Out: CandidType + Serialize + Send,
 {
-    fn handle(&self, content: In) -> Out {
+    async fn handle(&self, content: In) -> Out {
         (self.handle)(content)
     }
 
@@ -71,13 +73,14 @@ where
         Self { proxy, handle }
     }
 }
+#[async_trait]
 impl<In, Out> Receiver<In, Out> for AsyncReceiverProvider<In, Out>
 where
-    In: CandidType + DeserializeOwned,
-    Out: CandidType + Serialize,
+    In: CandidType + DeserializeOwned + Send,
+    Out: CandidType + Serialize + Send,
 {
-    fn handle(&self, content: In) -> Out {
-        futures::executor::block_on((self.handle)(content))
+    async fn handle(&self, content: In) -> Out {
+        ((self.handle)(content)).await
     }
 
     fn is_from_proxy(&self) -> bool {
@@ -93,11 +96,12 @@ where
         Self { proxy, handle }
     }
 }
+#[async_trait]
 impl<Out> Receiver<(), Out> for ReceiverProviderWithoutArgs<Out>
 where
-    Out: CandidType + Serialize,
+    Out: CandidType + Serialize + Send,
 {
-    fn handle(&self, _: ()) -> Out {
+    async fn handle(&self, _: ()) -> Out {
         (self.handle)()
     }
 
@@ -114,12 +118,13 @@ where
         Self { proxy, handle }
     }
 }
+#[async_trait]
 impl<Out> Receiver<(), Out> for AsyncReceiverProviderWithoutArgs<Out>
 where
-    Out: CandidType + Serialize,
+    Out: CandidType + Serialize + Send,
 {
-    fn handle(&self, _: ()) -> Out {
-        futures::executor::block_on((self.handle)())
+    async fn handle(&self, _: ()) -> Out {
+        ((self.handle)()).await
     }
 
     fn is_from_proxy(&self) -> bool {

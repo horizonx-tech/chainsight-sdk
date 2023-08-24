@@ -277,7 +277,7 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
         async fn #proxy_getter_name(input:Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             let reciever_provider = #receiver_provider;
-            reciever_provider.reply(input)
+            reciever_provider.reply(input).await
         }
 
         #[ic_cdk::query]

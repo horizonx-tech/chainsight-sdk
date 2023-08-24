@@ -347,13 +347,14 @@ pub fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        fn proxy_call(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+        async fn proxy_call(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), HashMap<u64, Vec<#out_type>>>::new(
                 proxy(),
                 _events_from_to.clone(),
             )
             .reply(input)
+            .await
         }
     };
 

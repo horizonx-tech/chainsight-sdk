@@ -253,13 +253,14 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #update_derive
-        fn #proxy_get_vec_func(input: Vec<u8>) -> Vec<u8> {
+        async fn #proxy_get_vec_func(input: Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<#ty>>::new(
                 proxy(),
                 #_get_vec_func,
             )
             .reply(input)
+            .await
         }
 
         #getter_derives
@@ -272,13 +273,14 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #update_derive
-        fn #proxy_get_len_func(input: Vec<u8>) -> Vec<u8> {
+        async fn #proxy_get_len_func(input: Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<usize>::new(
                 proxy(),
                 #_get_len_func,
             )
             .reply(input)
+            .await
         }
 
 
@@ -292,13 +294,14 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #update_derive
-        fn #proxy_get_last_elem_func(input: Vec<u8>) -> Vec<u8> {
+        async fn #proxy_get_last_elem_func(input: Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#ty>::new(
                 proxy(),
                 #_get_last_elem_func,
             )
             .reply(input)
+            .await
         }
 
 
@@ -312,13 +315,14 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #update_derive
-        fn #proxy_get_top_elems_func(input: Vec<u8>) -> Vec<u8> {
+        async fn #proxy_get_top_elems_func(input: Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProvider::<usize, Vec<#ty>>::new(
                 proxy(),
                 #_get_top_elems_func,
             )
             .reply(input)
+            .await
         }
 
 
@@ -332,13 +336,14 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         }
 
         #update_derive
-        fn #proxy_get_elem_func(input: Vec<u8>) -> Vec<u8> {
+        async fn #proxy_get_elem_func(input: Vec<u8>) -> Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProvider::<usize, #ty>::new(
                 proxy(),
                 #_get_elem_func,
             )
             .reply(input)
+            .await
         }
 
         pub fn #add_elem_func(value: #ty) {
