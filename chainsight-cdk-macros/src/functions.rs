@@ -77,6 +77,13 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
         fn get_env() -> chainsight_cdk::core::Env {
             ENV.with(|env| env.borrow().clone())
         }
+        
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        fn get_proxy() -> candid::Principal {
+            proxy()
+        }
+
         thread_local! {
             static INITIALIZED: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
             static PROXY: std::cell::RefCell<candid::Principal> = std::cell::RefCell::new(candid::Principal::anonymous());
