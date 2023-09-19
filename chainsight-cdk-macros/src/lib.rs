@@ -80,8 +80,8 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_scalar(input)
 }
 #[proc_macro]
-pub fn relayer_source(_input: TokenStream) -> TokenStream {
-    indexers::relayer_source()
+pub fn relayer_source(input: TokenStream) -> TokenStream {
+    indexers::relayer_source(input)
 }
 
 #[proc_macro]

@@ -134,14 +134,30 @@ fn generate_algorithm_indexer_source() -> TokenStream2 {
     }.into()
 }
 
-pub fn relayer_source() -> TokenStream {
+pub fn relayer_source(input: TokenStream) -> TokenStream {
+    let from_lens: syn::LitBool = parse_macro_input!(input as syn::LitBool);
+    if from_lens.value {
+        return quote! {
+            #[ic_cdk::query]
+            #[candid::candid_method(query)]
+            fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+                vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
+                get_target_canister(),
+                get_timer_duration(),
+                call_args()),                
+                ]
+            }
+        }.into();
+    }
+
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
             vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
-            get_target_addr(),
-            get_timer_duration())
+            get_target_canister(),
+            get_timer_duration(),
+            vec![])
             ]
         }
     }.into()

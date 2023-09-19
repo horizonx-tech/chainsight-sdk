@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use candid::CandidType;
+use serde_json::json;
 
 #[derive(
     CandidType, Debug, Clone, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize, Default,
@@ -113,13 +114,14 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         attrs.insert("function_name".to_string(), method_id);
         Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
     }
-    pub fn new_relayer(principal: String, interval: u32) -> Sources<HashMap<String, String>> {
-        Sources::new(
-            SourceType::Chainsight,
-            principal,
-            Some(interval),
-            HashMap::new(),
-        )
+    pub fn new_relayer(
+        principal: String,
+        interval: u32,
+        lens_targets: Vec<String>,
+    ) -> Sources<HashMap<String, String>> {
+        let mut attrs = HashMap::new();
+        attrs.insert("sources".to_string(), json!(lens_targets).to_string());
+        Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
     }
     pub fn new_web3_snapshot_indexer(
         address: String,
