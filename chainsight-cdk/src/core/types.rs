@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use candid::CandidType;
+use serde_json::json;
 
 #[derive(
     CandidType, Debug, Clone, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize, Default,
@@ -60,6 +61,12 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
     pub chain_id: u64,
     pub function_name: String,
 }
+
+#[derive(Clone, CandidType, serde::Serialize)]
+pub struct RelayerWithLensSourceAttrs {
+    pub sources: Vec<String>,
+}
+
 pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
@@ -113,12 +120,18 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         attrs.insert("function_name".to_string(), method_id);
         Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
     }
-    pub fn new_relayer(principal: String, interval: u32) -> Sources<HashMap<String, String>> {
+    pub fn new_relayer(
+        principal: String,
+        interval: u32,
+        lens_targets: Vec<String>,
+    ) -> Sources<RelayerWithLensSourceAttrs> {
         Sources::new(
             SourceType::Chainsight,
             principal,
             Some(interval),
-            HashMap::new(),
+            RelayerWithLensSourceAttrs {
+                sources: lens_targets,
+            },
         )
     }
     pub fn new_web3_snapshot_indexer(
