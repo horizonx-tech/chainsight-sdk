@@ -118,9 +118,9 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         principal: String,
         interval: u32,
         lens_targets: Vec<String>,
-    ) -> Sources<HashMap<String, String>> {
+    ) -> Sources<HashMap<String, Vec<String>>> {
         let mut attrs = HashMap::new();
-        attrs.insert("sources".to_string(), json!(lens_targets).to_string());
+        attrs.insert("sources".to_string(), lens_targets);
         Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
     }
     pub fn new_web3_snapshot_indexer(

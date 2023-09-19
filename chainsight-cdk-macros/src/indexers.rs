@@ -140,7 +140,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
         return quote! {
             #[ic_cdk::query]
             #[candid::candid_method(query)]
-            fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+            fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, Vec<String>>>> {
                 vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
                 get_target_canister(),
                 get_timer_duration(),
@@ -153,7 +153,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, Vec<String>>>> {
             vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
             get_target_canister(),
             get_timer_duration(),
