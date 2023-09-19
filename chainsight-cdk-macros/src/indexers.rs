@@ -118,7 +118,7 @@ fn generate_event_indexer_source(tt: syn::Type) -> TokenStream2 {
             })
             ]
         }
-    }.into()
+    }
 }
 
 fn generate_algorithm_indexer_source() -> TokenStream2 {
@@ -131,7 +131,7 @@ fn generate_algorithm_indexer_source() -> TokenStream2 {
             get_timer_duration())
             ]
         }
-    }.into()
+    }
 }
 
 pub fn relayer_source(input: TokenStream) -> TokenStream {
@@ -144,7 +144,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
                 vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_relayer(
                 get_target_canister(),
                 get_timer_duration(),
-                call_args()),                
+                call_args()),
                 ]
             }
         }.into();
