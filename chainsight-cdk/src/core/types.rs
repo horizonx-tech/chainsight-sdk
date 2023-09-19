@@ -61,6 +61,12 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
     pub chain_id: u64,
     pub function_name: String,
 }
+
+#[derive(Clone, CandidType, serde::Serialize)]
+pub struct RelayerWithLensSourceAttrs {
+    pub sources: Vec<String>,
+}
+
 pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
@@ -118,10 +124,15 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         principal: String,
         interval: u32,
         lens_targets: Vec<String>,
-    ) -> Sources<HashMap<String, Vec<String>>> {
-        let mut attrs = HashMap::new();
-        attrs.insert("sources".to_string(), lens_targets);
-        Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
+    ) -> Sources<RelayerWithLensSourceAttrs> {
+        Sources::new(
+            SourceType::Chainsight,
+            principal,
+            Some(interval),
+            RelayerWithLensSourceAttrs {
+                sources: lens_targets,
+            },
+        )
     }
     pub fn new_web3_snapshot_indexer(
         address: String,
