@@ -221,7 +221,7 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
 
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
-            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist, get_args())
+            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist, get_args())
         }
         #source
         #[ic_cdk::update]
@@ -254,7 +254,7 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
-            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist)
+            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)
         }
         #source
         #[ic_cdk::update]

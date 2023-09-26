@@ -238,7 +238,7 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             },
             quote! {
                 fn _calc(targets: Vec<String>, args: #arg_ty) -> BoxFuture<'static, #out> {
-                    async move { app::calculate(targets, args).await }.boxed()
+                    async move { calculate(targets, args).await }.boxed()
                 }
             },
         ),
@@ -261,15 +261,13 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             },
             quote! {
                 fn _calc(targets: Vec<String>) -> BoxFuture<'static, #out> {
-                    async move { app::calculate(targets).await }.boxed()
+                    async move { calculate(targets).await }.boxed()
                 }
             },
         ),
     };
 
     quote! {
-        use app::{calculate};
-
         #getter_func
 
         #[ic_cdk::update]
