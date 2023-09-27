@@ -201,7 +201,6 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
     let source = generate_algorithm_indexer_source();
     quote! {
-        mod app;
         manage_single_state!("config", IndexingConfig, false);
         thread_local!{
             static ARGS: std::cell::RefCell<Option<#args>> = std::cell::RefCell::new(None);
@@ -250,7 +249,6 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as AlgorithmIndexerInput);
     let source = generate_algorithm_indexer_source();
     quote! {
-        mod app;
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
