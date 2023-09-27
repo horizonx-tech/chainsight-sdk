@@ -104,7 +104,7 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 }
 
 fn generate_event_indexer_source(tt: syn::Type) -> TokenStream2 {
-    let type_str = stringify!(tt).to_string();
+    let type_str = quote!(#tt).to_string();
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
