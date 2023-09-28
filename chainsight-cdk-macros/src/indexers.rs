@@ -167,8 +167,8 @@ pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
-            vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_snapshot_indexer(
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>> {
+            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
                 get_target_canister(),
                 get_timer_duration(),
                 #func_name.to_string(),
