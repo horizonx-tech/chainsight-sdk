@@ -170,13 +170,8 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
     pub fn new_https_snapshot_indexer(
         url: String,
         interval: u32,
-        attrs: HttpsSnapshotIndexerSourceAttrs
+        attrs: HttpsSnapshotIndexerSourceAttrs,
     ) -> Sources<HttpsSnapshotIndexerSourceAttrs> {
-        Sources::new(
-            SourceType::Https,
-            url,
-            Some(interval),
-            attrs,
-        )
+        Sources::new(SourceType::Https, url, Some(interval), attrs)
     }
 }
