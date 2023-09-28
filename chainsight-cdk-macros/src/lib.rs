@@ -93,6 +93,10 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
     indexers::snapshot_web3_source(input)
 }
 #[proc_macro]
+pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
+    indexers::snapshot_https_source(_input)
+}
+#[proc_macro]
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_vec(input)
 }

@@ -193,6 +193,20 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
     }.into()
 }
 
+pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
+    quote! {
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>> {
+            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>::new_https_snapshot_indexer(
+                URL.to_string(),
+                get_timer_duration(),
+                get_attrs(),
+            )]
+        }
+    }.into()
+}
+
 pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
     let AlgorithmIndexerWithArgsInput {
         in_type,

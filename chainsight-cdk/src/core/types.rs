@@ -48,6 +48,8 @@ pub enum SourceType {
     Evm,
     #[serde(rename = "chainsight")]
     Chainsight,
+    #[serde(rename = "https")]
+    Https,
 }
 #[derive(Clone, CandidType, serde::Serialize)]
 pub struct Web3EventIndexerSourceAttrs {
@@ -72,6 +74,11 @@ pub struct RelayerWithLensSourceAttrs {
 }
 
 pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
+
+#[derive(Clone, CandidType, serde::Serialize)]
+pub struct HttpsSnapshotIndexerSourceAttrs {
+    pub queries: HashMap<String, String>,
+}
 
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
@@ -158,6 +165,18 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
                 chain_id,
                 function_name,
             },
+        )
+    }
+    pub fn new_https_snapshot_indexer(
+        url: String,
+        interval: u32,
+        attrs: HttpsSnapshotIndexerSourceAttrs
+    ) -> Sources<HttpsSnapshotIndexerSourceAttrs> {
+        Sources::new(
+            SourceType::Https,
+            url,
+            Some(interval),
+            attrs,
         )
     }
 }

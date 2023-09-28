@@ -1,4 +1,4 @@
-use chainsight_cdk::web2::{JsonRpcSnapshotParam, Web2JsonRpcSnapshotIndexer};
+use chainsight_cdk::web2::{HttpsSnapshotParam, Web2HttpsSnapshotIndexer};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, manage_vec_state, timer_task_func,
 };
@@ -17,12 +17,12 @@ manage_vec_state!("price_result", PriceResult, true);
 timer_task_func!("set_task", "index", true);
 
 async fn index() {
-    let indexer = Web2JsonRpcSnapshotIndexer::new(
+    let indexer = Web2HttpsSnapshotIndexer::new(
         "https://api.coingecko.com/api/v3/simple/price".to_string(),
     );
 
     let res = indexer
-        .get::<String, PriceResult>(JsonRpcSnapshotParam {
+        .get::<String, PriceResult>(HttpsSnapshotParam {
             // TODO: pricvate api key
             headers: vec![].into_iter().collect(),
             queries: vec![
