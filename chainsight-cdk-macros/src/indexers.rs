@@ -201,7 +201,6 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
     let source = generate_algorithm_indexer_source();
     quote! {
-        mod app;
         manage_single_state!("config", IndexingConfig, false);
         thread_local!{
             static ARGS: std::cell::RefCell<Option<#args>> = std::cell::RefCell::new(None);
@@ -221,7 +220,7 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
 
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
-            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist, get_args())
+            chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist, get_args())
         }
         #source
         #[ic_cdk::update]
@@ -250,11 +249,10 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as AlgorithmIndexerInput);
     let source = generate_algorithm_indexer_source();
     quote! {
-        mod app;
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
-            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, app::persist)
+            chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)
         }
         #source
         #[ic_cdk::update]
@@ -299,7 +297,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
     let call_functions = match args_ty {
         Some(args_ty) => {
             quote! {
-                pub async fn #get_method_name(target_principal: String, args: #args_ty) -> Result<#return_ty, String> {
+                pub async fn #get_method_name(target_principal: String, args: #args_ty) -> std::result::Result<#return_ty, String> {
                     #finder_method_name(target_principal.clone()).find(args).await.map_err(|e| format!("{:?}", e))
                 }
 
@@ -310,7 +308,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
         }
         None => {
             quote! {
-                pub async fn #get_method_name(target_principal: String) -> Result<#return_ty, String> {
+                pub async fn #get_method_name(target_principal: String) -> std::result::Result<#return_ty, String> {
                     #finder_method_name(target_principal.clone()).await.find(()).await.map_err(|e| format!("{:?}", e))
                 }
 
