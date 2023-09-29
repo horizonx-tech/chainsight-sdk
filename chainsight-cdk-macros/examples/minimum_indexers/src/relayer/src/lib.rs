@@ -18,7 +18,7 @@ setup_func!({
     web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
 });
 init_in!();
-relayer_source!(false);
+relayer_source!("get_last_price", false);
 
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize)]
 pub struct VirtualPrice {

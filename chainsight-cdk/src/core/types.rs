@@ -70,6 +70,7 @@ pub struct ICSnapshotIndexerSourceAttrs {
 
 #[derive(Clone, CandidType, serde::Serialize)]
 pub struct RelayerWithLensSourceAttrs {
+    pub function_name: String,
     pub sources: Vec<String>,
 }
 
@@ -140,13 +141,20 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
     pub fn new_relayer(
         principal: String,
         interval: u32,
+        method_identifier: &str,
         lens_targets: Vec<String>,
     ) -> Sources<RelayerWithLensSourceAttrs> {
+        let mut method_id = match method_identifier.contains(':') {
+            true => method_identifier.split(':').collect::<Vec<&str>>()[0].to_string(),
+            false => method_identifier.to_string(),
+        };
+        method_id = method_id.replace(' ', "").replace("()", "");
         Sources::new(
             SourceType::Chainsight,
             principal,
             Some(interval),
             RelayerWithLensSourceAttrs {
+                function_name: method_id,
                 sources: lens_targets,
             },
         )
