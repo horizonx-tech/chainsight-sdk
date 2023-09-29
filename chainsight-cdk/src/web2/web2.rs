@@ -4,21 +4,21 @@ use ic_cdk::api::management_canister::http_request::{
     self, http_request, CanisterHttpRequestArgument, HttpHeader,
 };
 use serde::de::DeserializeOwned;
-pub struct Web2JsonRpcSnapshotIndexer {
+pub struct Web2HttpsSnapshotIndexer {
     pub url: String,
 }
 
-pub struct JsonRpcSnapshotParam {
+pub struct HttpsSnapshotParam {
     pub queries: HashMap<String, String>,
     pub headers: HashMap<String, String>,
 }
 
-impl Web2JsonRpcSnapshotIndexer {
+impl Web2HttpsSnapshotIndexer {
     pub fn new(url: String) -> Self {
         Self { url }
     }
 
-    pub async fn get<T, V>(&self, param: JsonRpcSnapshotParam) -> anyhow::Result<V>
+    pub async fn get<T, V>(&self, param: HttpsSnapshotParam) -> anyhow::Result<V>
     where
         V: DeserializeOwned,
     {

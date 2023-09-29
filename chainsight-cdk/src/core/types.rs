@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use candid::CandidType;
-use serde_json::json;
 
 #[derive(
     CandidType, Debug, Clone, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize, Default,
@@ -49,6 +48,8 @@ pub enum SourceType {
     Evm,
     #[serde(rename = "chainsight")]
     Chainsight,
+    #[serde(rename = "https")]
+    Https,
 }
 #[derive(Clone, CandidType, serde::Serialize)]
 pub struct Web3EventIndexerSourceAttrs {
@@ -63,16 +64,27 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
 }
 
 #[derive(Clone, CandidType, serde::Serialize)]
+pub struct ICSnapshotIndexerSourceAttrs {
+    pub function_name: String,
+}
+
+#[derive(Clone, CandidType, serde::Serialize)]
 pub struct RelayerWithLensSourceAttrs {
     pub sources: Vec<String>,
 }
 
 pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
+
+#[derive(Clone, CandidType, serde::Serialize)]
+pub struct HttpsSnapshotIndexerSourceAttrs {
+    pub queries: HashMap<String, String>,
+}
+
 pub enum ChainsightCanisterType {
     Web3EventIndexer,
     AlgorithmIndexer,
     Web3SnapshotIndexer,
-    ICSNapshotIndexer,
+    ICSnapshotIndexer,
     Web3Relayer,
 }
 
@@ -110,15 +122,20 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
         principal: String,
         interval: u32,
         method_identifier: String,
-    ) -> Sources<HashMap<String, String>> {
+    ) -> Sources<ICSnapshotIndexerSourceAttrs> {
         let mut method_id = match method_identifier.contains(':') {
             true => method_identifier.split(':').collect::<Vec<&str>>()[0].to_string(),
             false => method_identifier,
         };
         method_id = method_id.replace(' ', "").replace("()", "");
-        let mut attrs = HashMap::new();
-        attrs.insert("function_name".to_string(), method_id);
-        Sources::new(SourceType::Chainsight, principal, Some(interval), attrs)
+        Sources::new(
+            SourceType::Chainsight,
+            principal,
+            Some(interval),
+            ICSnapshotIndexerSourceAttrs {
+                function_name: method_id,
+            },
+        )
     }
     pub fn new_relayer(
         principal: String,
@@ -149,5 +166,12 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
                 function_name,
             },
         )
+    }
+    pub fn new_https_snapshot_indexer(
+        url: String,
+        interval: u32,
+        attrs: HttpsSnapshotIndexerSourceAttrs,
+    ) -> Sources<HttpsSnapshotIndexerSourceAttrs> {
+        Sources::new(SourceType::Https, url, Some(interval), attrs)
     }
 }
