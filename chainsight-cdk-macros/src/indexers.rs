@@ -27,6 +27,11 @@ pub struct AlgorithmLensFinderInput {
     args_ty: Option<syn::Type>,
 }
 
+pub struct RelayerSourceInput {
+    method_identifier: syn::LitStr,
+    from_lens: syn::LitBool,
+}
+
 impl Parse for AlgorithmIndexerWithArgsInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
@@ -76,6 +81,17 @@ impl Parse for AlgorithmLensFinderInput {
     }
 }
 
+impl Parse for RelayerSourceInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let method_identifier: syn::LitStr = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let from_lens: syn::LitBool = input.parse()?;
+        Ok(RelayerSourceInput {
+            method_identifier,
+            from_lens,
+        })
+    }
+}
 impl Parse for Web3EventIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let out_type: Type = input.parse()?;
@@ -135,7 +151,10 @@ fn generate_algorithm_indexer_source() -> TokenStream2 {
 }
 
 pub fn relayer_source(input: TokenStream) -> TokenStream {
-    let from_lens: syn::LitBool = parse_macro_input!(input as syn::LitBool);
+    let RelayerSourceInput {
+        from_lens,
+        method_identifier,
+    } = parse_macro_input!(input as RelayerSourceInput);
     if from_lens.value {
         return quote! {
             #[ic_cdk::query]
@@ -144,6 +163,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
                 vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
                 get_target_canister(),
                 get_timer_duration(),
+                #method_identifier,
                 call_args()),
                 ]
             }
@@ -157,6 +177,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
             vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
             get_target_canister(),
             get_timer_duration(),
+            #method_identifier,
             vec![])
             ]
         }
