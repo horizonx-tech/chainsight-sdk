@@ -30,15 +30,12 @@ impl Parse for NamedField {
 }
 
 struct LensArgs {
-    func_output: Type,
     target_count: usize,
     func_arg: Option<Type>,
 }
 
 impl Parse for LensArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let func_output: Type = input.parse()?;
-        let _comma: Token![,] = input.parse()?;
         let target_count: syn::LitInt = input.parse()?;
 
         let func_arg = if input.peek(syn::Token![,]) {
@@ -48,7 +45,6 @@ impl Parse for LensArgs {
             None
         };
         Ok(LensArgs {
-            func_output,
             target_count: target_count.base10_parse().unwrap(),
             func_arg,
         })
@@ -215,29 +211,37 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
-    let out = args.func_output;
+    let out_ty = format_ident!("{}", "LensResult");
+    let value_ty = format_ident!("{}", "LensValue");
     let target_count = args.target_count;
+    let out = quote! {
+        #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize)]
+        pub struct #out_ty {
+            pub value: #value_ty,
+        }
+    };
 
     let (getter_func, receiver_provider, inter_calc_func) = match args.func_arg {
         Some(arg_ty) => (
             quote! {
                 #[ic_cdk::update]
                 #[candid::candid_method(update)]
-                async fn #getter_name(targets: Vec<String>, input: #arg_ty) -> #out {
+                async fn #getter_name(targets: Vec<String>, input: #arg_ty) -> #out_ty {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    _calc(targets, input).await
+                    let value = _calc(targets, input).await;
+                    #out_ty { value }
                 }
             },
             quote! {
-                chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #out>::new(
+                chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #value_ty>::new(
                     proxy(),
                     _calc,
                 )
             },
             quote! {
-                fn _calc(targets: Vec<String>, args: #arg_ty) -> BoxFuture<'static, #out> {
+                fn _calc(targets: Vec<String>, args: #arg_ty) -> BoxFuture<'static, #value_ty> {
                     async move { calculate(targets, args).await }.boxed()
                 }
             },
@@ -246,21 +250,22 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             quote! {
                 #[ic_cdk::update]
                 #[candid::candid_method(update)]
-                async fn #getter_name(targets: Vec<String>) -> #out {
+                async fn #getter_name(targets: Vec<String>) -> #out_ty {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    _calc(targets).await
+                    let value = _calc(targets).await;
+                    #out_ty { value }
                 }
             },
             quote! {
-                chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #out>::new(
+                chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #value_ty>::new(
                     proxy(),
                     _calc,
                 )
             },
             quote! {
-                fn _calc(targets: Vec<String>) -> BoxFuture<'static, #out> {
+                fn _calc(targets: Vec<String>) -> BoxFuture<'static, #value_ty> {
                     async move { calculate(targets).await }.boxed()
                 }
             },
@@ -268,6 +273,7 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     };
 
     quote! {
+        #out
         #getter_func
 
         #[ic_cdk::update]

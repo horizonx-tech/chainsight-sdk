@@ -5,6 +5,7 @@ use chainsight_cdk_macros::{
 };
 use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
 mod app;
+use app::*;
 init_in!();
 chainsight_common!(60);
 #[derive(Clone, Debug, Default, CandidType, serde::Deserialize, serde::Serialize)]
@@ -18,5 +19,8 @@ algorithm_lens_finder!(
     "proxy_get_last_snapshot_value",
     String
 );
-lens_method!(Account, 1usize);
+async fn calculate(_targets: Vec<String>) -> LensValue {
+    todo!()
+}
+lens_method!(1usize);
 did_export!("sample_algorithm_lens");
