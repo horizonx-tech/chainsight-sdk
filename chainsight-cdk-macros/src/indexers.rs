@@ -329,7 +329,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
     let get_method_name = format_ident!("get_{}", id.value().to_lowercase());
     let get_unwrap_method_name = format_ident!("get_{}_unwrap", id.value().to_lowercase());
 
-    let call_functions = match args_ty {
+    match args_ty {
         Some(args_ty) => {
             quote! {
                 pub async fn #get_method_name(target_principal: String, args: #args_ty) -> std::result::Result<#return_ty, String> {
@@ -339,7 +339,20 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                 pub async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
                     #finder_method_name(target_principal.clone()).find_unwrap(args).await
                 }
-            }
+
+
+                async fn #finder_method_name(target_principal: String, args: #args_ty) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+                    use chainsight_cdk::lens::LensFinder;
+
+                    let recipient = candid::Principal::from_text(target_principal).unwrap();
+                    chainsight_cdk::lens::AlgorithmLensFinder::new(
+                        chainsight_cdk::lens::LensTarget::<#return_ty>::new(
+                            _get_target_proxy(recipient).await,
+                            #call_method,
+                        )
+                    )
+                }
+            }.into()
         }
         None => {
             quote! {
@@ -350,25 +363,21 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                 pub async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
                     #finder_method_name(target_principal.clone()).await.find_unwrap(()).await
                 }
-            }
+
+                async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+                    use chainsight_cdk::lens::LensFinder;
+
+                    let recipient = candid::Principal::from_text(target_principal).unwrap();
+                    chainsight_cdk::lens::AlgorithmLensFinder::new(
+                        chainsight_cdk::lens::LensTarget::<#return_ty>::new(
+                            _get_target_proxy(recipient).await,
+                            #call_method,
+                        )
+                    )
+                }
+            }.into()
         }
-    };
-
-    quote! {
-        async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
-            use chainsight_cdk::lens::LensFinder;
-
-            let recipient = candid::Principal::from_text(target_principal).unwrap();
-            chainsight_cdk::lens::AlgorithmLensFinder::new(
-                chainsight_cdk::lens::LensTarget::<#return_ty>::new(
-                    _get_target_proxy(recipient).await,
-                    #call_method,
-                )
-            )
-        }
-
-        #call_functions
-    }.into()
+    }
 }
 
 pub fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
