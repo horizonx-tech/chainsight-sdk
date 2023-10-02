@@ -337,7 +337,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                 }
 
                 pub async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
-                    #finder_method_name(target_principal.clone()).find_unwrap(args).await
+                    #finder_method_name(target_principal.clone()).find(args).await.unwrap()
                 }
 
 
@@ -361,7 +361,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                 }
 
                 pub async fn #get_unwrap_method_name(target_principal: String) -> #return_ty {
-                    #finder_method_name(target_principal.clone()).await.find_unwrap(()).await
+                    #finder_method_name(target_principal.clone()).await.find(()).await.unwrap()
                 }
 
                 async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
