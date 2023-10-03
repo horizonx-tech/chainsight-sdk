@@ -333,15 +333,16 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
         Some(args_ty) => {
             quote! {
                 pub async fn #get_method_name(target_principal: String, args: #args_ty) -> std::result::Result<#return_ty, String> {
-                    #finder_method_name(target_principal.clone()).find(args).await.map_err(|e| format!("{:?}", e))
+                    let method = #finder_method_name(target_principal.clone());
+                    method.await.find(args).await.map_err(|e| format!("{:?}", e))
                 }
 
                 pub async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
-                    #finder_method_name(target_principal.clone()).find(args).await.unwrap()
+                    #finder_method_name(target_principal.clone()).await.find(args).await.unwrap()
                 }
 
 
-                async fn #finder_method_name(target_principal: String, args: #args_ty) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+                async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
                     use chainsight_cdk::lens::LensFinder;
 
                     let recipient = candid::Principal::from_text(target_principal).unwrap();
