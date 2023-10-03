@@ -333,11 +333,13 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
         Some(args_ty) => {
             quote! {
                 pub async fn #get_method_name(target_principal: String, args: #args_ty) -> std::result::Result<#return_ty, String> {
-                    #finder_method_name(target_principal.clone()).find(args).await.map_err(|e| format!("{:?}", e))
+                    let method = #finder_method_name(target_principal.clone());
+                    method.find(args).await.map_err(|e| format!("{:?}", e))
                 }
 
                 pub async fn #get_unwrap_method_name(target_principal: String, args: #args_ty) -> #return_ty {
-                    #finder_method_name(target_principal.clone()).find(args).await.unwrap()
+                    let method = #finder_method_name(target_principal.clone());
+                    method.find(args).await.unwrap()
                 }
 
 
