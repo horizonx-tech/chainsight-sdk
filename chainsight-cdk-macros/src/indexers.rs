@@ -341,7 +341,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                 }
 
 
-                async fn #finder_method_name(target_principal: String, args: #args_ty) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
+                async fn #finder_method_name(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<#return_ty> {
                     use chainsight_cdk::lens::LensFinder;
 
                     let recipient = candid::Principal::from_text(target_principal).unwrap();
