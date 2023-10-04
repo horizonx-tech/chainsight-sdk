@@ -264,7 +264,6 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     };
 
     quote! {
-        #out
         #getter_func
 
         #[ic_cdk::update]
