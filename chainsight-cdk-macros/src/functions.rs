@@ -211,28 +211,20 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
-    let out_ty = format_ident!("{}", "LensResult");
     let value_ty = format_ident!("{}", "LensValue");
     let target_count = args.target_count;
-    let out = quote! {
-        #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize)]
-        pub struct #out_ty {
-            pub value: #value_ty,
-        }
-    };
 
     let (getter_func, receiver_provider, inter_calc_func) = match args.func_arg {
         Some(arg_ty) => (
             quote! {
                 #[ic_cdk::update]
                 #[candid::candid_method(update)]
-                async fn #getter_name(targets: Vec<String>, input: #arg_ty) -> #out_ty {
+                async fn #getter_name(targets: Vec<String>, input: #arg_ty) -> #value_ty {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    let value = _calc(targets, input).await;
-                    #out_ty { value }
-                }
+                    _calc(targets, input).await
+                    }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #value_ty>::new(
@@ -250,13 +242,12 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
             quote! {
                 #[ic_cdk::update]
                 #[candid::candid_method(update)]
-                async fn #getter_name(targets: Vec<String>) -> #out_ty {
+                async fn #getter_name(targets: Vec<String>) -> #value_ty {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    let value = _calc(targets).await;
-                    #out_ty { value }
-                }
+                    _calc(targets).await
+                    }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #value_ty>::new(
