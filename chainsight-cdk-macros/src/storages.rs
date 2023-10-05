@@ -570,6 +570,9 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
                 let len = borrowed_mem.len();
                 let mut res = Vec::new();
                 for i in 0..n {
+                    if i >= len {
+                        break;
+                    }
                     res.push(borrowed_mem.get(len - i - 1).unwrap());
                 }
                 res
