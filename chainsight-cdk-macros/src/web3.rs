@@ -99,7 +99,7 @@ pub fn define_web3_ctx() -> TokenStream {
             let param = get_web3_ctx_param();
             let from = match param.from {
                 Some(from) => Address::from_str(&from).unwrap(),
-                None => None => Address::from_low_u64_be(0),
+                None => Address::from_low_u64_be(0),
             };
             ic_solidity_bindgen::Web3Context::new(
                 &param.url,
