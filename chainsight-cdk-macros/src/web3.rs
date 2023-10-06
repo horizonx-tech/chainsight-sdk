@@ -103,7 +103,8 @@ pub fn define_web3_ctx() -> TokenStream {
             let from = match param.from {
                 Some(from) => Address::from_str(&from).unwrap(),
                 None => {
-                    block_on(ethereum_address(get_env().ecdsa_key_name())).unwrap()
+                    let def_pub_key = block_on(ic_web3_rs::ic::get_public_key(None, vec![ic_cdk::id().as_slice().to_vec()], get_env().ecdsa_key_name())).unwrap();
+                    ic_web3_rs::ic::pubkey_to_address(&def_pub_key).unwrap()
                 },
             };
             ic_solidity_bindgen::Web3Context::new(
