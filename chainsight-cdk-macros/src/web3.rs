@@ -95,17 +95,11 @@ pub fn define_web3_ctx() -> TokenStream {
     let output = quote! {
 
         manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
-            use ic_web3_rs::{
-                futures::executor::block_on,
-            };
             pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
             let param = get_web3_ctx_param();
             let from = match param.from {
                 Some(from) => Address::from_str(&from).unwrap(),
-                None => {
-                    let def_pub_key = block_on(ic_web3_rs::ic::get_public_key(None, vec![ic_cdk::id().as_slice().to_vec()], get_env().ecdsa_key_name())).unwrap();
-                    ic_web3_rs::ic::pubkey_to_address(&def_pub_key).unwrap()
-                },
+                None => None => Address::from_low_u64_be(0),
             };
             ic_solidity_bindgen::Web3Context::new(
                 &param.url,
