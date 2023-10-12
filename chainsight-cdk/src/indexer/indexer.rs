@@ -17,7 +17,7 @@ pub enum Error {
     OtherError(String),
 }
 
-#[derive(CandidType, Clone, Debug, Default, PartialEq, Deserialize)]
+#[derive(CandidType, Clone, Debug, Default, PartialEq, Deserialize, serde::Serialize)]
 pub struct IndexingConfig {
     pub start_from: u64,
     pub chunk_size: Option<u64>,

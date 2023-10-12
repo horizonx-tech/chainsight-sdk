@@ -32,7 +32,7 @@ pub fn chainsight_common(input: TokenStream) -> TokenStream {
             let delay = round_timestamp(current_time_sec, #item) + #item - current_time_sec;
 
             ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
-                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item), || {
+                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item as u64), || {
                     let timestamp = ic_cdk::api::time();
                     let cycles = ic_cdk::api::canister_balance128();
                     let datum = CanisterMetricsSnapshot {

@@ -1,4 +1,5 @@
 pub mod algorithm;
+pub mod config;
 pub mod core;
 pub mod indexer;
 pub mod initializer;

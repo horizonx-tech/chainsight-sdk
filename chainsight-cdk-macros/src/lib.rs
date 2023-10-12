@@ -1,3 +1,4 @@
+mod canisters;
 mod functions;
 mod indexers;
 mod states;
@@ -91,6 +92,10 @@ pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
     indexers::snapshot_web3_source(input)
+}
+#[proc_macro]
+pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
+    canisters::algorithm_indexer::def_algorithm_indexer_canister(input)
 }
 #[proc_macro]
 pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
