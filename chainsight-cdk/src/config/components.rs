@@ -9,23 +9,6 @@ pub struct CommonConfig {
     pub canister_name: String,
 }
 
-impl Parse for CommonConfig {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut result = CommonConfig::default();
-        let monitor_duration = input.parse::<syn::LitInt>()?;
-        result.monitor_duration = monitor_duration.base10_parse()?;
-        let canister_name = input.parse::<syn::LitStr>()?;
-        result.canister_name = canister_name.value();
-        Ok(result)
-    }
-}
-
-#[derive(Default, serde::Deserialize)]
-pub struct UserDefinedStruct {
-    pub name: String,
-    pub fields: HashMap<String, String>,
-}
-
 #[derive(serde::Deserialize)]
 pub struct AlgorithmIndexerInput {
     pub method_name: String,
