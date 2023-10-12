@@ -1,5 +1,5 @@
 use crate::indexer::IndexingConfig;
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct CommonConfig {
     pub monitor_duration: u32,
     pub canister_name: String,
@@ -41,7 +41,7 @@ impl Default for CommonConfig {
     }
 }
 
-#[derive(Default, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct AlgorithmIndexerConfig {
     pub common: CommonConfig,
     pub indexing: IndexingConfig,

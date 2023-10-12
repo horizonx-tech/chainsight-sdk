@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use candid::CandidType;
 use derive_more::Display;
 use serde::Deserialize;
-use syn::parse::{Parse, ParseStream};
 
 use crate::storage::{Data, Persist};
 
@@ -18,7 +17,7 @@ pub enum Error {
     OtherError(String),
 }
 
-#[derive(CandidType, Clone, Debug, Default, PartialEq, Deserialize)]
+#[derive(CandidType, Clone, Debug, Default, PartialEq, Deserialize, serde::Serialize)]
 pub struct IndexingConfig {
     pub start_from: u64,
     pub chunk_size: Option<u64>,
