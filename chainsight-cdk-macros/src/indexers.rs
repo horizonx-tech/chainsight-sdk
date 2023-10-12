@@ -1,10 +1,12 @@
+use chainsight_cdk::config::components::{AlgorithmIndexerConfig, SourceType};
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Ident, TokenStream as TokenStream2};
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Type,
 };
+
 pub struct Web3EventIndexerInput {
     out_type: syn::Type,
 }
@@ -98,7 +100,6 @@ impl Parse for Web3EventIndexerInput {
         Ok(Web3EventIndexerInput { out_type })
     }
 }
-
 pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     let Web3EventIndexerInput { out_type } = parse_macro_input!(input as Web3EventIndexerInput);
     let common = event_indexer_common(out_type.clone());
