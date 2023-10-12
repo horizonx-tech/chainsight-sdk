@@ -9,13 +9,16 @@ pub struct CommonConfig {
 pub struct AlgorithmIndexerInput {
     pub method_name: String,
     pub response_type: String,
-    pub source_type: SourceType,
+    pub source_type: AlgorithmInputType,
 }
-#[derive(Default, serde::Deserialize)]
-pub enum SourceType {
+
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub enum AlgorithmInputType {
+    #[serde(rename = "event_indexer")]
     EventIndexer,
+    #[serde(rename = "key_value")]
     KeyValue,
-    #[default]
+    #[serde(rename = "key_values")]
     KeyValues,
 }
 
@@ -24,7 +27,7 @@ impl Default for AlgorithmIndexerInput {
         Self {
             method_name: "get_list".to_string(),
             response_type: "String".to_string(),
-            source_type: SourceType::EventIndexer,
+            source_type: AlgorithmInputType::EventIndexer,
         }
     }
 }

@@ -1,4 +1,4 @@
-use chainsight_cdk::config::components::{AlgorithmIndexerConfig, SourceType};
+use chainsight_cdk::config::components::{AlgorithmIndexerConfig, AlgorithmInputType};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -36,24 +36,27 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> TokenStream {
     .into()
 }
 
-fn input_type_ident(struct_name: String, source_type: SourceType) -> proc_macro2::TokenStream {
+fn input_type_ident(
+    struct_name: String,
+    source_type: AlgorithmInputType,
+) -> proc_macro2::TokenStream {
     let event_struct = format_ident!("{}", &struct_name);
     match source_type {
-        SourceType::EventIndexer => {
+        AlgorithmInputType::EventIndexer => {
             // HashMap<u64, Vec<event_struct>>
             let source_ident = format_ident!("{}", &"HashMap".to_string());
             quote! {
                 #source_ident<u64, Vec<#event_struct>>
             }
         }
-        SourceType::KeyValue => {
+        AlgorithmInputType::KeyValue => {
             // HashMap<String, event_struct>
             let source_ident = format_ident!("{}", &"HashMap".to_string());
             quote! {
                 #source_ident<String, #event_struct>
             }
         }
-        SourceType::KeyValues => {
+        AlgorithmInputType::KeyValues => {
             // HashMap<String, Vec<event_struct>>
             let source_ident = format_ident!("{}", &"HashMap".to_string());
             quote! {

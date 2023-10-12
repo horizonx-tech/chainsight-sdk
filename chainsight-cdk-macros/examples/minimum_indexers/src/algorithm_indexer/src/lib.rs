@@ -15,7 +15,7 @@ def_algorithm_indexer_canister!(
     \"input\": {
         \"method_name\": \"get_list\",
         \"response_type\": \"String\",
-        \"source_type\": \"EventIndexer\"
+        \"source_type\": \"event_indexer\"
     }
 }"
 );
