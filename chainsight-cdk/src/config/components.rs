@@ -5,7 +5,7 @@ pub struct CommonConfig {
     pub canister_name: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct AlgorithmIndexerInput {
     pub method_name: String,
     pub response_type: String,
