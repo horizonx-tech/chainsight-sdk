@@ -24,18 +24,6 @@ pub struct IndexingConfig {
     pub chunk_size: Option<u64>,
 }
 
-impl Parse for IndexingConfig {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let attrs = input.call(syn::Attribute::parse_outer)?;
-        let mut indexing = IndexingConfig::default();
-        let start_from = input.parse::<syn::LitInt>()?;
-        indexing.start_from = start_from.base10_parse()?;
-        let chunk_size = input.parse::<syn::LitInt>()?;
-        indexing.chunk_size = Some(chunk_size.base10_parse()?);
-        Ok(indexing)
-    }
-}
-
 pub trait Event<T>: CandidType + Send + Sync + Clone + From<T> + Persist + 'static {
     fn tokenize(&self) -> Data;
     fn untokenize(data: Data) -> Self;
