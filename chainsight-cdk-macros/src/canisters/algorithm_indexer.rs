@@ -45,7 +45,6 @@ fn input_type_ident(struct_name: String, source_type: SourceType) -> proc_macro2
             quote! {
                 #source_ident<u64, Vec<#event_struct>>
             }
-            .into()
         }
         SourceType::KeyValue => {
             // HashMap<String, event_struct>
@@ -53,7 +52,6 @@ fn input_type_ident(struct_name: String, source_type: SourceType) -> proc_macro2
             quote! {
                 #source_ident<String, #event_struct>
             }
-            .into()
         }
         SourceType::KeyValues => {
             // HashMap<String, Vec<event_struct>>
@@ -61,7 +59,6 @@ fn input_type_ident(struct_name: String, source_type: SourceType) -> proc_macro2
             quote! {
                 #source_ident<String, Vec<#event_struct>>
             }
-            .into()
         }
     }
 }

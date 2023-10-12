@@ -1,6 +1,5 @@
-use chainsight_cdk::config::components::{AlgorithmIndexerConfig, SourceType};
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},

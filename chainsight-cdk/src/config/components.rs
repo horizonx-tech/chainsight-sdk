@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-
-use syn::parse::{Parse, ParseStream};
-
 use crate::indexer::IndexingConfig;
 #[derive(serde::Deserialize)]
 pub struct CommonConfig {
