@@ -36,7 +36,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> TokenStream {
     .into()
 }
 
-fn input_type_ident(
+pub fn input_type_ident(
     struct_name: String,
     source_type: AlgorithmInputType,
 ) -> proc_macro2::TokenStream {
