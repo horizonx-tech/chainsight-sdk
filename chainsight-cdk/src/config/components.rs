@@ -47,3 +47,9 @@ pub struct AlgorithmIndexerConfig {
     pub indexing: IndexingConfig,
     pub input: AlgorithmIndexerInput,
 }
+
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct AlgorithmLensConfig {
+    pub common: CommonConfig,
+    pub target_count: usize,
+}
