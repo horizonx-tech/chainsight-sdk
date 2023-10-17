@@ -101,6 +101,11 @@ pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
 pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
     canisters::algorithm_lens::def_algorithm_lens_canister(input)
 }
+
+#[proc_macro]
+pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
+    canisters::event_indexer::def_event_indexer_canister(input)
+}
 #[proc_macro]
 pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
     indexers::snapshot_https_source(_input)

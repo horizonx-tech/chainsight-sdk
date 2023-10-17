@@ -53,3 +53,14 @@ pub struct AlgorithmLensConfig {
     pub common: CommonConfig,
     pub target_count: usize,
 }
+
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct EventIndexerConfig {
+    pub common: CommonConfig,
+    pub def: EventIndexerEventDefinition,
+}
+#[derive(Default, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct EventIndexerEventDefinition {
+    pub identifier: String,
+    pub abi_file_path: String,
+}
