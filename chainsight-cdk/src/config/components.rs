@@ -220,3 +220,64 @@ fn convert_type_from_candid_type(s: &str) -> (String, bool) {
     }
     (s.to_string(), false)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_from_candid_str() {
+        assert_eq!(
+            CanisterMethodIdentifier::parse_from_str("get_chain_id : () -> (nat64)").unwrap(),
+            CanisterMethodIdentifier {
+                identifier: "get_chain_id".to_string(),
+                params: vec![],
+                return_value: CanisterMethodValueType::Scalar("u64".to_string(), true)
+            }
+        );
+        assert_eq!(
+            CanisterMethodIdentifier::parse_from_str("get_oracle_address : () -> (text)").unwrap(),
+            CanisterMethodIdentifier {
+                identifier: "get_oracle_address".to_string(),
+                params: vec![],
+                return_value: CanisterMethodValueType::Scalar("String".to_string(), true)
+            }
+        );
+        assert_eq!(
+            CanisterMethodIdentifier::parse_from_str("get_snapshot : (nat64) -> (text)").unwrap(),
+            CanisterMethodIdentifier {
+                identifier: "get_snapshot".to_string(),
+                params: vec!["u64".to_string()],
+                return_value: CanisterMethodValueType::Scalar("String".to_string(), true)
+            }
+        );
+        assert_eq!(
+            CanisterMethodIdentifier::parse_from_str(
+                "get_price : (bool) -> (record { nat32; nat64 })"
+            )
+            .unwrap(),
+            CanisterMethodIdentifier {
+                identifier: "get_price".to_string(),
+                params: vec!["bool".to_string()],
+                return_value: CanisterMethodValueType::Tuple(vec![
+                    ("u32".to_string(), true),
+                    ("u64".to_string(), true)
+                ])
+            }
+        );
+        assert_eq!(
+            CanisterMethodIdentifier::parse_from_str(
+                "get_snapshot_with_ts : (nat64) -> (record { value : text; timestamp : nat64 })"
+            )
+            .unwrap(),
+            CanisterMethodIdentifier {
+                identifier: "get_snapshot_with_ts".to_string(),
+                params: vec!["u64".to_string()],
+                return_value: CanisterMethodValueType::Struct(vec![
+                    ("value".to_string(), "String".to_string(), true),
+                    ("timestamp".to_string(), "u64".to_string(), true)
+                ])
+            }
+        );
+    }
+}

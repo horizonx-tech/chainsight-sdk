@@ -69,7 +69,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name = config.common.canister_name.clone();
     let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
-        #relayer_source_ident
         ic_solidity_bindgen::contract_abi!(#abi_path);
         use #canister_name_ident::*;
         #relayer_source_ident
