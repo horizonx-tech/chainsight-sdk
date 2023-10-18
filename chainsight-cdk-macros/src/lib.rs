@@ -103,6 +103,11 @@ pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
+    canisters::relayer::def_relayer_canister(input)
+}
+
+#[proc_macro]
 pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
     canisters::event_indexer::def_event_indexer_canister(input)
 }
