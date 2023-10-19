@@ -14,6 +14,14 @@ impl Encoder<U256> for EthAbiEncoder {
         ethabi::encode(&[token])
     }
 }
+impl Encoder<ic_web3_rs::types::U256> for EthAbiEncoder {
+    fn encode(&self, val: ic_web3_rs::types::U256) -> Bytes {
+        let v = val.to_string();
+        let u256_val = U256::from_dec_str(&v);
+        let token = Token::Uint(u256_val.unwrap());
+        ethabi::encode(&[token])
+    }
+}
 impl Encoder<ChainsightU256> for EthAbiEncoder {
     fn encode(&self, val: ChainsightU256) -> Bytes {
         let token = Token::Uint(val.value());
@@ -259,5 +267,16 @@ mod tests {
             .into_uint()
             .unwrap();
         assert_eq!(decoded, expected.value());
+    }
+    #[test]
+    fn test_encode_ic_web3_rs_u256() {
+        let encoder = EthAbiEncoder;
+        let expected = ic_web3_rs::types::U256::from_dec_str("12345678901234567890").unwrap();
+        let encoded = encoder.encode(expected.clone());
+        let decoded = ethabi::decode(&[ethabi::ParamType::Uint(256)], &encoded).unwrap()[0]
+            .clone()
+            .into_uint()
+            .unwrap();
+        assert_eq!(decoded, U256::from_dec_str("12345678901234567890").unwrap());
     }
 }
