@@ -127,7 +127,7 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
     let func_name = match &args[0] {
         syn::Expr::Lit(lit) => {
             if let syn::Lit::Str(lit_str) = &lit.lit {
-                syn::Ident::new(&format!("{}", lit_str.value()), lit_str.span())
+                syn::Ident::new(&lit_str.value().to_string(), lit_str.span())
             } else {
                 panic!("Expected a string literal for the variable name");
             }
@@ -137,7 +137,7 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
     let called_func_name = match &args[1] {
         syn::Expr::Lit(lit) => {
             if let syn::Lit::Str(lit_str) = &lit.lit {
-                syn::Ident::new(&format!("{}", lit_str.value()), lit_str.span())
+                syn::Ident::new(&lit_str.value().to_string(), lit_str.span())
             } else {
                 panic!("Expected a string literal for the variable name");
             }

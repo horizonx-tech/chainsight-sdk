@@ -20,7 +20,8 @@ impl Display for Token {
                 f,
                 "{}",
                 u.to_vec()
-                    .into_iter()
+                    .iter()
+                    .copied()
                     .map(|x| format!("{:02x}", x))
                     .collect::<String>()
             ),

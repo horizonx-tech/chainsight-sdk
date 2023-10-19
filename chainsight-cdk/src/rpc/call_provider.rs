@@ -14,6 +14,12 @@ impl CallProvider {
     }
 }
 
+impl Default for CallProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl Caller for CallProvider {
     async fn call(&self, m: Message) -> CallResult<MessageResult> {

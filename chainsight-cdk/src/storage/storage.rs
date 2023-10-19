@@ -254,14 +254,14 @@ impl KeyValuesStore {
             let mut processed = 0;
             for i in 0..length {
                 let idx = length - i - 1;
-                let elems = m.borrow().iter().skip(idx as usize).next();
+                let elems = m.borrow().iter().nth(idx as usize);
                 if let Some((k, v)) = elems {
                     let elems_len = v.0.len() as u64;
                     let elems = v.0;
                     if processed + elems_len > n {
                         let elems = elems
                             .iter()
-                            .skip(((elems_len as u64) - (n - processed)) as usize)
+                            .skip((elems_len - (n - processed)) as usize)
                             .map(|e| T::untokenize(e.clone()))
                             .collect::<Vec<_>>();
                         result.insert(k.clone().0, elems);

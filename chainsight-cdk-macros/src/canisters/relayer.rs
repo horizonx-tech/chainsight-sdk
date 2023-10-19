@@ -1,4 +1,3 @@
-use anyhow::bail;
 use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -58,10 +57,10 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         };
     let abi_path = config.abi_file_path;
     let oracle_name = abi_path
-        .split("/")
+        .split('/')
         .last()
         .unwrap()
-        .split(".")
+        .split('.')
         .next()
         .unwrap();
     let oracle_ident = format_ident!("{}", oracle_name);
@@ -126,7 +125,7 @@ fn common_code() -> proc_macro2::TokenStream {
 fn generate_ident_sync_to_oracle(
     canister_response_type: CanisterMethodValueType,
 ) -> proc_macro2::TokenStream {
-    let res = match canister_response_type {
+    match canister_response_type {
         CanisterMethodValueType::Scalar(_, _) => {
             let arg_ident = format_ident!("datum");
             quote! {
@@ -142,6 +141,5 @@ fn generate_ident_sync_to_oracle(
         CanisterMethodValueType::Vector(_, _) => {
             quote! { format!("{:?}", &datum) }
         }
-    };
-    res
+    }
 }
