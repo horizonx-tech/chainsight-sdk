@@ -2,11 +2,11 @@ use crate::core::U256 as ChainsightU256;
 use ethabi::{Bytes, Token};
 use primitive_types::U256;
 
-trait Encoder<T> {
+pub trait Encoder<T> {
     fn encode(&self, val: T) -> Bytes;
 }
 
-struct EthAbiEncoder;
+pub struct EthAbiEncoder;
 
 impl Encoder<U256> for EthAbiEncoder {
     fn encode(&self, val: U256) -> Bytes {
