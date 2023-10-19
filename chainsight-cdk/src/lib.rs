@@ -4,6 +4,7 @@ pub mod core;
 pub mod indexer;
 pub mod initializer;
 pub mod lens;
+pub mod oracle;
 pub mod rpc;
 pub mod storage;
 pub mod web2;

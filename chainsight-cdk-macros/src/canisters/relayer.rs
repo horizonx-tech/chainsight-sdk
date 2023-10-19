@@ -1,4 +1,3 @@
-use anyhow::bail;
 use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -22,8 +21,7 @@ fn relayer_canister(config: RelayerConfig) -> TokenStream {
 fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
     let method_name = config.method_name;
-    let sync_data_ident =
-        generate_ident_sync_to_oracle(config.canister_method_value_type, config.oracle_type);
+    let sync_data_ident = generate_ident_sync_to_oracle(config.canister_method_value_type);
 
     let (args_type_ident, get_args_ident, relayer_source_ident) =
         match config.lens_targets.is_some() {
@@ -126,21 +124,12 @@ fn common_code() -> proc_macro2::TokenStream {
 
 fn generate_ident_sync_to_oracle(
     canister_response_type: CanisterMethodValueType,
-    oracle_type: String,
 ) -> proc_macro2::TokenStream {
     let res = match canister_response_type {
-        CanisterMethodValueType::Scalar(ty, _) => {
+        CanisterMethodValueType::Scalar(_, _) => {
             let arg_ident = format_ident!("datum");
-            match oracle_type.as_str() {
-                "uint256" => generate_quote_to_convert_datum_to_u256(arg_ident, &ty).unwrap(),
-                "uint128" => {
-                    generate_quote_to_convert_datum_to_integer(arg_ident, &ty, "u128").unwrap()
-                }
-                "uint640" => {
-                    generate_quote_to_convert_datum_to_integer(arg_ident, &ty, "u64").unwrap()
-                }
-                "string" => quote! { datum.clone().to_string() },
-                _ => panic!("This type cannot be converted to {}", oracle_type),
+            quote! {
+                chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident)
             }
         }
         CanisterMethodValueType::Tuple(_) => {
@@ -154,41 +143,4 @@ fn generate_ident_sync_to_oracle(
         }
     };
     res
-}
-
-fn generate_quote_to_convert_datum_to_u256(
-    arg_ident: proc_macro2::Ident,
-    datum_scalar_type: &str,
-) -> anyhow::Result<proc_macro2::TokenStream> {
-    let res = match datum_scalar_type {
-        "u8" | "u16" | "u32" | "u64" | "u128" | "U256" | "chainsight_cdk::core::U256" => {
-            quote! { U256::from(#arg_ident) }
-        }
-        "i8" | "i16" | "i32" | "i64" | "i128" => quote! { U256::from(#arg_ident) }, // NOTE: a positive value check needs to be performed on the generated code
-        "String" => quote! { U256::from_dec_str(&#arg_ident).unwrap() },
-        _ => bail!("This type cannot be converted to U256"),
-    };
-    Ok(res)
-}
-
-fn generate_quote_to_convert_datum_to_integer(
-    arg_ident: proc_macro2::Ident,
-    datum_scalar_type: &str,
-    converted_datum_type: &str,
-) -> anyhow::Result<proc_macro2::TokenStream> {
-    let converted_datum_type_ident = format_ident!("{}", converted_datum_type);
-    let res = match datum_scalar_type {
-        "u8" | "u16" | "u32" | "u64" | "u128" => {
-            quote! { #arg_ident as #converted_datum_type_ident }
-        }
-        "i8" | "i16" | "i32" | "i64" | "i128" => {
-            quote! { #arg_ident as #converted_datum_type_ident }
-        } // NOTE: a positive value check needs to be performed on the generated code
-        "String" => quote! { #converted_datum_type_ident::from_str(&#arg_ident).unwrap() },
-        _ => bail!(format!(
-            "This type cannot be converted to {}",
-            converted_datum_type
-        )),
-    };
-    Ok(res)
 }
