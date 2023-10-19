@@ -1,3 +1,4 @@
+use anyhow::bail;
 use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -110,7 +111,7 @@ fn common_code() -> proc_macro2::TokenStream {
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export,relayer_source};
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
-
+        use chainsight_cdk::web3::Encoder;
         chainsight_common!(60);
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -129,7 +130,7 @@ fn generate_ident_sync_to_oracle(
         CanisterMethodValueType::Scalar(_, _) => {
             let arg_ident = format_ident!("datum");
             quote! {
-                chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident)
+                chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
             }
         }
         CanisterMethodValueType::Tuple(_) => {
