@@ -48,7 +48,7 @@ impl Web2HttpsSnapshotIndexer {
 fn build_url(url: &str, queries: HashMap<String, String>) -> String {
     let mut url = url.to_string();
     if !queries.is_empty() {
-        url.push_str("?");
+        url.push('?');
         for (k, v) in queries {
             url.push_str(&format!("{}={}&", k, v));
         }

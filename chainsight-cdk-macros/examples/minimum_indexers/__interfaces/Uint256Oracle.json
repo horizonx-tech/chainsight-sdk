@@ -39,9 +39,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "bytes",
         "name": "value",
-        "type": "uint256"
+        "type": "bytes"
       }
     ],
     "name": "updateState",

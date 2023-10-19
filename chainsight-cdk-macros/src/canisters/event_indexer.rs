@@ -59,10 +59,10 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
     let canister_name = config.common.canister_name.clone();
     let abi_file_path = config.def.abi_file_path;
     let contract_struct_name = abi_file_path
-        .split("/")
+        .split('/')
         .last()
         .unwrap()
-        .split(".")
+        .split('.')
         .next()
         .unwrap();
     let contract_struct_name_ident = format_ident!("{}", contract_struct_name);
