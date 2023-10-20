@@ -34,7 +34,7 @@ lazy_static! {
     static ref REGEX_MULTIPLE_RECORD_TYPE: Regex = Regex::new(r"record\s*\{").unwrap();
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct CommonConfig {
     pub monitor_duration: u32,
     pub canister_name: String,
@@ -100,7 +100,7 @@ pub struct EventIndexerEventDefinition {
     pub abi_file_path: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct RelayerConfig {
     pub common: CommonConfig,
     pub destination: String,
