@@ -9,7 +9,7 @@ pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
 }
 
 fn relayer_canister(config: RelayerConfig) -> TokenStream {
-    let common = common_code();
+    let common = common_code(config.clone());
     let custom = custom_code(config);
     quote! {
         #common
@@ -64,7 +64,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         .next()
         .unwrap();
     let oracle_ident = format_ident!("{}", oracle_name);
-    let canister_name = config.common.canister_name.clone();
     let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_path);
@@ -98,19 +97,18 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("value_to_sync={:?}", datum);
         }
 
-        did_export!(#canister_name);
-
-
     };
     generated
 }
-fn common_code() -> proc_macro2::TokenStream {
+fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
+    let canister_name = config.common.canister_name.clone();
     quote! {
         use std::str::FromStr;
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export,relayer_source};
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
+        did_export!(#canister_name);
         chainsight_common!(60);
         define_web3_ctx!();
         define_transform_for_web3!();

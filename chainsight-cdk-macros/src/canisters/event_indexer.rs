@@ -13,6 +13,7 @@ pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
 
 fn event_indexer_canister(config: EventIndexerConfig) -> TokenStream {
     let monitor_duration = config.common.monitor_duration;
+    let canister_name = config.common.canister_name.clone();
     let common = quote! {
         use candid::CandidType;
         use chainsight_cdk::{
@@ -34,6 +35,7 @@ fn event_indexer_canister(config: EventIndexerConfig) -> TokenStream {
         };
         use serde::Serialize;
         use std::{collections::HashMap, str::FromStr};
+        did_export!(#canister_name);
         chainsight_common!(#monitor_duration);
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -56,7 +58,6 @@ fn event_indexer_canister(config: EventIndexerConfig) -> TokenStream {
 }
 
 fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
-    let canister_name = config.common.canister_name.clone();
     let abi_file_path = config.def.abi_file_path;
     let contract_struct_name = abi_file_path
         .split('/')
@@ -129,7 +130,6 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
                 }
             }.boxed()
         }
-        did_export!(#canister_name);
     }
 }
 

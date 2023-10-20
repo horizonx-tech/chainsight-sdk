@@ -15,13 +15,13 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> TokenStream {
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
     let lens_size = config.target_count;
     quote! {
+        did_export!(#canister_name);
         use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method};
         use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
         chainsight_common!(#monitor_duration);
         init_in!();
         use #canister_name_ident::*;
         lens_method!(#lens_size);
-        did_export!(#canister_name);
 
     }
     .into()

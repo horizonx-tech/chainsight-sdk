@@ -80,13 +80,11 @@ pub fn did_export(input: TokenStream) -> TokenStream {
     let file_name = item.value() + ".did";
     TokenStream::from(quote! {
         candid::export_service!();
-
         #[ic_cdk::query(name = "__get_candid_interface_tmp_hack")]
         #[candid::candid_method(query, rename = "__get_candid_interface_tmp_hack")]
         fn __export_did_tmp_() -> String {
             __export_service()
         }
-
         #[cfg(test)]
         mod tests {
             use super::*;
