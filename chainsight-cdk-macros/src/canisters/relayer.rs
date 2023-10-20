@@ -117,6 +117,11 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         manage_single_state!("target_canister", String, false);
         timer_task_func!("set_task", "sync", true);
         init_in!();
+        setup_func!({
+            target_canister: String,
+            target_addr: String,
+            web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
+        });
     }
 }
 
