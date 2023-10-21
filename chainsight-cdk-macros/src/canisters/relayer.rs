@@ -104,7 +104,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name = config.common.canister_name.clone();
     let lens_targets = config.lens_targets.clone();
     let lens_targets_quote = match lens_targets {
-        Some(v) => quote! {
+        Some(_) => quote! {
             lens_targets: Vec<String>
         },
         None => quote! {},
