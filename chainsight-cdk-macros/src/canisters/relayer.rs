@@ -102,6 +102,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 }
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name = config.common.canister_name.clone();
+    let lens_targets = config.lens_targets.clone();
+    let lens_targets_quote = match lens_targets {
+        Some(_) => quote! {
+            lens_targets: Vec<String>
+        },
+        None => quote! {},
+    };
     quote! {
         use std::str::FromStr;
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export,relayer_source};
@@ -118,9 +125,10 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         timer_task_func!("set_task", "sync", true);
         init_in!();
         setup_func!({
-            target_canister: String,
             target_addr: String,
-            web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
+            web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+            target_canister: String,
+            #lens_targets_quote
         });
     }
 }
