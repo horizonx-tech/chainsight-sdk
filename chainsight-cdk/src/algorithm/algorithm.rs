@@ -106,7 +106,7 @@ where
 {
     async fn index(&self, _cfg: IndexingConfig) -> Result<(), Error> {
         let result = self.finder.find::<Args, T>(self.args.clone()).await?;
-        self.persister.persist.clone()(result.clone());
+        (self.persister.persist)(result);
         Ok(())
     }
 }
@@ -127,7 +127,7 @@ where
             .find::<(u64, u64), HashMap<u64, Vec<T>>>((from, to))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result.clone());
+        (self.persister.persist)(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
         if let Some(last_indexed) = last_indexed {
@@ -159,7 +159,7 @@ where
             ))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result.clone());
+        (self.persister.persist)(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
         if let Some(last_indexed) = last_indexed {
@@ -186,7 +186,7 @@ where
             .find::<(String, String), Vec<T>>((from.to_string(), to.to_string()))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result);
+        (self.persister.persist)(result);
         Ok(())
     }
 }
