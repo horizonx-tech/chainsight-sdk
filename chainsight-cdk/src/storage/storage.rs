@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{borrow::Cow, cell::RefCell, collections::HashMap};
 
 use candid::{CandidType, Decode, Encode};
@@ -27,10 +28,13 @@ impl Id {
     pub fn new(id: String) -> Self {
         Self(id)
     }
-    pub fn to_string(&self) -> String {
-        self.0.clone()
+}
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
+
 impl Storable for Id {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
         Cow::Owned(Encode!(self).unwrap())
