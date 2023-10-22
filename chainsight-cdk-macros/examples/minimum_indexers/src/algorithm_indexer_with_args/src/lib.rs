@@ -6,6 +6,10 @@ use chainsight_cdk_macros::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+mod app;
+use app::persist;
+
 chainsight_common!(60);
 init_in!();
 manage_single_state!("target_addr", String, false);

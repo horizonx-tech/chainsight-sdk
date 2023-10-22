@@ -1,3 +1,3 @@
 use std::collections::HashMap;
 
-pub fn persist(elem: HashMap<u64, Vec<String>>) {}
+pub fn persist(_elem: HashMap<u64, Vec<String>>) {}
