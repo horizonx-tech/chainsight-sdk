@@ -153,10 +153,7 @@ where
 
         let result: HashMap<String, Vec<T>> = self
             .finder
-            .find::<(String, String), HashMap<String, Vec<T>>>((
-                from.to_string(),
-                to.to_string(),
-            ))
+            .find::<(String, String), HashMap<String, Vec<T>>>((from.to_string(), to.to_string()))
             .await?;
         ic_cdk::println!("{:?}", result.len());
         (self.persister.persist)(result.clone());
