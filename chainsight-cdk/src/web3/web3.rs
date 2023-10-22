@@ -82,7 +82,7 @@ where
             .storage
             .between(from.to_string().as_str(), to.to_string().as_str())
             .into_iter()
-            .map(|(block_number, tokens)| ((block_number.parse::<u64>().unwrap(), tokens)))
+            .map(|(block_number, tokens)| (block_number.parse::<u64>().unwrap(), tokens))
             .fold(HashMap::new(), |mut acc, (block_number, tokens)| {
                 acc.insert(block_number, tokens);
                 acc

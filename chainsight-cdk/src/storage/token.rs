@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::fmt::Write;
 
 use candid::CandidType;
 use primitive_types::{H256, U256};
@@ -22,8 +23,10 @@ impl Display for Token {
                 u.to_vec()
                     .iter()
                     .copied()
-                    .map(|x| format!("{:02x}", x))
-                    .collect::<String>()
+                    .fold(String::new(), |mut output, b| {
+                        let _ = write!(output, "{b:02X}");
+                        output
+                    })
             ),
             Token::Bool(b) => write!(f, "{}", b),
             Token::Array(a) => {

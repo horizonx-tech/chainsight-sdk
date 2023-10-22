@@ -36,13 +36,12 @@ pub struct AlgorithmLogFinder {
 }
 
 impl AlgorithmLogFinder {
-    async fn find<T, Args, Reply>(&self, args: Args) -> Result<Reply, Error>
+    async fn find<Args, Reply>(&self, args: Args) -> Result<Reply, Error>
     where
-        T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
         Args: serde::Serialize + Send,
         Reply: serde::de::DeserializeOwned,
     {
-        let results = self.get_logs::<T, Args, Reply>(args).await?;
+        let results = self.get_logs::<Args, Reply>(args).await?;
         Ok(results)
     }
 }
@@ -61,9 +60,8 @@ impl AlgorithmLogFinder {
         }
     }
 
-    async fn get_logs<T, Args, Reply>(&self, args: Args) -> Result<Reply, Error>
+    async fn get_logs<Args, Reply>(&self, args: Args) -> Result<Reply, Error>
     where
-        T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
         Args: serde::Serialize,
         Reply: serde::de::DeserializeOwned,
     {
@@ -107,8 +105,8 @@ where
     Args: serde::Serialize + Clone + Send + Sync,
 {
     async fn index(&self, _cfg: IndexingConfig) -> Result<(), Error> {
-        let result = self.finder.find::<T, Args, T>(self.args.clone()).await?;
-        self.persister.persist.clone()(result.clone());
+        let result = self.finder.find::<Args, T>(self.args.clone()).await?;
+        (self.persister.persist)(result);
         Ok(())
     }
 }
@@ -126,10 +124,10 @@ where
         ic_cdk::println!("from: {}, to: {}", from, to);
         let result: HashMap<u64, Vec<T>> = self
             .finder
-            .find::<T, (u64, u64), HashMap<u64, Vec<T>>>((from, to))
+            .find::<(u64, u64), HashMap<u64, Vec<T>>>((from, to))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result.clone());
+        (self.persister.persist)(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
         if let Some(last_indexed) = last_indexed {
@@ -155,13 +153,10 @@ where
 
         let result: HashMap<String, Vec<T>> = self
             .finder
-            .find::<T, (String, String), HashMap<String, Vec<T>>>((
-                from.to_string(),
-                to.to_string(),
-            ))
+            .find::<(String, String), HashMap<String, Vec<T>>>((from.to_string(), to.to_string()))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result.clone());
+        (self.persister.persist)(result.clone());
         // get last result and update last indexed
         let last_indexed = result.keys().max();
         if let Some(last_indexed) = last_indexed {
@@ -185,10 +180,10 @@ where
 
         let result: Vec<T> = self
             .finder
-            .find::<T, (String, String), Vec<T>>((from.to_string(), to.to_string()))
+            .find::<(String, String), Vec<T>>((from.to_string(), to.to_string()))
             .await?;
         ic_cdk::println!("{:?}", result.len());
-        self.persister.persist.clone()(result);
+        (self.persister.persist)(result);
         Ok(())
     }
 }
