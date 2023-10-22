@@ -4,6 +4,7 @@ use chainsight_cdk_macros::{
 };
 
 chainsight_common!(60);
+
 #[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
 pub struct Parameter {
     pub a: u64,
@@ -29,5 +30,10 @@ static LINEAR_EQUATION: fn() -> () = || {
     set_x(x + 1);
 };
 timer_task_func!("set_task", "LINEAR_EQUATION", false);
+
+// Function with dependencies
+fn proxy() -> candid::Principal {
+    candid::Principal::anonymous()
+}
 
 did_export!("interface");

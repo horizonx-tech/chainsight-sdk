@@ -18,6 +18,7 @@ stable_memory_for_vec!("score", u128, 3, true);
     Debug,
     candid::CandidType,
     candid::Deserialize,
+    serde :: Serialize,
     StableMemoryStorable
 )]
 #[stable_mem_storable_opts(max_size = 100, is_fixed_size = false)]
@@ -56,6 +57,11 @@ fn insert_score(value: u128) -> Result<(), String>{
 #[candid::candid_method(update)]
 fn insert_user(value: UserData) -> Result<(), String>{
     add_user(value)
+}
+
+// Function with dependencies
+fn proxy() -> candid::Principal {
+    candid::Principal::anonymous()
 }
 
 did_export!("interface");

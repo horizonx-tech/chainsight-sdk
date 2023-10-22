@@ -15,4 +15,5 @@ ic-cdk-macros.workspace = true
 ic-cdk-timers.workspace = true
 serde.workspace = true
 
+chainsight-cdk.workspace = true
 chainsight-cdk-macros.workspace = true

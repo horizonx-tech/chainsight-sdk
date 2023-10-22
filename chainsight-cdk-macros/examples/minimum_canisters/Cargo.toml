@@ -11,9 +11,6 @@ ic-cdk-macros = "0.6.10"
 ic-cdk-timers = "0.1"
 ic-stable-structures = "0.5.5"
 serde = "1.0.163"
-hex = "0.4.3"
 
-ic-web3-rs = { version = "0.1.1" }
-ic-solidity-bindgen = { version = "0.1.5" }
 chainsight-cdk = { path = "../../../chainsight-cdk" }
 chainsight-cdk-macros = { path = "../.." }
