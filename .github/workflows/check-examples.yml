@@ -7,7 +7,10 @@ on:
 env:
   RUST_VERSION: 1.67.1
 jobs:
-  check-canisters:
+  check-compilable:
+    strategy:
+      matrix:
+        pj_root: [minimum_canisters, minimum_indexers]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the source code
@@ -26,27 +29,6 @@ jobs:
           rustup default ${{ env.RUST_VERSION }}
           rustup target add wasm32-unknown-unknown
       - name: Move to target example
-        run: cd chainsight-cdk-macros/examples/minimum_canisters
+        run: cd chainsight-cdk-macros/examples/${{ matrix.pj_root }}
       - name: Check compilable to WASM
-        run: cargo check --target wasm32-unknown-unknown --workspace
-  check-indexers:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v3
-      - name: Cache Cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-indexers
-      - name: Install Rust
-        run: |
-          rustup update ${{ env.RUST_VERSION }} --no-self-update
-          rustup default ${{ env.RUST_VERSION }}
-          rustup target add wasm32-unknown-unknown
-      - name: Check compilable to WASM
-        working-directory: chainsight-cdk-macros/examples/minimum_indexers
         run: cargo check --target wasm32-unknown-unknown --workspace
