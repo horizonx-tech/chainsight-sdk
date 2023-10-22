@@ -47,7 +47,6 @@ jobs:
           rustup update ${{ env.RUST_VERSION }} --no-self-update
           rustup default ${{ env.RUST_VERSION }}
           rustup target add wasm32-unknown-unknown
-      - name: Move to target example
-        run: cd chainsight-cdk-macros/examples/minimum_indexers
       - name: Check compilable to WASM
+        working-directory: chainsight-cdk-macros/examples/minimum_indexers
         run: cargo check --target wasm32-unknown-unknown --workspace
