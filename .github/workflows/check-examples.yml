@@ -12,14 +12,14 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v3
-      - name: Cache Cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-canisters
+      # - name: Cache Cargo
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.cargo/registry
+      #       ~/.cargo/git
+      #       target
+      #     key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-canisters
       - name: Install Rust
         run: |
           rustup update ${{ env.RUST_VERSION }} --no-self-update
@@ -34,14 +34,14 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v3
-      - name: Cache Cargo
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-indexers
+      # - name: Cache Cargo
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.cargo/registry
+      #       ~/.cargo/git
+      #       target
+      #     key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ env.RUST_VERSION }}-example-indexers
       - name: Install Rust
         run: |
           rustup update ${{ env.RUST_VERSION }} --no-self-update
