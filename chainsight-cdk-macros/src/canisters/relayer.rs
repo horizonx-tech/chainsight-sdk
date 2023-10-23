@@ -102,11 +102,15 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 return;
             }
 
-            #oracle_ident::new(
+            let result = #oracle_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
                 &web3_ctx().unwrap()
-            ).update_state(#sync_data_ident, call_option.unwrap()).await.unwrap();
-            ic_cdk::println!("value_to_sync={:?}", datum);
+            ).update_state(#sync_data_ident, call_option.unwrap()).await;
+            if let Err(err) = result {
+                ic_cdk::println!("error: {:?}", err);
+                return;
+            }
+            ic_cdk::println!("value_to_sync={:?}", result.unwrap());
         }
 
     };
