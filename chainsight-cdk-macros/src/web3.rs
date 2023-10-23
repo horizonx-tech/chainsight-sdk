@@ -88,7 +88,6 @@ pub fn define_transform_for_web3() -> TokenStream {
             ic_web3_rs::transforms::processors::get_filter_changes_processor().transform(response)
         }
 
-
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn transform_eip1559_support(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {

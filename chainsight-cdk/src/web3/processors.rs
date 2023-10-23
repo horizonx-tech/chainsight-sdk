@@ -61,6 +61,8 @@ impl EVMTransactionOptionBuilder {
         let include_txs = self.serialize(&false);
         let block_num = self.serialize(&ic_web3_rs::types::BlockNumber::Latest);
         let call_options = CallOptionsBuilder::default()
+            .max_resp(None)
+            .cycles(None)
             .transform(Some(processor.context()))
             .build()
             .unwrap();
