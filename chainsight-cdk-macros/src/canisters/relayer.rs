@@ -89,17 +89,26 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             if !filter(&datum) {
                 return;
             }
+            let w3_ctx_param = get_web3_ctx_param();
+            let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
+                w3_ctx_param.url,
+                w3_ctx_param.chain_id,
+                w3_ctx_param.env.ecdsa_key_name(),
+            );
+            use chainsight_cdk::web3::TransactionOptionBuilder;
+            let call_option = call_option_builder.build().await;
 
             #oracle_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
                 &web3_ctx().unwrap()
-            ).update_state(#sync_data_ident, None).await.unwrap();
+            ).update_state(#sync_data_ident, call_option).await.unwrap();
             ic_cdk::println!("value_to_sync={:?}", datum);
         }
 
     };
     generated
 }
+
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name = config.common.canister_name.clone();
     let lens_targets = config.lens_targets.clone();

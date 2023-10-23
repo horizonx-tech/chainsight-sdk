@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_encode_u128() {
         let encoder = EthAbiEncoder;
-        let expected: u128 = 12345678901234567890;
+        let expected: u128 = 71066905451870142464;
         let encoded = encoder.encode(expected);
         let decoded = ethabi::decode(&[ethabi::ParamType::Uint(128)], &encoded).unwrap()[0]
             .clone()
