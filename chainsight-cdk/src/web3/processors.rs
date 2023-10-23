@@ -74,8 +74,16 @@ impl EVMTransactionOptionBuilder {
             .await?;
         // expected json: {"eip1559": true} or {"eip1559": false}
         ic_cdk::println!("eip1559_support: {:?}", execution);
-        let result = execution.get("eip1559").unwrap().as_bool().unwrap();
-        Ok(result)
+        Ok(self.convert_result(execution))
+    }
+
+    fn convert_result(&self, v: Value) -> bool {
+        v.get("result")
+            .unwrap()
+            .get("eip1559")
+            .unwrap()
+            .as_bool()
+            .unwrap()
     }
 
     fn serialize<T: serde::Serialize>(&self, t: &T) -> anyhow::Result<Value> {
@@ -148,7 +156,13 @@ impl TransformProcessor for EIP1559SupportProcessor {
         let mut body: Value = serde_json::from_slice(body).unwrap();
         let elements = body.get_mut("result").unwrap().as_object_mut().unwrap();
         let contains_base_fee_per_gas = elements.get_mut("baseFeePerGas").is_some();
-        let result: Value = json!({"eip1559": contains_base_fee_per_gas});
+        let result: Value = json!({
+            "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+                "eip1559": contains_base_fee_per_gas
+            }
+        });
         serde_json::to_vec(&result).unwrap()
     }
     fn context(&self) -> TransformContext {
@@ -205,7 +219,14 @@ mod tests {
         let res = processor.transform(raw);
         assert_eq!(
             res.body,
-            serde_json::to_vec(&json!({"eip1559": true})).unwrap()
+            serde_json::to_vec(&json!({
+                "jsonrpc": "2.0",
+                "id": 0,
+                "result": {
+                    "eip1559": true
+                }
+            }))
+            .unwrap()
         );
     }
     #[test]
@@ -247,7 +268,29 @@ mod tests {
         let res = processor.transform(raw);
         assert_eq!(
             res.body,
-            serde_json::to_vec(&json!({"eip1559": false})).unwrap()
+            serde_json::to_vec(&json!({
+                "jsonrpc": "2.0",
+                "id": 0,
+                "result": {
+                    "eip1559": false
+                }
+            }))
+            .unwrap()
         );
+    }
+    #[test]
+    fn test_eip1559_convert_result() {
+        let target = EVMTransactionOptionBuilder::new("".to_string(), 1, "".to_string());
+        let v = serde_json::from_str::<Value>(
+            r#"{
+                "jsonrpc": "2.0",
+                "id": 0,
+                "result": {
+                    "eip1559": true
+                }
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(target.convert_result(v), true);
     }
 }
