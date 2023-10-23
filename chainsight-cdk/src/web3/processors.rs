@@ -72,8 +72,6 @@ impl EVMTransactionOptionBuilder {
                 call_options,
             )
             .await?;
-        // expected json: {"eip1559": true} or {"eip1559": false}
-        ic_cdk::println!("eip1559_support: {:?}", execution);
         Ok(self.convert_result(execution))
     }
 
