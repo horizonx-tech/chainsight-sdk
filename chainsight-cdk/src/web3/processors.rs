@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 const RPC_CALL_MAX_RETRY: u32 = 5;
 #[async_trait]
 pub trait TransactionOptionBuilder {
-    async fn build(&self) -> Option<Options>;
+    async fn build(&self) -> anyhow::Result<Option<Options>>;
 }
 
 pub struct EVMTransactionOptionBuilder {
@@ -55,34 +55,30 @@ impl EVMTransactionOptionBuilder {
             }
         }
     }
-    async fn supports_eip1559(&self) -> bool {
+    async fn supports_eip1559(&self) -> anyhow::Result<bool> {
         let processor = EIP1559SupportProcessor;
-        let http = ICHttp::new(&self.url, None).unwrap();
-        let include_txs = self.serialize(&false);
-        let block_num = self.serialize(&ic_web3_rs::types::BlockNumber::Latest);
+        let http = ICHttp::new(&self.url, None)?;
+        let include_txs = self.serialize(&false)?;
+        let block_num = self.serialize(&ic_web3_rs::types::BlockNumber::Latest)?;
         let call_options = CallOptionsBuilder::default()
             .max_resp(None)
             .cycles(None)
             .transform(Some(processor.context()))
-            .build()
-            .unwrap();
+            .build()?;
         let execution = http
             .execute(
                 "eth_getBlockByNumber",
                 vec![block_num, include_txs],
                 call_options,
             )
-            .await;
-        let result = execution.expect("Failed to get block by number.");
-        result
-            .get("eip1559")
-            .expect("Failed to get eip1559 support.")
-            .as_bool()
-            .unwrap()
+            .await?;
+        let result = execution.get("eip1559").unwrap().as_bool().unwrap();
+        Ok(result)
     }
 
-    fn serialize<T: serde::Serialize>(&self, t: &T) -> Value {
-        serde_json::to_value(t).expect("Types never fail to serialize.")
+    fn serialize<T: serde::Serialize>(&self, t: &T) -> anyhow::Result<Value> {
+        let v = serde_json::to_value(t);
+        Ok(v?)
     }
 
     fn eth(&self) -> Eth<ICHttp> {
@@ -94,35 +90,33 @@ impl EVMTransactionOptionBuilder {
 
 #[async_trait]
 impl TransactionOptionBuilder for EVMTransactionOptionBuilder {
-    async fn build(&self) -> Option<Options> {
-        if self.supports_eip1559().await {
-            return None;
+    async fn build(&self) -> anyhow::Result<Option<Options>> {
+        let supports_eip1559 = self.supports_eip1559().await?;
+        if supports_eip1559 {
+            return Ok(None);
         }
         let gas_price = self
             .with_retry(|| self.eth().gas_price(CallOptions::default()))
-            .await
-            .expect("Failed to get gas price.");
+            .await?;
         let public_key = ic_web3_rs::ic::get_public_key(
             None,
             vec![ic_cdk::id().as_slice().to_vec()],
             self.key_name.clone(),
         )
         .await
-        .expect("Failed to get public key.");
-        let ethereum_address = ic_web3_rs::ic::pubkey_to_address(&public_key)
-            .expect("Failed to get ethereum address.");
+        .unwrap();
+        let ethereum_address = ic_web3_rs::ic::pubkey_to_address(&public_key).unwrap();
         let nonce = self
             .with_retry(|| {
                 self.eth()
                     .transaction_count(ethereum_address, None, CallOptions::default())
             })
-            .await
-            .expect("Failed to get nonce.");
-        Some(Options::with(|op| {
+            .await?;
+        Ok(Some(Options::with(|op| {
             op.gas_price = Some(gas_price);
             op.nonce = Some(nonce);
             op.transaction_type = Some(U64::from(0))
-        }))
+        })))
     }
 }
 

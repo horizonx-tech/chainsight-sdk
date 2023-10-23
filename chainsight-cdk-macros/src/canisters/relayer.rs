@@ -97,11 +97,15 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             );
             use chainsight_cdk::web3::TransactionOptionBuilder;
             let call_option = call_option_builder.build().await;
+            if call_option.is_err() {
+                ic_cdk::println!("error: {:?}", call_option.err());
+                return;
+            }
 
             #oracle_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
                 &web3_ctx().unwrap()
-            ).update_state(#sync_data_ident, call_option).await.unwrap();
+            ).update_state(#sync_data_ident, call_option.unwrap()).await.unwrap();
             ic_cdk::println!("value_to_sync={:?}", datum);
         }
 
