@@ -20,7 +20,7 @@ serde = "1.0.163"
 serde_bytes = "0.11.12"
 hex = "0.4.3"
 
-ic-web3-rs = { version = "0.1.1" }
-ic-solidity-bindgen = { version = "0.1.5" }
+ic-web3-rs = { version = "0.1.2" }
+ic-solidity-bindgen = { version = "0.1.8" }
 chainsight-cdk = { path = "../../../chainsight-cdk" }
 chainsight-cdk-macros = { path = "../.." }
