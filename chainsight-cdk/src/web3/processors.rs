@@ -78,12 +78,7 @@ impl EVMTransactionOptionBuilder {
     }
 
     fn convert_result(&self, v: Value) -> bool {
-        v.get("result")
-            .unwrap()
-            .get("eip1559")
-            .unwrap()
-            .as_bool()
-            .unwrap()
+        v.get("eip1559").unwrap().as_bool().unwrap()
     }
 
     fn serialize<T: serde::Serialize>(&self, t: &T) -> anyhow::Result<Value> {
@@ -283,11 +278,7 @@ mod tests {
         let target = EVMTransactionOptionBuilder::new("".to_string(), 1, "".to_string());
         let v = serde_json::from_str::<Value>(
             r#"{
-                "jsonrpc": "2.0",
-                "id": 0,
-                "result": {
                     "eip1559": true
-                }
             }"#,
         )
         .unwrap();
