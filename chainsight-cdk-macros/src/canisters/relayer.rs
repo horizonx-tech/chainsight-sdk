@@ -23,38 +23,31 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let method_name = config.method_name;
     let sync_data_ident = generate_ident_sync_to_oracle(config.canister_method_value_type);
 
-    let (args_type_ident, get_args_ident, relayer_source_ident) =
-        match config.lens_targets.is_some() {
-            true => (
-                quote! {
-                    type CallCanisterArgs = Vec<String>;
-
-                },
-                quote! {
-                    pub fn call_args() -> Vec<String> {
-                        get_lens_targets()
-                    }
-                },
-                quote! {
-                    relayer_source!(#method_name, true);
-                    manage_single_state!("lens_targets", Vec<String>, false);
-                },
-            ),
-            _ => (
-                quote! {
-                    type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
-
-                },
-                quote! {
-                    pub fn call_args() -> CallCanisterArgs {
-                        #canister_name_ident::call_args()
-                    }
-                },
-                quote! {
-                    relayer_source!(#method_name, false);
-                },
-            ),
-        };
+    let (call_args_ident, relayer_source_ident) = match config.lens_targets.is_some() {
+        true => (
+            quote! {
+                type CallCanisterArgs = Vec<String>;
+                pub fn call_args() -> CallCanisterArgs {
+                    get_lens_targets()
+                }
+            },
+            quote! {
+                relayer_source!(#method_name, true);
+                manage_single_state!("lens_targets", Vec<String>, false);
+            },
+        ),
+        _ => (
+            quote! {
+                type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
+                pub fn call_args() -> CallCanisterArgs {
+                    #canister_name_ident::call_args()
+                }
+            },
+            quote! {
+                relayer_source!(#method_name, false);
+            },
+        ),
+    };
     let abi_path = config.abi_file_path;
     let oracle_name = abi_path
         .split('/')
@@ -69,13 +62,12 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         ic_solidity_bindgen::contract_abi!(#abi_path);
         use #canister_name_ident::*;
         #relayer_source_ident
-        #args_type_ident
-        #get_args_ident
+        #call_args_ident
         async fn sync() {
             let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
             let call_result = CallProvider::new()
-            .call(Message::new::<CallCanisterArgs>(call_args(), _get_target_proxy(target_canister.clone()).await, #proxy_method_name).unwrap())
-            .await;
+                .call(Message::new::<CallCanisterArgs>(call_args(), _get_target_proxy(target_canister.clone()).await, #proxy_method_name).unwrap())
+                .await;
             if let Err(err) = call_result {
                 ic_cdk::println!("error: {:?}", err);
                 return;
@@ -86,6 +78,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 return;
             }
             let datum = val.unwrap();
+            ic_cdk::println!("response from canister = {:?}", datum.clone());
             if !filter(&datum) {
                 return;
             }
