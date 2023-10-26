@@ -86,6 +86,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 return;
             }
             let datum = val.unwrap();
+            ic_cdk::println!("response from canister = {:?}", datum);
             if !filter(&datum) {
                 return;
             }
