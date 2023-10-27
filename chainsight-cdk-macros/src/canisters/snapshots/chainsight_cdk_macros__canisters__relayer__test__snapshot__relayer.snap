@@ -1,0 +1,83 @@
+---
+source: chainsight-cdk-macros/src/canisters/relayer.rs
+expression: formatted
+---
+use chainsight_cdk::rpc::{CallProvider, Caller, Message};
+use chainsight_cdk::web3::Encoder;
+use chainsight_cdk_macros::{
+    chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
+    did_export, init_in, manage_single_state, relayer_source, setup_func, timer_task_func,
+};
+use ic_web3_rs::types::{Address, U256};
+use std::str::FromStr;
+did_export!("relayer");
+chainsight_common!(60);
+define_web3_ctx!();
+define_transform_for_web3!();
+manage_single_state!("target_addr", String, false);
+define_get_ethereum_address!();
+manage_single_state!("target_canister", String, false);
+timer_task_func!("set_task", "sync", true);
+init_in!();
+setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , });
+ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
+use relayer::*;
+relayer_source!("get_last_snapshot_value", false);
+type CallCanisterArgs = relayer::CallCanisterArgs;
+pub fn call_args() -> CallCanisterArgs {
+    relayer::call_args()
+}
+async fn sync() {
+    let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
+    let call_result = CallProvider::new()
+        .call(
+            Message::new::<CallCanisterArgs>(
+                call_args(),
+                _get_target_proxy(target_canister.clone()).await,
+                "proxy_get_last_snapshot_value",
+            )
+            .unwrap(),
+        )
+        .await;
+    if let Err(err) = call_result {
+        ic_cdk::println!("error: {:?}", err);
+        return;
+    }
+    let val = call_result.unwrap().reply::<CallCanisterResponse>();
+    if let Err(err) = val {
+        ic_cdk::println!("error: {:?}", err);
+        return;
+    }
+    let datum = val.unwrap();
+    ic_cdk::println!("response from canister = {:?}", datum.clone());
+    if !filter(&datum) {
+        return;
+    }
+    let w3_ctx_param = get_web3_ctx_param();
+    let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
+        w3_ctx_param.url,
+        w3_ctx_param.chain_id,
+        w3_ctx_param.env.ecdsa_key_name(),
+    );
+    use chainsight_cdk::web3::TransactionOptionBuilder;
+    let call_option = call_option_builder.build().await;
+    if call_option.is_err() {
+        ic_cdk::println!("error: {:?}", call_option.err());
+        return;
+    }
+    let result = Uint256Oracle::new(
+        Address::from_str(&get_target_addr()).unwrap(),
+        &web3_ctx().unwrap(),
+    )
+    .update_state(
+        chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone()),
+        call_option.unwrap(),
+    )
+    .await;
+    if let Err(err) = result {
+        ic_cdk::println!("error: {:?}", err);
+        return;
+    }
+    ic_cdk::println!("value_to_sync={:?}", result.unwrap());
+}
+
