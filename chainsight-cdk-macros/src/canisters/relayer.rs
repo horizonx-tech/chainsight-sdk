@@ -33,8 +33,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let sync_data_ident = generate_ident_sync_to_oracle(canister_method_value_type);
 
-    let (call_args_ident, relayer_source_ident) = match lens_targets.is_some() {
-        true => (
+    let (call_args_ident, relayer_source_ident) = if lens_targets.is_some() {
+        (
             quote! {
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
@@ -45,18 +45,17 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 relayer_source!(#method_name, true);
                 manage_single_state!("lens_targets", Vec<String>, false);
             },
-        ),
-        _ => (
+        )
+    } else {
+        (
             quote! {
                 type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
                 pub fn call_args() -> CallCanisterArgs {
                     #canister_name_ident::call_args()
                 }
             },
-            quote! {
-                relayer_source!(#method_name, false);
-            },
-        ),
+            quote! { relayer_source!(#method_name, false); },
+        )
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
@@ -121,11 +120,10 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let canister_name = common.canister_name.clone();
-    let lens_targets_quote = match lens_targets.clone() {
-        Some(_) => quote! {
-            lens_targets: Vec<String>
-        },
-        None => quote! {},
+    let lens_targets_quote = if lens_targets.is_some() {
+        quote! { lens_targets: Vec<String> }
+    } else {
+        quote! {}
     };
     quote! {
         use std::str::FromStr;
