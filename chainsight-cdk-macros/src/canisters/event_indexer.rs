@@ -62,7 +62,8 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
 fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
     let EventIndexerConfig { common: _, def } = config;
     let abi_file_path = def.abi_file_path;
-    let contract_struct_name_ident = format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
+    let contract_struct_name_ident =
+        format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
     let binding = ethabi::Contract::load(File::open(Path::new(&abi_file_path)).unwrap()).unwrap();
     let event = binding
         .events_by_name(def.identifier.as_str())
