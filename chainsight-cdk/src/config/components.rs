@@ -122,10 +122,13 @@ pub enum CanisterMethodValueType {
     Struct(Vec<(String, String, bool)>), // temp: Only non-nested `record` are supported.
     Vector(String, bool),                // struct_name, is_scalar
 }
+
+// NOTE: not use in sdk, use in cli https://github.com/horizonx-tech/chainsight-cli/blob/2f92b916912843dff44f6ddb8db4c33992b1cfc9/src/lib/codegen/components/relayer.rs#L66
 #[derive(Debug, Clone, PartialEq)]
 pub struct CanisterMethodIdentifier {
     pub identifier: String,
     pub params: Vec<String>,
+    // NOTE: use this field in sdk
     pub return_value: CanisterMethodValueType,
 }
 
