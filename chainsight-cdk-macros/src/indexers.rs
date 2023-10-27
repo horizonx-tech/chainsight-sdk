@@ -142,9 +142,11 @@ fn generate_algorithm_indexer_source() -> TokenStream2 {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
-            vec![chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_algorithm_indexer(
-            get_target_addr(),
-            get_timer_duration())
+            vec![
+                chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_algorithm_indexer(
+                    get_target_addr(),
+                    get_timer_duration()
+                )
             ]
         }
     }
@@ -160,11 +162,13 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
             #[ic_cdk::query]
             #[candid::candid_method(query)]
             fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::RelayerWithLensSourceAttrs>> {
-                vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
-                get_target_canister(),
-                get_timer_duration(),
-                #method_identifier,
-                call_args()),
+                vec![
+                    chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
+                        get_target_canister(),
+                        get_timer_duration(),
+                        #method_identifier,
+                        call_args()
+                    ),
                 ]
             }
         }.into();
@@ -174,11 +178,13 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::RelayerWithLensSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
-            get_target_canister(),
-            get_timer_duration(),
-            #method_identifier,
-            vec![])
+            vec![
+                chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
+                    get_target_canister(),
+                    get_timer_duration(),
+                    #method_identifier,
+                    vec![]
+                )
             ]
         }
     }.into()
