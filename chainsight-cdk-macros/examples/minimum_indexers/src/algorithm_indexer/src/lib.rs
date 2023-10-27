@@ -10,7 +10,6 @@ def_algorithm_indexer_canister!(
     },
     \"indexing\": {
         \"start_from\": 1222222,
-        \"indexer_type\": \"algorithm\"
     },
     \"input\": {
         \"method_name\": \"get_list\",

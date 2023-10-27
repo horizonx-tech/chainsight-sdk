@@ -1,6 +1,5 @@
 ---
 source: chainsight-cdk-macros/src/canisters/event_indexer.rs
-assertion_line: 200
 expression: formatted
 ---
 use candid::CandidType;
