@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-
 use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
+
+use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -58,7 +58,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             },
         ),
     };
-    let oracle_name = extract_contract_struct_from_path(&abi_file_path);
+    let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
     let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
@@ -151,12 +151,6 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn extract_contract_struct_from_path(s: &str) -> String {
-    let path = PathBuf::from(s);
-    let name = path.file_stem().expect("file_stem failed");
-    name.to_str().expect("to_str failed").to_string()
-}
-
 fn generate_ident_sync_to_oracle(
     canister_response_type: CanisterMethodValueType,
 ) -> proc_macro2::TokenStream {
@@ -186,12 +180,6 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
-
-    #[test]
-    fn test_extract_contract_struct_from_path() {
-        let path = "__interfaces/Oracle.json";
-        assert_eq!(extract_contract_struct_from_path(path), "Oracle");
-    }
 
     #[test]
     fn test_snapshot() {

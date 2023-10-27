@@ -5,6 +5,9 @@ use ethabi::{self, ParamType};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
+
+use super::utils::extract_contract_name_from_path;
+
 pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: EventIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
@@ -57,18 +60,12 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
 }
 
 fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
-    let abi_file_path = config.def.abi_file_path;
-    let contract_struct_name = abi_file_path
-        .split('/')
-        .last()
-        .unwrap()
-        .split('.')
-        .next()
-        .unwrap();
-    let contract_struct_name_ident = format_ident!("{}", contract_struct_name);
+    let EventIndexerConfig { common: _, def } = config;
+    let abi_file_path = def.abi_file_path;
+    let contract_struct_name_ident = format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
     let binding = ethabi::Contract::load(File::open(Path::new(&abi_file_path)).unwrap()).unwrap();
     let event = binding
-        .events_by_name(config.def.identifier.as_str())
+        .events_by_name(def.identifier.as_str())
         .unwrap()
         .first()
         .unwrap();
@@ -91,7 +88,6 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
         })
         .collect::<Vec<_>>();
     let event_struct = quote! {
-
         #[derive(Clone, Debug,  Default, candid::CandidType, ContractEvent, Serialize, Persist)]
         pub struct #event_struct_ident {
             #(#event_struct_field_tokens),*
@@ -133,11 +129,11 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
 }
 
 /// To handle 256bits Unsigned Integer type in ic_web3_rs
-pub const U256_TYPE: &str = "ic_web3_rs::types::U256";
+const U256_TYPE: &str = "ic_web3_rs::types::U256";
 /// To handle Address type in ic_web3_rs
-pub const ADDRESS_TYPE: &str = "ic_web3_rs::types::Address";
+const ADDRESS_TYPE: &str = "ic_web3_rs::types::Address";
 
-pub fn convert_type_from_ethabi_param_type(param: ethabi::ParamType) -> Result<String, String> {
+fn convert_type_from_ethabi_param_type(param: ethabi::ParamType) -> Result<String, String> {
     let err_msg = "ic_solidity_bindgen::internal::Unimplemented".to_string(); // temp
                                                                               // ref: https://github.com/horizonx-tech/ic-solidity-bindgen/blob/6c9ffb4354cee4c32b1df17a2210c90f16972c21/ic-solidity-bindgen-macros/src/abi_gen.rs#L124
     match param {
@@ -169,7 +165,7 @@ pub fn convert_type_from_ethabi_param_type(param: ethabi::ParamType) -> Result<S
     }
 }
 /// Convert camelCase String to snake_case
-pub fn camel_to_snake(val: &str) -> String {
+fn camel_to_snake(val: &str) -> String {
     // NOTE: use Inflator in ic-solidity-bindgen
     // https://github.com/horizonx-tech/ic-solidity-bindgen/blob/0972bede5957927bcb8f675decd93878b849dc76/ic-solidity-bindgen-macros/src/abi_gen.rs#L192
     inflector::cases::snakecase::to_snake_case(val)
