@@ -6,10 +6,10 @@ use syn::parse_macro_input;
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string = parse_macro_input!(input as syn::LitStr).value();
     let config: AlgorithmIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
-    algorithm_indexer_canister(config)
+    algorithm_indexer_canister(config).into()
 }
 
-fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> TokenStream {
+fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::TokenStream {
     let monitor_duration = config.common.monitor_duration;
     let canister_name = config.common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
@@ -33,7 +33,6 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> TokenStream {
         algorithm_indexer!(#input_ty, #method_name);
         did_export!(#canister_name);
     }
-    .into()
 }
 
 pub fn input_type_ident(
@@ -63,5 +62,41 @@ pub fn input_type_ident(
                 #source_ident<String, Vec<#event_struct>>
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::{
+        config::components::{AlgorithmIndexerInput, CommonConfig},
+        indexer::IndexingConfig,
+    };
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = AlgorithmIndexerConfig {
+            common: CommonConfig {
+                monitor_duration: 3600,
+                canister_name: "example_canister".to_string(),
+            },
+            indexing: IndexingConfig {
+                start_from: 1222222,
+                chunk_size: None,
+            },
+            input: AlgorithmIndexerInput {
+                method_name: "get_list".to_string(),
+                response_type: "String".to_string(),
+                source_type: AlgorithmInputType::EventIndexer,
+            },
+        };
+        let generated = algorithm_indexer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_indexer", formatted);
     }
 }

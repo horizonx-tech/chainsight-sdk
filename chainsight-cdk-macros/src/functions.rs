@@ -207,7 +207,10 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
 
 pub fn lens_method(input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(input as LensArgs);
+    lens_method_internal(args).into()
+}
 
+fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
@@ -282,5 +285,25 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
 
         #inter_calc_func
     }
-    .into()
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_lens_method() {
+        let args = LensArgs {
+            target_count: 10,
+            func_arg: None,
+        };
+        let generated = lens_method_internal(args);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__lens_method", formatted);
+    }
 }

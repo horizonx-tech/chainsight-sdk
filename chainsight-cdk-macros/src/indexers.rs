@@ -278,10 +278,15 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
 }
 
 pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as AlgorithmIndexerInput);
+    algorithm_indexer_internal(args).into()
+}
+
+fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::TokenStream {
     let AlgorithmIndexerInput {
         in_type,
         call_method,
-    } = parse_macro_input!(input as AlgorithmIndexerInput);
+    } = args;
     let source = generate_algorithm_indexer_source();
     quote! {
         manage_single_state!("config", IndexingConfig, false);
@@ -312,9 +317,7 @@ pub fn algorithm_indexer(input: TokenStream) -> TokenStream {
         fn event_source() -> candid::Principal {
             get_target()
         }
-
     }
-    .into()
 }
 
 pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {

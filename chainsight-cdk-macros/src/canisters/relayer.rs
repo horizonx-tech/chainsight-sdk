@@ -8,17 +8,16 @@ use syn::parse_macro_input;
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: RelayerConfig = serde_json::from_str(&input_json_string).unwrap();
-    relayer_canister(config)
+    relayer_canister(config).into()
 }
 
-fn relayer_canister(config: RelayerConfig) -> TokenStream {
+fn relayer_canister(config: RelayerConfig) -> proc_macro2::TokenStream {
     let common = common_code(config.clone());
     let custom = custom_code(config);
     quote! {
         #common
         #custom
     }
-    .into()
 }
 
 fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
@@ -182,11 +181,36 @@ fn generate_ident_sync_to_oracle(
 
 #[cfg(test)]
 mod test {
-    use crate::canisters::relayer::extract_contract_struct_from_path;
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
 
     #[test]
     fn test_extract_contract_struct_from_path() {
         let path = "__interfaces/Oracle.json";
         assert_eq!(extract_contract_struct_from_path(path), "Oracle");
+    }
+
+    #[test]
+    fn test_snapshot() {
+        let config = RelayerConfig {
+            common: CommonConfig {
+                monitor_duration: 60,
+                canister_name: "relayer".to_string(),
+            },
+            destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
+            oracle_type: "".to_string(), // NOTE: unused
+            method_name: "get_last_snapshot_value".to_string(),
+            canister_method_value_type: CanisterMethodValueType::Scalar("String".to_string(), true),
+            abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
+            lens_targets: None,
+        };
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer", formatted);
     }
 }
