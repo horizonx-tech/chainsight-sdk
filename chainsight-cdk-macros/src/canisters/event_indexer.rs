@@ -8,10 +8,10 @@ use syn::parse_macro_input;
 pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: EventIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
-    event_indexer_canister(config)
+    event_indexer_canister(config).into()
 }
 
-fn event_indexer_canister(config: EventIndexerConfig) -> TokenStream {
+fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStream {
     let monitor_duration = config.common.monitor_duration;
     let canister_name = config.common.canister_name.clone();
     let common = quote! {
@@ -54,7 +54,6 @@ fn event_indexer_canister(config: EventIndexerConfig) -> TokenStream {
         #common
         #custom
     }
-    .into()
 }
 
 fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
@@ -174,4 +173,30 @@ pub fn camel_to_snake(val: &str) -> String {
     // NOTE: use Inflator in ic-solidity-bindgen
     // https://github.com/horizonx-tech/ic-solidity-bindgen/blob/0972bede5957927bcb8f675decd93878b849dc76/ic-solidity-bindgen-macros/src/abi_gen.rs#L192
     inflector::cases::snakecase::to_snake_case(val)
+}
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::config::components::{CommonConfig, EventIndexerEventDefinition};
+    use insta::assert_snapshot;
+    use rust_format::{RustFmt, Formatter};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = EventIndexerConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "app".to_string()
+            },
+            def: EventIndexerEventDefinition {
+                identifier: "Transfer".to_string(),
+                abi_file_path: "examples/minimum_indexers/src/event_indexer/abi/ERC20.json".to_string()
+            }
+        };
+        let generated = event_indexer_canister(config);
+        let formatted = RustFmt::default().format_str(generated.to_string()).expect("rustfmt failed");
+        assert_snapshot!("snapshot__event_indexer", formatted);
+    }
 }

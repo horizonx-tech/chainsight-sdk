@@ -194,7 +194,7 @@ mod test {
     }
 
     #[test]
-    fn test_relayer() {
+    fn test_snapshot() {
         let config = RelayerConfig {
             common: CommonConfig {
                 monitor_duration: 60,
