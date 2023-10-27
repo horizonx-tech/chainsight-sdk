@@ -6,10 +6,10 @@ use syn::parse_macro_input;
 pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: AlgorithmLensConfig = serde_json::from_str(&input_json_string).unwrap();
-    algorithm_lens_canister(config)
+    algorithm_lens_canister(config).into()
 }
 
-fn algorithm_lens_canister(config: AlgorithmLensConfig) -> TokenStream {
+fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStream {
     let monitor_duration = config.common.monitor_duration;
     let canister_name = config.common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
@@ -24,5 +24,27 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> TokenStream {
         lens_method!(#lens_size);
 
     }
-    .into()
+}
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_snapshot;
+    use rust_format::{RustFmt, Formatter};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = AlgorithmLensConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "app".to_string()
+            },
+            target_count: 10,
+        };
+        let generated = algorithm_lens_canister(config);
+        let formatted = RustFmt::default().format_str(generated.to_string()).expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_lens", formatted);
+    }
 }
