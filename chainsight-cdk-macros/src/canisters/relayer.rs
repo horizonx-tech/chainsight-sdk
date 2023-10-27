@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-
 use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
+
+use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -33,8 +33,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let sync_data_ident = generate_ident_sync_to_oracle(canister_method_value_type);
 
-    let (call_args_ident, relayer_source_ident) = match lens_targets.is_some() {
-        true => (
+    let (call_args_ident, relayer_source_ident) = if lens_targets.is_some() {
+        (
             quote! {
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
@@ -45,20 +45,19 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 relayer_source!(#method_name, true);
                 manage_single_state!("lens_targets", Vec<String>, false);
             },
-        ),
-        _ => (
+        )
+    } else {
+        (
             quote! {
                 type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
                 pub fn call_args() -> CallCanisterArgs {
                     #canister_name_ident::call_args()
                 }
             },
-            quote! {
-                relayer_source!(#method_name, false);
-            },
-        ),
+            quote! { relayer_source!(#method_name, false); },
+        )
     };
-    let oracle_name = extract_contract_struct_from_path(&abi_file_path);
+    let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
     let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
@@ -121,11 +120,10 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let canister_name = common.canister_name.clone();
-    let lens_targets_quote = match lens_targets.clone() {
-        Some(_) => quote! {
-            lens_targets: Vec<String>
-        },
-        None => quote! {},
+    let lens_targets_quote = if lens_targets.is_some() {
+        quote! { lens_targets: Vec<String> }
+    } else {
+        quote! {}
     };
     quote! {
         use std::str::FromStr;
@@ -149,12 +147,6 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             #lens_targets_quote
         });
     }
-}
-
-fn extract_contract_struct_from_path(s: &str) -> String {
-    let path = PathBuf::from(s);
-    let name = path.file_stem().expect("file_stem failed");
-    name.to_str().expect("to_str failed").to_string()
 }
 
 fn generate_ident_sync_to_oracle(
@@ -186,12 +178,6 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
-
-    #[test]
-    fn test_extract_contract_struct_from_path() {
-        let path = "__interfaces/Oracle.json";
-        assert_eq!(extract_contract_struct_from_path(path), "Oracle");
-    }
 
     #[test]
     fn test_snapshot() {

@@ -10,12 +10,17 @@ pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
 }
 
 fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::TokenStream {
-    let monitor_duration = config.common.monitor_duration;
-    let canister_name = config.common.canister_name.clone();
-    let canister_name_ident = format_ident!("{}", config.common.canister_name);
-    let input_ty = input_type_ident(config.input.response_type, config.input.source_type);
+    let AlgorithmIndexerConfig {
+        common,
+        indexing: _,
+        input,
+    } = config;
+    let monitor_duration = common.monitor_duration;
+    let canister_name = common.canister_name.clone();
+    let canister_name_ident = format_ident!("{}", common.canister_name);
+    let input_ty = input_type_ident(input.response_type, input.source_type);
 
-    let method_name = config.input.method_name;
+    let method_name = input.method_name;
     quote! {
         use candid::CandidType;
         use chainsight_cdk::core::*;
