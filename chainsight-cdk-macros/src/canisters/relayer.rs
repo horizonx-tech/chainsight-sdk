@@ -183,7 +183,7 @@ fn generate_ident_sync_to_oracle(
 mod test {
     use chainsight_cdk::config::components::CommonConfig;
     use insta::assert_snapshot;
-    use rust_format::{RustFmt, Formatter};
+    use rust_format::{Formatter, RustFmt};
 
     use super::*;
 
@@ -198,17 +198,19 @@ mod test {
         let config = RelayerConfig {
             common: CommonConfig {
                 monitor_duration: 60,
-                canister_name: "relayer".to_string()
+                canister_name: "relayer".to_string(),
             },
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             oracle_type: "".to_string(), // NOTE: unused
             method_name: "get_last_snapshot_value".to_string(),
             canister_method_value_type: CanisterMethodValueType::Scalar("String".to_string(), true),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
-            lens_targets: None
+            lens_targets: None,
         };
         let generated = relayer_canister(config);
-        let formatted = RustFmt::default().format_str(generated.to_string()).expect("rustfmt failed");
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer", formatted);
     }
 }

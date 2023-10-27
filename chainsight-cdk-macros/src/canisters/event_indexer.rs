@@ -179,7 +179,7 @@ pub fn camel_to_snake(val: &str) -> String {
 mod test {
     use chainsight_cdk::config::components::{CommonConfig, EventIndexerEventDefinition};
     use insta::assert_snapshot;
-    use rust_format::{RustFmt, Formatter};
+    use rust_format::{Formatter, RustFmt};
 
     use super::*;
 
@@ -188,15 +188,18 @@ mod test {
         let config = EventIndexerConfig {
             common: CommonConfig {
                 monitor_duration: 1000,
-                canister_name: "app".to_string()
+                canister_name: "app".to_string(),
             },
             def: EventIndexerEventDefinition {
                 identifier: "Transfer".to_string(),
-                abi_file_path: "examples/minimum_indexers/src/event_indexer/abi/ERC20.json".to_string()
-            }
+                abi_file_path: "examples/minimum_indexers/src/event_indexer/abi/ERC20.json"
+                    .to_string(),
+            },
         };
         let generated = event_indexer_canister(config);
-        let formatted = RustFmt::default().format_str(generated.to_string()).expect("rustfmt failed");
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
         assert_snapshot!("snapshot__event_indexer", formatted);
     }
 }

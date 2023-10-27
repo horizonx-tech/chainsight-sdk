@@ -67,9 +67,12 @@ pub fn input_type_ident(
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::{config::components::{CommonConfig, AlgorithmIndexerInput}, indexer::IndexingConfig};
+    use chainsight_cdk::{
+        config::components::{AlgorithmIndexerInput, CommonConfig},
+        indexer::IndexingConfig,
+    };
     use insta::assert_snapshot;
-    use rust_format::{RustFmt, Formatter};
+    use rust_format::{Formatter, RustFmt};
 
     use super::*;
 
@@ -78,7 +81,7 @@ mod test {
         let config = AlgorithmIndexerConfig {
             common: CommonConfig {
                 monitor_duration: 3600,
-                canister_name: "example_canister".to_string()
+                canister_name: "example_canister".to_string(),
             },
             indexing: IndexingConfig {
                 start_from: 1222222,
@@ -91,7 +94,9 @@ mod test {
             },
         };
         let generated = algorithm_indexer_canister(config);
-        let formatted = RustFmt::default().format_str(generated.to_string()).expect("rustfmt failed");
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
         assert_snapshot!("snapshot__algorithm_indexer", formatted);
     }
 }
