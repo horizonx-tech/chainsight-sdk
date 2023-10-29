@@ -166,7 +166,7 @@ fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::
         }
     } else {
         // TODO: consider byte conversion for serialization
-        quote! { format!("{:?}", &datum) }
+        quote! { format!("{:?}", &datum).into_bytes() }
     }
 }
 
