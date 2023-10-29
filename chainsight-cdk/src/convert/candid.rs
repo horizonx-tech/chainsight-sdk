@@ -34,7 +34,7 @@ impl CanisterMethodIdentifier {
         let mut lines = contents
             .lines()
             // Delete initial 'use' declarations
-            .skip(2)
+            .skip(4)
             // Delete comment lines and blank lines
             .filter(|line| !(line.starts_with("//") || line.is_empty()))
             .map(|line| {
