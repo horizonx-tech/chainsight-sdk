@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.72"
 async-trait = "0.1.68"
-candid = "0.8"
+candid = "0.8.4"
 combine-proc-macro = "0.3.1"
 derive_more = "0.99.17"
 ethabi = "18.0.0"
@@ -25,3 +25,10 @@ regex = "1.8.4"
 serde = "1.0.163"
 serde_json = "1.0.99"
 syn = "2.0.38"
+
+[dev-dependencies]
+insta = { version = "1.33.0", features = ["yaml"] }
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

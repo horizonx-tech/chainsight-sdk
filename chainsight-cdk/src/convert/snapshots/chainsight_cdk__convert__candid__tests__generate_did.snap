@@ -1,0 +1,5 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: did
+---
+type Account = record { owner : principal; subaccount : opt blob };

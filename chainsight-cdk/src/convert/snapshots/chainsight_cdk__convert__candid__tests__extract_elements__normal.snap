@@ -1,0 +1,9 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: "format!(\"{:#?}\", result)"
+---
+(
+    "update_value",
+    "nat64",
+    "text",
+)

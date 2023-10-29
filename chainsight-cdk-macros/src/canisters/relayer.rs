@@ -1,4 +1,7 @@
-use chainsight_cdk::config::components::{CanisterMethodValueType, RelayerConfig};
+use candid::types::{internal::is_primitive, Type};
+use chainsight_cdk::{
+    config::components::RelayerConfig, convert::candid::CanisterMethodIdentifier,
+};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -23,15 +26,21 @@ fn relayer_canister(config: RelayerConfig) -> proc_macro2::TokenStream {
 fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
-        method_name,
-        canister_method_value_type,
+        method_identifier,
         abi_file_path,
         lens_targets,
         ..
     } = config;
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
-    let sync_data_ident = generate_ident_sync_to_oracle(canister_method_value_type);
+    let canister_method = CanisterMethodIdentifier::new(&method_identifier)
+        .expect("Failed to parse method_identifer");
+    let method_name = canister_method.identifier.as_str();
+    let canister_response_type = {
+        let (_, response_type) = canister_method.get_types();
+        response_type.expect("Failed to get canister_response_type")
+    };
+    let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
     let (call_args_ident, relayer_source_ident) = if lens_targets.is_some() {
         (
@@ -59,7 +68,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
-    let proxy_method_name = "proxy_".to_string() + &method_name;
+    let proxy_method_name = "proxy_".to_string() + method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::*;
@@ -149,25 +158,15 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ident_sync_to_oracle(
-    canister_response_type: CanisterMethodValueType,
-) -> proc_macro2::TokenStream {
-    match canister_response_type {
-        CanisterMethodValueType::Scalar(_, _) => {
-            let arg_ident = format_ident!("datum");
-            quote! {
-                chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
-            }
+fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
+    if is_primitive(canister_response_type) {
+        let arg_ident = format_ident!("datum");
+        quote! {
+            chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
         }
-        CanisterMethodValueType::Tuple(_) => {
-            quote! { format!("{:?}", &datum) }
-        }
-        CanisterMethodValueType::Struct(_) => {
-            quote! { format!("{:?}", &datum) }
-        }
-        CanisterMethodValueType::Vector(_, _) => {
-            quote! { format!("{:?}", &datum) }
-        }
+    } else {
+        // TODO: consider byte conversion for serialization
+        quote! { format!("{:?}", &datum).into_bytes() }
     }
 }
 
@@ -188,8 +187,7 @@ mod test {
             },
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             oracle_type: "".to_string(), // NOTE: unused
-            method_name: "get_last_snapshot_value".to_string(),
-            canister_method_value_type: CanisterMethodValueType::Scalar("String".to_string(), true),
+            method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             lens_targets: None,
         };
