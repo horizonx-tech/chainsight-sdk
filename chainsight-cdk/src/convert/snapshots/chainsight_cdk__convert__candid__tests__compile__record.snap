@@ -2,8 +2,10 @@
 source: chainsight-cdk/src/convert/candid.rs
 expression: compiled
 ---
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 use ic_cdk::export::candid::{self, CandidType, Deserialize};
 use ic_cdk::api::call::CallResult;
-type RequestArgsType = u64;
+pub type RequestArgsType = u64;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-struct ResponseType { value: String, timestamp: u64 }
+pub struct ResponseType { value: String, timestamp: u64 }

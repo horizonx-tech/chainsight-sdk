@@ -31,16 +31,27 @@ impl CanisterMethodIdentifier {
         // config.target = Target::CanisterStub;
         let contents = compile(&self.type_env, &None);
 
-        let lines = contents
+        let mut lines = contents
             .lines()
+            // Delete initial 'use' declarations
+            .skip(2)
             // Delete comment lines and blank lines
             .filter(|line| !(line.starts_with("//") || line.is_empty()))
-            .map(|line| if line.eq("#[derive(CandidType, Deserialize)]") {
-                "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]"
-            } else {
-                line
+            .map(|line| {
+                if line.eq("#[derive(CandidType, Deserialize)]") {
+                    return "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
+                }
+                if line.starts_with("type") || line.starts_with("struct") {
+                    return format!("pub {}", line);
+                }
+                line.to_string()
             })
             .collect::<Vec<_>>();
+        lines.insert(0, "#![allow(dead_code, unused_imports)]".to_string());
+        lines.insert(
+            1,
+            "use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};".to_string(),
+        );
         lines.join("\n")
     }
 

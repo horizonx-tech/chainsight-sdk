@@ -2,7 +2,9 @@
 source: chainsight-cdk/src/convert/candid.rs
 expression: compiled
 ---
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 use ic_cdk::export::candid::{self, CandidType, Deserialize};
 use ic_cdk::api::call::CallResult;
-type RequestArgsType = u64;
-type ResponseType = String;
+pub type RequestArgsType = u64;
+pub type ResponseType = String;
