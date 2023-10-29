@@ -1,0 +1,8 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: compiled
+---
+use ic_cdk::export::candid::{self, CandidType, Deserialize};
+use ic_cdk::api::call::CallResult;
+type RequestArgsType = u64;
+type ResponseType = String;

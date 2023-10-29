@@ -1,0 +1,10 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: compiled
+---
+use ic_cdk::export::candid::{self, CandidType, Deserialize};
+use ic_cdk::api::call::CallResult;
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+struct ResponseType { dai: Box<ResponseType_dai> }
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+struct ResponseType_dai { usd: f64 }
