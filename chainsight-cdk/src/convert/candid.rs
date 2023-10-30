@@ -48,6 +48,7 @@ impl CanisterMethodIdentifier {
                     // NOTE: num-traits can be used, but is not used to reduce dependencies
                     //  https://forum.dfinity.org/t/candid-nat-to-u128/16016
                     //  https://discord.com/channels/748416164832608337/872791506853978142/1162494173933481984
+                    // NOTE: when ready to convert to u128/i128, consider with EthAbiEncoder's Encoder trait
                     if line.contains("candid::Nat") {
                         return format!("pub {}", line.replace("candid::Nat", "u128"));
                     }
