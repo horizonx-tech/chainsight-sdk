@@ -1,0 +1,9 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: "format!(\"{:#?}\", result)"
+---
+(
+    "use_nat",
+    "int32",
+    "int",
+)
