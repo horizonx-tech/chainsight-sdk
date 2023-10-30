@@ -38,10 +38,22 @@ impl CanisterMethodIdentifier {
             // Delete comment lines and blank lines
             .filter(|line| !(line.starts_with("//") || line.is_empty()))
             .map(|line| {
+                // override to chainsight's own derive
                 if line.eq("#[derive(CandidType, Deserialize)]") {
                     return "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
                 }
+                // expose type/struct
                 if line.starts_with("type") || line.starts_with("struct") {
+                    // convert icp's own Nat and Int types to rust native type
+                    // NOTE: num-traits can be used, but is not used to reduce dependencies
+                    //  https://forum.dfinity.org/t/candid-nat-to-u128/16016
+                    //  https://discord.com/channels/748416164832608337/872791506853978142/1162494173933481984
+                    if line.contains("candid::Nat") {
+                        return format!("pub {}", line.replace("candid::Nat", "u128"));
+                    }
+                    if line.contains("candid::Int") {
+                        return format!("pub {}", line.replace("candid::Int", "i128"));
+                    }
                     return format!("pub {}", line);
                 }
                 line.to_string()
