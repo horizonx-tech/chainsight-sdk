@@ -74,7 +74,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use #canister_name_ident::*;
         #relayer_source_ident
         #call_args_ident
+
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
         async fn sync() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted");
+            }
             let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
             let call_result = CallProvider::new()
                 .call(Message::new::<CallCanisterArgs>(call_args(), _get_target_proxy(target_canister.clone()).await, #proxy_method_name).unwrap())
