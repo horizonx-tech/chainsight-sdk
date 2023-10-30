@@ -27,7 +27,12 @@ type CallCanisterArgs = relayer::CallCanisterArgs;
 pub fn call_args() -> CallCanisterArgs {
     relayer::call_args()
 }
+#[ic_cdk::update]
+#[candid::candid_method(update)]
 async fn sync() {
+    if ic_cdk::caller() != proxy() {
+        panic!("Not permitted");
+    }
     let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
     let call_result = CallProvider::new()
         .call(
