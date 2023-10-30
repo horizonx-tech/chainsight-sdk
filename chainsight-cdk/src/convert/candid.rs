@@ -125,8 +125,10 @@ mod tests {
 
     use insta::assert_snapshot;
 
-    const TEST_IDENTS: &'static [(&'static str, &'static str); 4] = &[
+    const TEST_IDENTS: &'static [(&'static str, &'static str); 6] = &[
         (&"normal", &"update_value : (nat64) -> (text)"),
+        (&"normal_nat", &"use_nat : (nat32) -> (nat)"),
+        (&"normal_int", &"use_nat : (int32) -> (int)"),
         (&"no_args", &"get_value : () -> (text)"),
         (
             &"record",
