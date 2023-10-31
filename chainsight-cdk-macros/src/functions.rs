@@ -173,32 +173,43 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
         &format!("set_timer_task_{}", called_func_name),
         called_func_name.span(),
     );
+    let get_timer_state_name = syn::Ident::new(
+        &format!("get_timer_task_{}", called_func_name),
+        called_func_name.span(),
+    );
 
     let output = quote! {
-        chainsight_cdk_macros::manage_single_state!(#timer_state_name, ic_cdk_timers::TimerId, false);
+        chainsight_cdk_macros::manage_single_state!(#timer_state_name, Option<ic_cdk_timers::TimerId>, false);
         thread_local!{
             static TIMER_DURATION: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
         }
         fn set_timer_duration(duration: u32) {
             TIMER_DURATION.with(|f| *f.borrow_mut() = duration);
         }
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
         fn get_timer_duration() -> u32 {
             TIMER_DURATION.with(|f| *f.borrow())
         }
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        pub fn #func_name(task_interval_secs: u32, delay_secs: u32) {
+        pub fn #func_name(task_interval_secs: u32, delay_secs: u32) -> Result<(), String> {
+            if (#get_timer_state_name().is_some()) {
+                return Err(String::from("Already timer executed"));
+            }
             let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
             let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
             let delay = round_timestamp(current_time_sec, task_interval_secs) + task_interval_secs + delay_secs - current_time_sec;
             set_timer_duration(task_interval_secs);
-            ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
-                let timer_id = ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(task_interval_secs as u64), || {
+            let delay_timer_id = ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
+                let interval_timer_id = ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(task_interval_secs as u64), || {
                     #called_closure;
                 });
-                #set_timer_state_name(timer_id);
+                #set_timer_state_name(Some(interval_timer_id));
             });
+            #set_timer_state_name(Some(delay_timer_id));
+            Ok(())
         }
     };
 
