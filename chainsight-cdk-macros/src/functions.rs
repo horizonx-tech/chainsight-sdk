@@ -106,9 +106,7 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         fn setup(#( #names: #types ),*) -> Result<(), String> {
-            if (get_setup_flag()) {
-                return Err(String::from("Already setup"));
-            }
+            assert!(!get_setup_flag(), "Already setup");
             #( #setters(#names); )*
             set_setup_flag(true);
             Ok(())
@@ -195,9 +193,7 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         pub fn #func_name(task_interval_secs: u32, delay_secs: u32) -> Result<(), String> {
-            if (#get_timer_state_name().is_some()) {
-                return Err(String::from("Already timer executed"));
-            }
+            assert!(#get_timer_state_name().is_none(), "Already timer executed");
             let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
             let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
             let delay = round_timestamp(current_time_sec, task_interval_secs) + task_interval_secs + delay_secs - current_time_sec;
