@@ -8,7 +8,8 @@ members = [
     "src/algorithm_indexer_with_args",
     "src/algorithm_lens",
     "src/snapshot_web2",
-    "src/snapshot_indexer_https"
+    "src/snapshot_indexer_icp",
+    "src/snapshot_indexer_https",
 ]
 
 [workspace.dependencies]
