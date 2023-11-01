@@ -106,9 +106,7 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         fn setup(#( #names: #types ),*) -> Result<(), String> {
-            if (get_setup_flag()) {
-                return Err(String::from("Already setup"));
-            }
+            assert!(!get_setup_flag(), "Already setup");
             #( #setters(#names); )*
             set_setup_flag(true);
             Ok(())

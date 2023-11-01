@@ -11,6 +11,7 @@ mod test_setup {
     });
 
     #[test]
+    #[should_panic(expected = "Already setup")]
     fn test() {
         let rpc = String::from("rpc");
         let chain_id = 1;
@@ -23,9 +24,6 @@ mod test_setup {
         assert_eq!(get_dst_address(), dst_address);
         assert_eq!(get_setup_flag(), true);
 
-        assert_eq!(
-            setup(rpc.clone(), chain_id, dst_address.clone()),
-            Err(String::from("Already setup"))
-        );
+        let _ = setup(rpc.clone(), chain_id, dst_address.clone());
     }
 }
