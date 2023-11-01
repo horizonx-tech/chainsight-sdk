@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -33,7 +33,7 @@ lazy_static! {
     static ref REGEX_MULTIPLE_RECORD_TYPE: Regex = Regex::new(r"record\s*\{").unwrap();
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
 pub struct CommonConfig {
     pub monitor_duration: u32,
     pub canister_name: String,
@@ -97,6 +97,14 @@ pub struct EventIndexerConfig {
 pub struct EventIndexerEventDefinition {
     pub identifier: String,
     pub abi_file_path: String,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct SnapshotIndexerHTTPSConfig {
+    pub common: CommonConfig,
+    pub url: String,
+    pub headers: BTreeMap<String, String>,
+    pub queries: BTreeMap<String, String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
