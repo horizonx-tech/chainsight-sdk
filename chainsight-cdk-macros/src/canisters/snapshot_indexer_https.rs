@@ -4,7 +4,6 @@ use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
 pub fn def_snapshot_indexer_https(input: TokenStream) -> TokenStream {
-    // quote! {}.into()
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: SnapshotIndexerHTTPSConfig = serde_json::from_str(&input_json_string).unwrap();
     snapshot_indexer_https(config).into()
@@ -53,7 +52,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
 
     quote! {
         init_in!();
-        chainsight_common!(60);
+        chainsight_common!(60); // TODO: use common.monitor_duration
         snapshot_https_source!();
 
         #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]

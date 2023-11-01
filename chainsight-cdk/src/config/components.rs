@@ -107,6 +107,13 @@ pub struct SnapshotIndexerHTTPSConfig {
     pub queries: BTreeMap<String, String>,
 }
 
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct SnapshotIndexerICPConfig {
+    pub common: CommonConfig,
+    pub method_identifier: String,
+    pub lens_targets: Option<LensTargets>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct RelayerConfig {
     pub common: CommonConfig,

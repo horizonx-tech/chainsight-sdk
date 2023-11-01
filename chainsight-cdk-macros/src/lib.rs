@@ -117,6 +117,10 @@ pub fn def_snapshot_indexer_https_canister(input: TokenStream) -> TokenStream {
     canisters::snapshot_indexer_https::def_snapshot_indexer_https(input)
 }
 #[proc_macro]
+pub fn def_snapshot_indexer_icp_canister(input: TokenStream) -> TokenStream {
+    canisters::snapshot_indexer_icp::def_snapshot_indexer_icp(input)
+}
+#[proc_macro]
 pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
     indexers::snapshot_https_source(_input)
 }
