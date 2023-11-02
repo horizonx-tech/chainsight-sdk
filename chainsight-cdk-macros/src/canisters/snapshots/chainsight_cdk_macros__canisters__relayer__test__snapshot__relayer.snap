@@ -17,7 +17,7 @@ define_transform_for_web3!();
 manage_single_state!("target_addr", String, false);
 define_get_ethereum_address!();
 manage_single_state!("target_canister", String, false);
-timer_task_func!("set_task", "sync", true);
+timer_task_func!("set_task", "index", true);
 init_in!();
 setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , });
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
@@ -29,7 +29,7 @@ pub fn call_args() -> CallCanisterArgs {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn sync() {
+async fn index() {
     if ic_cdk::caller() != proxy() {
         panic!("Not permitted");
     }
@@ -43,17 +43,9 @@ async fn sync() {
             )
             .unwrap(),
         )
-        .await;
-    if let Err(err) = call_result {
-        ic_cdk::println!("error: {:?}", err);
-        return;
-    }
-    let val = call_result.unwrap().reply::<CallCanisterResponse>();
-    if let Err(err) = val {
-        ic_cdk::println!("error: {:?}", err);
-        return;
-    }
-    let datum = val.unwrap();
+        .await
+        .unwrap();
+    let datum = call_result.reply::<CallCanisterResponse>().unwrap();
     ic_cdk::println!("response from canister = {:?}", datum.clone());
     if !filter(&datum) {
         return;
@@ -65,24 +57,17 @@ async fn sync() {
         w3_ctx_param.env.ecdsa_key_name(),
     );
     use chainsight_cdk::web3::TransactionOptionBuilder;
-    let call_option = call_option_builder.build().await;
-    if call_option.is_err() {
-        ic_cdk::println!("error: {:?}", call_option.err());
-        return;
-    }
+    let call_option = call_option_builder.build().await.unwrap();
     let result = Uint256Oracle::new(
         Address::from_str(&get_target_addr()).unwrap(),
         &web3_ctx().unwrap(),
     )
     .update_state(
         chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone()),
-        call_option.unwrap(),
+        call_option,
     )
-    .await;
-    if let Err(err) = result {
-        ic_cdk::println!("error: {:?}", err);
-        return;
-    }
-    ic_cdk::println!("value_to_sync={:?}", result.unwrap());
+    .await
+    .unwrap();
+    ic_cdk::println!("value_to_sync={:?}", result);
 }
 

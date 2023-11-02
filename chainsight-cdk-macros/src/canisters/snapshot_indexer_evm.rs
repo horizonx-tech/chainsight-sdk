@@ -52,7 +52,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "execute_task", true);
+        timer_task_func!("set_task", "index", true);
     }
 }
 
@@ -113,13 +113,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     };
 
     // consider whether to add timestamp information to the snapshot
-    let (
-        snapshot_idents,
-        expr_to_current_ts_sec,
-        expr_to_gen_snapshot,
-        expr_to_log_datum,
-        queries_expect_timestamp,
-    ) = (
+    let (snapshot_idents, queries_expect_timestamp) = (
         quote! {
             #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
             #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
@@ -129,16 +123,6 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             }
             type SnapshotValue = (#(#response_type_idents),*);
         },
-        quote! { let current_ts_sec = ic_cdk::api::time() / 1000000; },
-        quote! {
-            let datum = Snapshot {
-                value: (
-                    #(#response_val_idents),*
-                ),
-                timestamp: current_ts_sec,
-            };
-        },
-        quote! { ic_cdk::println!("ts={}, snapshot={:?}", datum.timestamp, datum.value); },
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
@@ -149,15 +133,29 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         snapshot_web3_source!(#method_ident_str);
-        async fn execute_task() {
-            #expr_to_current_ts_sec
+
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
+
+            let current_ts_sec = ic_cdk::api::time() / 1000000;
             let res = #contract_struct_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
                 &web3_ctx().unwrap()
             ).#method_ident(#(#request_val_idents,)*None).await.unwrap();
-            #expr_to_gen_snapshot
+
+            let datum = Snapshot {
+                value: (
+                    #(#response_val_idents),*
+                ),
+                timestamp: current_ts_sec,
+            };
             let _ = add_snapshot(datum.clone());
-            #expr_to_log_datum
+
+            ic_cdk::println!("ts={}, snapshot={:?}", datum.timestamp, datum.value);
         }
     }
 }

@@ -18,7 +18,7 @@ target_canister:String
 });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "execute_task", true);
+timer_task_func!("set_task", "index", true);
 #[derive(Clone, Debug, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
 #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
 pub struct Snapshot {
@@ -84,30 +84,20 @@ sample_snapshot_indexer_icp::call_args()
 }
 
 type CallCanisterResponse = SnapshotValue;
-async fn execute_task() {
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn index() {
+if ic_cdk::caller()!= proxy() {
+panic!("Not permitted")
+}
+
 let current_ts_sec = ic_cdk::api::time() / 1000000;
 let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
 let px = _get_target_proxy(target_canister).await;
-let call_result = CallProvider::new().call(Message::new::< CallCanisterArgs>(call_args(), px.clone(), "proxy_get_last_snapshot").unwrap()).await;
-if let Err(err) = call_result {
-ic_cdk::println!("error: {
-:?
-}", err);
-return;
-
-}
-
-let res = call_result.unwrap().reply::< CallCanisterResponse>();
-if let Err(err) = res {
-ic_cdk::println!("error: {
-:?
-}", err);
-return;
-
-}
-
+let call_result = CallProvider::new().call(Message::new::< CallCanisterArgs>(call_args(), px.clone(), "proxy_get_last_snapshot").unwrap()).await.unwrap();
+let value = call_result.reply::< CallCanisterResponse>().unwrap();
 let datum = Snapshot {
-value:res.unwrap().clone(), timestamp:current_ts_sec, };
+value:value.clone(), timestamp:current_ts_sec, };
 let _ = add_snapshot(datum.clone());
 ic_cdk::println!("ts={
 

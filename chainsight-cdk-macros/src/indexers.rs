@@ -112,6 +112,9 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             indexer().index(get_config()).await.unwrap();
         }
 
@@ -127,7 +130,7 @@ fn generate_event_indexer_source(tt: syn::Type) -> TokenStream2 {
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3EventIndexerSourceAttrs>> {
             vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3EventIndexerSourceAttrs>::new_event_indexer(
             get_target_addr(),
-            get_timer_duration(),
+            get_indexing_interval(),
             chainsight_cdk::core::Web3EventIndexerSourceAttrs {
                 chain_id: get_web3_ctx_param().chain_id,
                 event_name: #type_str.to_string(),
@@ -145,7 +148,7 @@ fn generate_algorithm_indexer_source() -> TokenStream2 {
             vec![
                 chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_algorithm_indexer(
                     get_target_addr(),
-                    get_timer_duration()
+                    get_indexing_interval()
                 )
             ]
         }
@@ -165,7 +168,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
                 vec![
                     chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
                         get_target_canister(),
-                        get_timer_duration(),
+                        get_indexing_interval(),
                         #method_identifier,
                         call_args()
                     ),
@@ -181,7 +184,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
             vec![
                 chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
                     get_target_canister(),
-                    get_timer_duration(),
+                    get_indexing_interval(),
                     #method_identifier,
                     vec![]
                 )
@@ -197,7 +200,7 @@ pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>> {
             vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
                 get_target_canister(),
-                get_timer_duration(),
+                get_indexing_interval(),
                 #func_name.to_string(),
             )]
         }
@@ -212,7 +215,7 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>> {
             vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>::new_web3_snapshot_indexer(
                 get_target_addr(),
-                get_timer_duration(),
+                get_indexing_interval(),
                 get_web3_ctx_param().chain_id,
                 #func_name.to_string(),
             )]
@@ -227,7 +230,7 @@ pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>> {
             vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>::new_https_snapshot_indexer(
                 URL.to_string(),
-                get_timer_duration(),
+                get_indexing_interval(),
                 get_attrs(),
             )]
         }
@@ -267,6 +270,9 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             indexer().await.index(chainsight_cdk::indexer::IndexingConfig::default()).await.unwrap()
         }
         fn get_target() -> candid::Principal {
@@ -304,6 +310,9 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             let mut config = get_config();
             let stored = chainsight_cdk::storage::get_last_key();
             ic_cdk::println!("stored: {:?}", stored);
