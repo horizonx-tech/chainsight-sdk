@@ -34,7 +34,13 @@ queries:HashMap::from([("ids".to_string(), "dai".to_string()), ("vs_currencies".
 
 }
 
+#[ic_cdk::update]
+#[candid::candid_method(update)]
 async fn index() {
+if ic_cdk::caller()!= proxy() {
+panic!("Not permitted")
+}
+
 let indexer = Web2HttpsSnapshotIndexer::new(URL.to_string(), );
 let res = indexer.get::< String, SnapshotValue>(HttpsSnapshotParam {
 headers:vec![("content-type".to_string(), "application/json".to_string()), ]

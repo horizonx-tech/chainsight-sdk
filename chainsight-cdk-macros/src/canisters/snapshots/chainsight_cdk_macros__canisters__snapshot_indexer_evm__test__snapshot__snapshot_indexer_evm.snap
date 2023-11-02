@@ -19,7 +19,7 @@ target_addr:String, web3_ctx_param:chainsight_cdk::web3::Web3CtxParam
 });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "execute_task", true);
+timer_task_func!("set_task", "index", true);
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
 #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
 pub struct Snapshot {
@@ -80,7 +80,13 @@ chainsight_cdk::rpc::ReceiverProvider::< u64, SnapshotValue>:: new(proxy(), _get
 
 ic_solidity_bindgen::contract_abi!("examples/minimum_indexers/src/snapshot_indexer_evm/abi/ERC20.json");
 snapshot_web3_source!("total_supply");
-async fn execute_task() {
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn index() {
+if ic_cdk::caller()!= proxy() {
+panic!("Not permitted")
+}
+
 let current_ts_sec = ic_cdk::api::time() / 1000000;
 let res = ERC20::new(Address::from_str(& get_target_addr()).unwrap(), & web3_ctx().unwrap()).total_supply(None).await.unwrap();
 let datum = Snapshot {
