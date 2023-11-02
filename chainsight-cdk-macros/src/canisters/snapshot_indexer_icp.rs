@@ -162,3 +162,29 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         did_export!(#id);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_display_snapshot;
+
+    use crate::canisters::test_utils::SrcString;
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = SnapshotIndexerICPConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "sample_snapshot_indexer_icp".to_string(),
+            },
+            method_identifier:
+                "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })".to_string(),
+            lens_targets: None,
+        };
+        let generated = snapshot_indexer_icp(config);
+        let formatted = SrcString::from(&generated);
+        assert_display_snapshot!("snapshot__snapshot_indexer_icp", formatted);
+    }
+}
