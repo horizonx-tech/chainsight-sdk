@@ -41,6 +41,11 @@
       "package": "algorithm_indexer",
       "candid": "src/algorithm_indexer/algorithm_indexer.did"
     },
+    "snapshot_indexer_evm": {
+      "type": "rust",
+      "package": "snapshot_indexer_evm",
+      "candid": "src/snapshot_indexer_evm/snapshot_indexer_evm.did"
+    },
     "snapshot_indexer_https": {
       "type": "rust",
       "package": "snapshot_indexer_https",
