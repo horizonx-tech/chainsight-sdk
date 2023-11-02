@@ -132,43 +132,80 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
         }
         _ => panic!("Expected a string literal for the variable name"),
     };
-    let called_func_name_str = match &args[1] {
+    let called_func_name = match &args[1] {
         syn::Expr::Lit(lit) => {
             if let syn::Lit::Str(lit_str) = &lit.lit {
-                lit_str.value().to_string()
+                syn::Ident::new(&lit_str.value().to_string(), lit_str.span())
             } else {
                 panic!("Expected a string literal for the variable name");
             }
         }
         _ => panic!("Expected a string literal for the variable name"),
     };
+    let is_async = match &args[2] {
+        syn::Expr::Lit(lit) => {
+            if let syn::Lit::Bool(lit_bool) = &lit.lit {
+                lit_bool.value
+            } else {
+                panic!("Expected a boolean literal for the variable name");
+            }
+        }
+        _ => panic!("Expected a boolean literal for the variable name"),
+    };
+    let called_closure = if is_async {
+        quote! {
+            ic_cdk::spawn(async move {
+                #called_func_name().await;
+                update_last_executed();
+            });
+        }
+    } else {
+        quote! {
+            #called_func_name();
+            update_last_executed();
+        }
+    };
+
+    let timer_state_name = format!("timer_task_{}", called_func_name);
+    let set_timer_state_name = syn::Ident::new(
+        &format!("set_timer_task_{}", called_func_name),
+        called_func_name.span(),
+    );
+    let get_timer_state_name = syn::Ident::new(
+        &format!("get_timer_task_{}", called_func_name),
+        called_func_name.span(),
+    );
 
     let output = quote! {
-        thread_local! {
+        chainsight_cdk_macros::manage_single_state!(#timer_state_name, Option<ic_cdk_timers::TimerId>, false);
+        thread_local!{
             static TIMER_DURATION: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
         }
-
-        fn get_timer_duration() -> u32 {
-            TIMER_DURATION.with(|f| f.borrow().clone())
+        fn set_timer_duration(duration: u32) {
+            TIMER_DURATION.with(|f| *f.borrow_mut() = duration);
         }
-        fn set_timer_duration(interval: u32) {
-            TIMER_DURATION.with(|f| *f.borrow_mut() = interval);
+        #[ic_cdk::query]
+        #[candid::candid_method(query)]
+        fn get_timer_duration() -> u32 {
+            TIMER_DURATION.with(|f| *f.borrow())
         }
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        pub async fn #func_name(task_interval_secs: u32, delay_secs: u32) {
+        pub fn #func_name(task_interval_secs: u32, delay_secs: u32) -> Result<(), String> {
+            assert!(#get_timer_state_name().is_none(), "Already timer executed");
+            let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
+            let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
+            let delay = round_timestamp(current_time_sec, task_interval_secs) + task_interval_secs + delay_secs - current_time_sec;
             set_timer_duration(task_interval_secs);
-            let res = ic_cdk::api::call::call::<(u32, u32, String, Vec<u8>), ()>(
-                proxy(),
-                "start_indexing",
-                (task_interval_secs, delay_secs, #called_func_name_str.to_string(), Vec::<u8>::new()),
-            )
-            .await;
-            match res {
-                Ok(_) => {}
-                Err(e) => { panic!("Failed to start indexing: {:?}", e) }
-            };
+            let delay_timer_id = ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
+                let interval_timer_id = ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(task_interval_secs as u64), || {
+                    #called_closure;
+                });
+                #set_timer_state_name(Some(interval_timer_id));
+            });
+            #set_timer_state_name(Some(delay_timer_id));
+            Ok(())
         }
     };
 
