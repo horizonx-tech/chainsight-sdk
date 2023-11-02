@@ -100,6 +100,14 @@ pub struct EventIndexerEventDefinition {
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct SnapshotIndexerEVMConfig {
+    pub common: CommonConfig,
+    pub method_identifier: String,
+    pub method_args: Vec<serde_json::Value>,
+    pub abi_file_path: String,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SnapshotIndexerHTTPSConfig {
     pub common: CommonConfig,
     pub url: String,
