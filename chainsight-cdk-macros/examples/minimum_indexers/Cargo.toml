@@ -1,13 +1,10 @@
 [workspace]
 members = [
-    "src/snapshot_chain",
-    "src/snapshot_icp",
     "src/relayer",
     "src/event_indexer",
     "src/algorithm_indexer",
     "src/algorithm_indexer_with_args",
     "src/algorithm_lens",
-    "src/snapshot_web2",
     "src/snapshot_indexer_evm",
     "src/snapshot_indexer_https",
     "src/snapshot_indexer_icp",
