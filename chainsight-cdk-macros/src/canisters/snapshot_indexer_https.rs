@@ -178,3 +178,34 @@ pub fn generate_queries_without_timestamp(
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::BTreeMap;
+
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_display_snapshot;
+
+    use crate::canisters::test_utils::SrcString;
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = SnapshotIndexerHTTPSConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "sample_snapshot_indexer_https".to_string(),
+            },
+            url: "https://api.coingecko.com/api/v3/simple/price".to_string(),
+            headers: BTreeMap::from([("content-type".to_string(), "application/json".to_string())]),
+            queries: BTreeMap::from([
+                ("ids".to_string(), "dai".to_string()),
+                ("vs_currencies".to_string(), "usd".to_string()),
+            ]),
+        };
+        let generated = snapshot_indexer_https(config);
+        let formatted = SrcString::from(&generated);
+        assert_display_snapshot!("snapshot__snapshot_indexer_https", formatted);
+    }
+}
