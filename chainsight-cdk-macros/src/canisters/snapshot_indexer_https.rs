@@ -46,6 +46,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let id = &common.canister_name;
+    let duration = &common.monitor_duration;
     let header_keys: Vec<String> = headers.keys().cloned().collect();
     let header_values: Vec<String> = headers.values().cloned().collect();
     let query_keys: Vec<String> = queries.keys().cloned().collect();
@@ -54,7 +55,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
 
     quote! {
         init_in!();
-        chainsight_common!(60); // TODO: use common.monitor_duration
+        chainsight_common!(#duration);
         snapshot_https_source!();
 
         #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
@@ -121,7 +122,7 @@ mod test {
     fn test_snapshot() {
         let config = SnapshotIndexerHTTPSConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
+                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_https".to_string(),
             },
             url: "https://api.coingecko.com/api/v3/simple/price".to_string(),

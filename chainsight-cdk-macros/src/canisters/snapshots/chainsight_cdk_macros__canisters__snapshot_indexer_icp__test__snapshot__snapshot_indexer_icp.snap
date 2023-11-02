@@ -10,7 +10,7 @@ use chainsight_cdk::rpc::{
 CallProvider, Caller, Message };
 mod types;
 init_in!();
-chainsight_common!(3600);
+chainsight_common!(60u32);
 manage_single_state!("target_canister", String, false);
 setup_func!({
 target_canister:String

@@ -1,6 +1,7 @@
 use candid::Principal;
 use chainsight_cdk::{
-    config::components::SnapshotIndexerICPConfig, convert::candid::CanisterMethodIdentifier,
+    config::components::{CommonConfig, SnapshotIndexerICPConfig},
+    convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -15,7 +16,7 @@ pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
 }
 
 fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
-    let common = common_code();
+    let common = common_code(&config.common);
     let custom = custom_code(config);
     quote! {
         #common
@@ -23,7 +24,9 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
     }
 }
 
-fn common_code() -> proc_macro2::TokenStream {
+fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+    let duration = config.monitor_duration;
+
     quote! {
         use candid::{Decode, Encode};
         use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_icp_source};
@@ -32,7 +35,7 @@ fn common_code() -> proc_macro2::TokenStream {
         mod types;
 
         init_in!();
-        chainsight_common!(3600); // TODO: use common.monitor_duration
+        chainsight_common!(#duration); // TODO: use common.monitor_duration
 
         manage_single_state!("target_canister", String, false);
         setup_func!({ target_canister: String });
@@ -176,7 +179,7 @@ mod test {
     fn test_snapshot() {
         let config = SnapshotIndexerICPConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
+                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_icp".to_string(),
             },
             method_identifier:

@@ -1,6 +1,6 @@
 use anyhow::bail;
 use chainsight_cdk::{
-    config::components::SnapshotIndexerEVMConfig,
+    config::components::{CommonConfig, SnapshotIndexerEVMConfig},
     convert::evm::{ContractMethodIdentifier, ADDRESS_TYPE, U256_TYPE},
 };
 use proc_macro::TokenStream;
@@ -18,7 +18,7 @@ pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
 }
 
 fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
-    let common = common_code();
+    let common = common_code(&config.common);
     let custom = custom_code(config);
     quote! {
         #common
@@ -26,7 +26,9 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
     }
 }
 
-fn common_code() -> proc_macro2::TokenStream {
+fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+    let duration = config.monitor_duration;
+
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
@@ -36,7 +38,7 @@ fn common_code() -> proc_macro2::TokenStream {
         init_in!();
 
 
-        chainsight_common!(3600);
+        chainsight_common!(#duration);
 
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -267,7 +269,7 @@ mod test {
     fn test_snapshot() {
         let config = SnapshotIndexerEVMConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
+                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_evm".to_string(),
             },
             method_identifier: "totalSupply():(uint256)".to_string(),

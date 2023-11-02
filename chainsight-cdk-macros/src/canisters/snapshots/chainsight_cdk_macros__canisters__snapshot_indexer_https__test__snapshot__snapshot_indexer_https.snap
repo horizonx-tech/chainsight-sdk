@@ -12,7 +12,7 @@ use candid::{
 Decode, Encode };
 use sample_snapshot_indexer_https::*;
 init_in!();
-chainsight_common!(60);
+chainsight_common!(60u32);
 snapshot_https_source!();
 #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
 #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
