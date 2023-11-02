@@ -142,10 +142,14 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             }
 
             let current_ts_sec = ic_cdk::api::time() / 1000000;
+            ic_cdk::println!("current_ts_sec = {:?}", &current_ts_sec);
+            let addr = Address::from_str(&get_target_addr()).expect("Failed to parse address");
+            let ctx = web3_ctx().expect("Failed to get web3_ctx");
+            ic_cdk::println!("ctx = {:?}", &ctx);
             let res = #contract_struct_ident::new(
-                Address::from_str(&get_target_addr()).unwrap(),
-                &web3_ctx().unwrap()
-            ).#method_ident(#(#request_val_idents,)*None).await.unwrap();
+                addr,
+                &ctx
+            ).#method_ident(#(#request_val_idents,)*None).await.expect("Failed to call method");
 
             let datum = Snapshot {
                 value: (
