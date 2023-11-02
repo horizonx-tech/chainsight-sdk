@@ -3,6 +3,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
+use crate::canisters::utils::generate_queries_without_timestamp;
+
 pub fn def_snapshot_indexer_https(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: SnapshotIndexerHTTPSConfig = serde_json::from_str(&input_json_string).unwrap();
@@ -44,6 +46,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let id = &common.canister_name;
+    let duration = &common.monitor_duration;
     let header_keys: Vec<String> = headers.keys().cloned().collect();
     let header_values: Vec<String> = headers.values().cloned().collect();
     let query_keys: Vec<String> = queries.keys().cloned().collect();
@@ -52,7 +55,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
 
     quote! {
         init_in!();
-        chainsight_common!(60); // TODO: use common.monitor_duration
+        chainsight_common!(#duration);
         snapshot_https_source!();
 
         #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
@@ -104,77 +107,33 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     }
 }
 
-pub fn generate_queries_without_timestamp(
-    return_type: proc_macro2::Ident,
-) -> proc_macro2::TokenStream {
-    let query_derives = quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-    };
-    let update_derives = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+#[cfg(test)]
+mod test {
+    use std::collections::BTreeMap;
 
-    quote! {
-        fn _get_last_snapshot_value() -> #return_type {
-            get_last_snapshot().value
-        }
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_display_snapshot;
 
-        fn _get_top_snapshot_values(n: u64) -> Vec<#return_type> {
-            get_top_snapshots(n).iter().map(|s| s.value.clone()).collect()
-        }
+    use crate::canisters::test_utils::SrcString;
 
-        fn _get_snapshot_value(idx: u64) -> #return_type {
-            get_snapshot(idx).value
-        }
+    use super::*;
 
-        #query_derives
-        pub fn get_last_snapshot_value() -> #return_type {
-            _get_last_snapshot_value()
-        }
-
-        #query_derives
-        pub fn get_top_snapshot_values(n: u64) -> Vec<#return_type> {
-            _get_top_snapshot_values(n)
-        }
-
-        #query_derives
-        pub fn get_snapshot_value(idx: u64) -> #return_type {
-            _get_snapshot_value(idx)
-        }
-
-        #update_derives
-        pub async fn proxy_get_last_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#return_type>::new(
-                proxy(),
-                _get_last_snapshot_value,
-            )
-            .reply(input)
-            .await
-        }
-
-        #update_derives
-        pub async fn proxy_get_top_snapshot_values(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<#return_type>>::new(
-                proxy(),
-                _get_top_snapshot_values,
-            )
-            .reply(input)
-            .await
-        }
-
-        #update_derives
-        pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<u64, #return_type>::new(
-                proxy(),
-                _get_snapshot_value,
-            )
-            .reply(input)
-            .await
-        }
+    #[test]
+    fn test_snapshot() {
+        let config = SnapshotIndexerHTTPSConfig {
+            common: CommonConfig {
+                monitor_duration: 60,
+                canister_name: "sample_snapshot_indexer_https".to_string(),
+            },
+            url: "https://api.coingecko.com/api/v3/simple/price".to_string(),
+            headers: BTreeMap::from([("content-type".to_string(), "application/json".to_string())]),
+            queries: BTreeMap::from([
+                ("ids".to_string(), "dai".to_string()),
+                ("vs_currencies".to_string(), "usd".to_string()),
+            ]),
+        };
+        let generated = snapshot_indexer_https(config);
+        let formatted = SrcString::from(&generated);
+        assert_display_snapshot!("snapshot__snapshot_indexer_https", formatted);
     }
 }

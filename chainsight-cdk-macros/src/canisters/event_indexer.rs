@@ -9,6 +9,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
+use crate::canisters::utils::camel_to_snake;
+
 use super::utils::extract_contract_name_from_path;
 
 pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
@@ -130,13 +132,6 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
             }.boxed()
         }
     }
-}
-
-/// Convert camelCase String to snake_case
-pub fn camel_to_snake(val: &str) -> String {
-    // NOTE: use Inflator in ic-solidity-bindgen
-    // https://github.com/horizonx-tech/ic-solidity-bindgen/blob/0972bede5957927bcb8f675decd93878b849dc76/ic-solidity-bindgen-macros/src/abi_gen.rs#L192
-    inflector::cases::snakecase::to_snake_case(val)
 }
 
 #[cfg(test)]

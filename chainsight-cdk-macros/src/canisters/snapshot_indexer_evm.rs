@@ -1,15 +1,14 @@
 use anyhow::bail;
 use chainsight_cdk::{
-    config::components::SnapshotIndexerEVMConfig,
+    config::components::{CommonConfig, SnapshotIndexerEVMConfig},
     convert::evm::{ContractMethodIdentifier, ADDRESS_TYPE, U256_TYPE},
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::{
-    event_indexer::camel_to_snake, snapshot_indexer_https::generate_queries_without_timestamp,
-    utils::extract_contract_name_from_path,
+use crate::canisters::utils::{
+    camel_to_snake, extract_contract_name_from_path, generate_queries_without_timestamp,
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
@@ -19,7 +18,7 @@ pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
 }
 
 fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
-    let common = common_code();
+    let common = common_code(&config.common);
     let custom = custom_code(config);
     quote! {
         #common
@@ -27,7 +26,9 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
     }
 }
 
-fn common_code() -> proc_macro2::TokenStream {
+fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+    let duration = config.monitor_duration;
+
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
@@ -37,7 +38,7 @@ fn common_code() -> proc_macro2::TokenStream {
         init_in!();
 
 
-        chainsight_common!(3600);
+        chainsight_common!(#duration);
 
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -253,4 +254,31 @@ pub fn generate_request_arg_idents(
         }
     }
     (value_idents, type_idents)
+}
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_display_snapshot;
+
+    use crate::canisters::test_utils::SrcString;
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = SnapshotIndexerEVMConfig {
+            common: CommonConfig {
+                monitor_duration: 60,
+                canister_name: "sample_snapshot_indexer_evm".to_string(),
+            },
+            method_identifier: "totalSupply():(uint256)".to_string(),
+            method_args: vec![],
+            abi_file_path: "examples/minimum_indexers/src/snapshot_indexer_evm/abi/ERC20.json"
+                .to_string(),
+        };
+        let generated = snapshot_indexer_evm(config);
+        let formatted = SrcString::from(&generated);
+        assert_display_snapshot!("snapshot__snapshot_indexer_evm", formatted);
+    }
 }
