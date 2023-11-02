@@ -1,21 +1,6 @@
 {
   "version": 1,
   "canisters": {
-    "snapshot_chain": {
-      "type": "rust",
-      "package": "snapshot_chain",
-      "candid": "src/snapshot_chain/snapshot_chain.did"
-    },
-    "snapshot_icp": {
-      "type": "rust",
-      "package": "snapshot_icp",
-      "candid": "src/snapshot_icp/snapshot_icp.did"
-    },
-    "snapshot_web2": {
-      "type": "rust",
-      "package": "snapshot_web2",
-      "candid": "src/snapshot_web2/snapshot_web2.did"
-    },
     "relayer": {
       "type": "rust",
       "package": "relayer",
@@ -26,20 +11,20 @@
       "package": "event_indexer",
       "candid": "src/event_indexer/event_indexer.did"
     },
-    "lens_with_args": {
-      "type": "rust",
-      "package": "lens_with_args",
-      "candid": "src/lens_with_args/lens_with_args.did"
-    },
-    "lens_without_args": {
-      "type": "rust",
-      "package": "lens_without_args",
-      "candid": "src/lens_without_args/lens_without_args.did"
-    },
     "algorithm_indexer": {
       "type": "rust",
       "package": "algorithm_indexer",
       "candid": "src/algorithm_indexer/algorithm_indexer.did"
+    },
+    "algorithm_indexer_with_args": {
+      "type": "rust",
+      "package": "algorithm_indexer_with_args",
+      "candid": "src/algorithm_indexer_with_args/algorithm_indexer_with_args.did"
+    },
+    "algorithm_lens": {
+      "type": "rust",
+      "package": "algorithm_lens",
+      "candid": "src/algorithm_lens/algorithm_lens.did"
     },
     "snapshot_indexer_evm": {
       "type": "rust",
