@@ -145,7 +145,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("current_ts_sec = {:?}", &current_ts_sec);
             let addr = Address::from_str(&get_target_addr()).expect("Failed to parse address");
             let ctx = web3_ctx().expect("Failed to get web3_ctx");
-            ic_cdk::println!("ctx = {:?}", &ctx);
+            // ic_cdk::println!("ctx = {:?}", &ctx);
             let res = #contract_struct_ident::new(
                 addr,
                 &ctx
