@@ -22,7 +22,7 @@ pub struct VirtualPrice {
     pub timestamp: u64,
 }
 manage_vec_state!("snapshot", Snapshot, true);
-fn get_timer_duration() -> u32 {
+fn get_indexing_interval() -> u32 {
     0
 }
 // timer task

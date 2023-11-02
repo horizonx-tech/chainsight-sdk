@@ -145,20 +145,20 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
 
     let output = quote! {
         thread_local! {
-            static TIMER_DURATION: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
+            static INDEXING_INTERVAL: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
         }
 
-        fn get_timer_duration() -> u32 {
-            TIMER_DURATION.with(|f| f.borrow().clone())
+        fn get_indexing_interval() -> u32 {
+            INDEXING_INTERVAL.with(|f| f.borrow().clone())
         }
-        fn set_timer_duration(interval: u32) {
-            TIMER_DURATION.with(|f| *f.borrow_mut() = interval);
+        fn set_indexing_interval(interval: u32) {
+            INDEXING_INTERVAL.with(|f| *f.borrow_mut() = interval);
         }
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         pub async fn #func_name(task_interval_secs: u32, delay_secs: u32) {
-            set_timer_duration(task_interval_secs);
+            set_indexing_interval(task_interval_secs);
             let res = ic_cdk::api::call::call::<(u32, u32, String, Vec<u8>), ()>(
                 proxy(),
                 "start_indexing",
