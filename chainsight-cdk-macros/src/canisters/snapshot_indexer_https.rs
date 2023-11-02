@@ -79,7 +79,13 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                 ]),
             }
         }
+
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             let indexer = Web2HttpsSnapshotIndexer::new(
                 URL.to_string(),
             );

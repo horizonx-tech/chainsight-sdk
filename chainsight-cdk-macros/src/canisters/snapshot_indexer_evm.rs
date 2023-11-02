@@ -149,7 +149,13 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         snapshot_web3_source!(#method_ident_str);
+
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             #expr_to_current_ts_sec
             let res = #contract_struct_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),

@@ -112,6 +112,9 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             indexer().index(get_config()).await.unwrap();
         }
 
@@ -267,6 +270,9 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             indexer().await.index(chainsight_cdk::indexer::IndexingConfig::default()).await.unwrap()
         }
         fn get_target() -> candid::Principal {
@@ -304,6 +310,9 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
+            if ic_cdk::caller() != proxy() {
+                panic!("Not permitted")
+            }
             let mut config = get_config();
             let stored = chainsight_cdk::storage::get_last_key();
             ic_cdk::println!("stored: {:?}", stored);
