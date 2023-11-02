@@ -72,15 +72,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         quote! { #types_mod_ident::#response_ty_name_def_ident }
     };
 
-    let (
-        snapshot_idents,
-        expr_to_current_ts_sec,
-        expr_to_gen_snapshot,
-        expr_to_log_datum,
-        queries_expect_timestamp,
-    ) = (
+    let (snapshot_idents, queries_expect_timestamp) = (
         quote! {
-
             #[derive(Clone, Debug, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
             #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
             pub struct Snapshot {
@@ -89,14 +82,6 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             }
             pub type SnapshotValue = #response_ty_def_ident;
         },
-        quote! { let current_ts_sec = ic_cdk::api::time() / 1000000; },
-        quote! {
-            let datum = Snapshot {
-                value: res.unwrap().clone(),
-                timestamp: current_ts_sec,
-            };
-        },
-        quote! { ic_cdk::println!("ts={}, value={:?}", datum.timestamp, datum.value); },
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
@@ -147,7 +132,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             if ic_cdk::caller() != proxy() {
                 panic!("Not permitted")
             }
-            #expr_to_current_ts_sec
+
+            let current_ts_sec = ic_cdk::api::time() / 1000000;
             let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
             let px = _get_target_proxy(target_canister).await;
             let call_result = CallProvider::new()
@@ -157,19 +143,16 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                         px.clone(),
                         #method_ident
                     ).unwrap()
-                ).await;
-            if let Err(err) = call_result {
-                ic_cdk::println!("error: {:?}", err);
-                return;
-            }
-            let res = call_result.unwrap().reply::<CallCanisterResponse>();
-            if let Err(err) = res {
-                ic_cdk::println!("error: {:?}", err);
-                return;
-            }
-            #expr_to_gen_snapshot
+                ).await.unwrap();
+
+            let value = call_result.reply::<CallCanisterResponse>().unwrap();
+            let datum = Snapshot {
+                value: value.clone(),
+                timestamp: current_ts_sec,
+            };
             let _ = add_snapshot(datum.clone());
-            #expr_to_log_datum
+
+            ic_cdk::println!("ts={}, value={:?}", datum.timestamp, datum.value);
         }
     }
 }

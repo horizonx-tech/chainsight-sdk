@@ -81,24 +81,19 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             if ic_cdk::caller() != proxy() {
                 panic!("Not permitted");
             }
+
             let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
             let call_result = CallProvider::new()
                 .call(Message::new::<CallCanisterArgs>(call_args(), _get_target_proxy(target_canister.clone()).await, #proxy_method_name).unwrap())
-                .await;
-            if let Err(err) = call_result {
-                ic_cdk::println!("error: {:?}", err);
-                return;
-            }
-            let val = call_result.unwrap().reply::<CallCanisterResponse>();
-            if let Err(err) = val {
-                ic_cdk::println!("error: {:?}", err);
-                return;
-            }
-            let datum = val.unwrap();
+                .await.unwrap();
+            let datum = call_result.reply::<CallCanisterResponse>().unwrap();
+
             ic_cdk::println!("response from canister = {:?}", datum.clone());
+
             if !filter(&datum) {
                 return;
             }
+
             let w3_ctx_param = get_web3_ctx_param();
             let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
                 w3_ctx_param.url,
@@ -106,21 +101,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 w3_ctx_param.env.ecdsa_key_name(),
             );
             use chainsight_cdk::web3::TransactionOptionBuilder;
-            let call_option = call_option_builder.build().await;
-            if call_option.is_err() {
-                ic_cdk::println!("error: {:?}", call_option.err());
-                return;
-            }
-
+            let call_option = call_option_builder.build().await.unwrap();
             let result = #oracle_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
                 &web3_ctx().unwrap()
-            ).update_state(#sync_data_ident, call_option.unwrap()).await;
-            if let Err(err) = result {
-                ic_cdk::println!("error: {:?}", err);
-                return;
-            }
-            ic_cdk::println!("value_to_sync={:?}", result.unwrap());
+            ).update_state(#sync_data_ident, call_option).await.unwrap();
+
+            ic_cdk::println!("value_to_sync={:?}", result);
         }
 
     };
