@@ -8,8 +8,8 @@ use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
 use crate::canisters::{
-    event_indexer::camel_to_snake, snapshot_indexer_https::generate_queries_without_timestamp,
-    utils::extract_contract_name_from_path,
+    event_indexer::camel_to_snake,
+    utils::{extract_contract_name_from_path, generate_queries_without_timestamp},
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
