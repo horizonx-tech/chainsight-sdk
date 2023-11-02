@@ -1,7 +1,7 @@
 use chainsight_cdk_macros::def_algorithm_indexer_canister;
 mod app;
-mod example_canister;
-use app::persist;
+mod example_canister; // NOTE: bindings
+use app::persist; // NOTE: logics
 
 def_algorithm_indexer_canister!(
     "{
