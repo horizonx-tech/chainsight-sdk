@@ -45,7 +45,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "execute_task", true);
+        timer_task_func!("set_task", "index", true);
     }
 }
 
@@ -141,7 +141,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         #call_canister_args_ident
         type CallCanisterResponse = SnapshotValue;
 
-        async fn execute_task() {
+        async fn index() {
             #expr_to_current_ts_sec
             let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
             let px = _get_target_proxy(target_canister).await;

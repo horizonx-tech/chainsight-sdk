@@ -52,7 +52,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "execute_task", true);
+        timer_task_func!("set_task", "index", true);
     }
 }
 
@@ -149,7 +149,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         snapshot_web3_source!(#method_ident_str);
-        async fn execute_task() {
+        async fn index() {
             #expr_to_current_ts_sec
             let res = #contract_struct_ident::new(
                 Address::from_str(&get_target_addr()).unwrap(),
