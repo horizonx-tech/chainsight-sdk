@@ -7,9 +7,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::{
-    event_indexer::camel_to_snake,
-    utils::{extract_contract_name_from_path, generate_queries_without_timestamp},
+use crate::canisters::utils::{
+    camel_to_snake, extract_contract_name_from_path, generate_queries_without_timestamp,
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {

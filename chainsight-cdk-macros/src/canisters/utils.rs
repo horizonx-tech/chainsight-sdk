@@ -1,6 +1,13 @@
 use quote::quote;
 use std::path::PathBuf;
 
+/// Convert camelCase String to snake_case
+pub fn camel_to_snake(val: &str) -> String {
+    // NOTE: use Inflator in ic-solidity-bindgen
+    // https://github.com/horizonx-tech/ic-solidity-bindgen/blob/0972bede5957927bcb8f675decd93878b849dc76/ic-solidity-bindgen-macros/src/abi_gen.rs#L192
+    inflector::cases::snakecase::to_snake_case(val)
+}
+
 pub fn extract_contract_name_from_path(s: &str) -> String {
     let path = PathBuf::from(s);
     let name = path.file_stem().expect("file_stem failed");
