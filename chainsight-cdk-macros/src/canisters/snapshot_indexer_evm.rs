@@ -254,3 +254,30 @@ pub fn generate_request_arg_idents(
     }
     (value_idents, type_idents)
 }
+
+#[cfg(test)]
+mod test {
+    use chainsight_cdk::config::components::CommonConfig;
+    use insta::assert_display_snapshot;
+
+    use crate::canisters::test_utils::SrcString;
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot() {
+        let config = SnapshotIndexerEVMConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "sample_snapshot_indexer_evm".to_string(),
+            },
+            method_identifier: "totalSupply():(uint256)".to_string(),
+            method_args: vec![],
+            abi_file_path: "examples/minimum_indexers/src/snapshot_indexer_evm/abi/ERC20.json"
+                .to_string(),
+        };
+        let generated = snapshot_indexer_evm(config);
+        let formatted = SrcString::from(&generated);
+        assert_display_snapshot!("snapshot__snapshot_indexer_evm", formatted);
+    }
+}
