@@ -23,15 +23,17 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
     let method_name = input.method_name;
     quote! {
         use candid::CandidType;
-        use chainsight_cdk::core::*;
-        use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
-        use chainsight_cdk_macros::*;
+        use chainsight_cdk::indexer::IndexingConfig;
+        use chainsight_cdk_macros::{
+            algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
+            timer_task_func,
+        };
         use serde::{Deserialize, Serialize};
         use std::collections::HashMap;
         chainsight_common!(#monitor_duration);
         init_in!();
         manage_single_state!("target_addr", String, false);
-        setup_func ! ({ target_addr : String , config : IndexingConfig });
+        setup_func!({ target_addr: String, config: IndexingConfig });
         timer_task_func!("set_task", "index", true);
         use #canister_name_ident::*;
 
