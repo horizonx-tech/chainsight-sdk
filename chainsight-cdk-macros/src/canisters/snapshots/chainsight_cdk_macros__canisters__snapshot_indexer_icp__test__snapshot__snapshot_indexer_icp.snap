@@ -9,6 +9,7 @@ init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memor
 use chainsight_cdk::rpc::{
 CallProvider, Caller, Message };
 mod types;
+did_export!("sample_snapshot_indexer_icp");
 init_in!();
 chainsight_common!(60u32);
 manage_single_state!("target_canister", String, false);
@@ -113,8 +114,4 @@ ic_cdk::println!("ts={
 },  value={
 :?
 }", datum.timestamp, datum.value);
-
 }
-
-did_export!("sample_snapshot_indexer_icp");
-

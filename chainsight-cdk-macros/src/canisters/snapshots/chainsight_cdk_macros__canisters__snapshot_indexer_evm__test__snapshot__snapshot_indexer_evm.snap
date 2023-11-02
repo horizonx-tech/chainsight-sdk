@@ -8,6 +8,7 @@ Decode, Encode };
 use chainsight_cdk_macros::{
 init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_web3_source };
 use ic_web3_rs::types::Address;
+did_export!("sample_snapshot_indexer_evm");
 init_in!();
 chainsight_common!(60u32);
 define_web3_ctx!();
@@ -90,8 +91,4 @@ ic_cdk::println!("ts={
 },  snapshot={
 :?
 }", datum.timestamp, datum.value);
-
 }
-
-did_export!("sample_snapshot_indexer_evm");
-
