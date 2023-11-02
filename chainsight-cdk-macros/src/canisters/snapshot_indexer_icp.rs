@@ -38,7 +38,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         did_export!(#id); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#duration); // TODO: use common.monitor_duration
+        chainsight_common!(#duration);
 
         manage_single_state!("target_canister", String, false);
         setup_func!({ target_canister: String });

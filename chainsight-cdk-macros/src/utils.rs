@@ -19,16 +19,22 @@ pub fn chainsight_common(input: TokenStream) -> TokenStream {
 
             ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
                 ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item as u64), || {
-                    let timestamp = ic_cdk::api::time();
-                    let cycles = ic_cdk::api::canister_balance128();
-                    let datum = CanisterMetricsSnapshot {
-                        timestamp,
-                        cycles,
-                    };
-                    ic_cdk::println!("monitoring: {:?}", datum.clone());
-                    add_canister_metrics_snapshot(datum);
+                    monitor_canister_metrics();
                 });
             });
+            // in first time, immediate execution
+            monitor_canister_metrics();
+        }
+
+        fn monitor_canister_metrics() {
+            let timestamp = ic_cdk::api::time();
+            let cycles = ic_cdk::api::canister_balance128();
+            let datum = CanisterMetricsSnapshot {
+                timestamp,
+                cycles,
+            };
+            ic_cdk::println!("monitoring: {:?}", datum.clone());
+            add_canister_metrics_snapshot(datum);
         }
 
         #[ic_cdk_macros::init]

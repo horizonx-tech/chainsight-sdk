@@ -121,7 +121,8 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         ..
     } = config;
 
-    let canister_name = common.canister_name.clone();
+    let canister_name = &common.canister_name.clone();
+    let duration = &common.monitor_duration;
     let lens_targets_quote = if lens_targets.is_some() {
         quote! { lens_targets: Vec<String> }
     } else {
@@ -134,7 +135,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
         did_export!(#canister_name);
-        chainsight_common!(60);
+        chainsight_common!(#duration);
         define_web3_ctx!();
         define_transform_for_web3!();
         manage_single_state!("target_addr", String, false);
