@@ -25,6 +25,7 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
 }
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+    let id = &config.canister_name;
     let duration = config.monitor_duration;
 
     quote! {
@@ -33,6 +34,8 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 
         mod types;
+
+        did_export!(#id); // NOTE: need to be declared before query, update
 
         init_in!();
         chainsight_common!(#duration); // TODO: use common.monitor_duration
@@ -48,13 +51,15 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
 fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerICPConfig {
-        common,
+        common: CommonConfig {
+            canister_name,
+            monitor_duration: _,
+        },
         method_identifier: method_identifier_str,
         lens_targets,
     } = config;
 
-    let id = &common.canister_name;
-    let bindings_crate_ident = format_ident!("{}", &common.canister_name);
+    let bindings_crate_ident = format_ident!("{}", &canister_name);
 
     let method_identifier =
         CanisterMethodIdentifier::new(&method_identifier_str).expect("invalid method identifier");
@@ -161,8 +166,6 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             let _ = add_snapshot(datum.clone());
             #expr_to_log_datum
         }
-
-        did_export!(#id);
     }
 }
 

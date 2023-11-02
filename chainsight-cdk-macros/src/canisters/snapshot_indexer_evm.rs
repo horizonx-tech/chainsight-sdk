@@ -27,6 +27,7 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
 }
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+    let id = &config.canister_name;
     let duration = config.monitor_duration;
 
     quote! {
@@ -35,9 +36,10 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_web3_source};
 
         use ic_web3_rs::types::Address;
+
+        did_export!(#id); // NOTE: need to be declared before query, update
+
         init_in!();
-
-
         chainsight_common!(#duration);
 
         define_web3_ctx!();
@@ -56,13 +58,12 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
 fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerEVMConfig {
-        common,
         method_identifier,
         method_args,
         abi_file_path,
+        ..
     } = config;
 
-    let id = &common.canister_name;
     let method_identifier = ContractMethodIdentifier::parse_from_str(&method_identifier)
         .expect("Failed to parse method identifier");
     let method_ident_str = camel_to_snake(&method_identifier.identifier);
@@ -158,8 +159,6 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             let _ = add_snapshot(datum.clone());
             #expr_to_log_datum
         }
-
-        did_export!(#id);
     }
 }
 

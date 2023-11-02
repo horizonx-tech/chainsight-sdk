@@ -54,6 +54,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     let queries = generate_queries_without_timestamp(format_ident!("SnapshotValue"));
 
     quote! {
+        did_export!(#id); // NOTE: need to be declared before query, update
         init_in!();
         chainsight_common!(#duration);
         snapshot_https_source!();
@@ -103,7 +104,6 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
             let _ = add_snapshot(snapshot.clone());
         }
         #queries
-        did_export!(#id);
     }
 }
 
