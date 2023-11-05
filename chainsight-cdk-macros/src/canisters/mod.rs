@@ -6,6 +6,3 @@ pub mod snapshot_indexer_evm;
 pub mod snapshot_indexer_https;
 pub mod snapshot_indexer_icp;
 pub mod utils;
-
-#[cfg(test)]
-pub mod test_utils;

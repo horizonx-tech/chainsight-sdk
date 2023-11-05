@@ -119,8 +119,7 @@ mod test {
 
     use chainsight_cdk::config::components::CommonConfig;
     use insta::assert_display_snapshot;
-
-    use crate::canisters::test_utils::SrcString;
+    use rust_format::{Formatter, RustFmt};
 
     use super::*;
 
@@ -139,7 +138,9 @@ mod test {
             ]),
         };
         let generated = snapshot_indexer_https(config);
-        let formatted = SrcString::from(&generated);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
         assert_display_snapshot!("snapshot__snapshot_indexer_https", formatted);
     }
 }

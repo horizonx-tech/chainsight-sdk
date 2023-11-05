@@ -45,14 +45,36 @@ impl Web2HttpsSnapshotIndexer {
     }
 }
 
-fn build_url(url: &str, queries: HashMap<String, String>) -> String {
+pub fn build_url(url: &str, queries: HashMap<String, String>) -> String {
     let mut url = url.to_string();
     if !queries.is_empty() {
         url.push('?');
-        for (k, v) in queries {
+        let mut queries_vec: Vec<(String, String)> = queries.into_iter().collect();
+        queries_vec.sort_by(|a, b| a.0.cmp(&b.0));
+        for (k, v) in queries_vec {
             url.push_str(&format!("{}={}&", k, v));
         }
         url.pop();
     }
     url
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use super::build_url;
+
+    #[test]
+    fn test_build_url() {
+        let url = "https://api.coingecko.com/api/v3/simple/price";
+        let mut queries = HashMap::new();
+        queries.insert("vs_currencies".to_string(), "usd,eth".to_string());
+        queries.insert("ids".to_string(), "dai".to_string());
+
+        assert_eq!(
+            build_url(url, queries),
+            "https://api.coingecko.com/api/v3/simple/price?ids=dai&vs_currencies=usd,eth"
+        );
+    }
 }
