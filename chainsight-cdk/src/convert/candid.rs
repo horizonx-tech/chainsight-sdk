@@ -22,7 +22,7 @@ impl CanisterMethodIdentifier {
         let did: String = Self::generate_did(&args_ty, &response_ty);
 
         let ast: IDLProg = if let Some(base_did) = dependended_did {
-            format!("{}\n\n{}", base_did, did.to_string())
+            format!("{}\n\n{}", base_did, did)
         } else {
             did.to_string()
         }
