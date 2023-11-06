@@ -52,15 +52,15 @@ impl Parse for LensArgs {
 }
 pub fn init_in_env(_input: TokenStream) -> TokenStream {
     quote! {
+        use chainsight_cdk::initializer::{CycleManagements, Initializer};
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        async fn init_in(env: chainsight_cdk::core::Env) -> Result<(), chainsight_cdk::initializer::InitError> {
+        async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
             assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
-            use chainsight_cdk::initializer::Initializer;
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
                 chainsight_cdk::initializer::InitConfig { env: env.clone() },
             );
-            let init_result = initializer.initialize().await?;
+            let init_result = initializer.initialize(cycles).await?;
             let proxy = init_result.proxy;
             INITIALIZED.with(|f| *f.borrow_mut() = true);
             PROXY.with(|f| *f.borrow_mut() = proxy);

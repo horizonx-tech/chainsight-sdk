@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use candid::{CandidType, Principal};
 use ic_cdk::api::call::CallResult;
 
-use super::{InitConfig, InitError, InitResult, Initializer};
+use super::{CycleManagements, InitConfig, InitError, InitResult, Initializer};
 
 pub struct ChainsightInitializer {
     config: InitConfig,
@@ -22,9 +22,13 @@ pub struct InitializeOutput {
 
 #[async_trait]
 impl Initializer for ChainsightInitializer {
-    async fn initialize(&self) -> Result<InitResult, InitError> {
-        let out: CallResult<(InitializeOutput,)> =
-            ic_cdk::api::call::call(self.config.env.initializer(), "initialize", ()).await;
+    async fn initialize(&self, cycles: CycleManagements) -> Result<InitResult, InitError> {
+        let out: CallResult<(InitializeOutput,)> = ic_cdk::api::call::call(
+            self.config.env.initializer(),
+            "initialize",
+            (ic_cdk::caller(), cycles),
+        )
+        .await;
         Ok(InitResult {
             proxy: out.unwrap().0.proxy,
         })

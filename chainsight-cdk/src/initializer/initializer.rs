@@ -32,9 +32,49 @@ impl std::error::Error for InitError {
     }
 }
 
+#[derive(CandidType, serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct CycleManagement {
+    pub initial_value: u128,
+    pub refueling_value: u128,
+    pub refueling_threshold: u128,
+}
+
+#[derive(CandidType, serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct CycleManagements {
+    pub refueling_interval: u64,
+    pub vault_intial_supply: u128,
+    pub indexer: CycleManagement,
+    pub db: CycleManagement,
+    pub proxy: CycleManagement,
+}
+
+impl Default for CycleManagements {
+    fn default() -> Self {
+        Self {
+            refueling_interval: 86400,
+            vault_intial_supply: 1_000_000_000_000,
+            indexer: CycleManagement {
+                initial_value: 1_000_000_000_000,
+                refueling_value: 1_000_000_000_000,
+                refueling_threshold: 500_000_000_000,
+            },
+            db: CycleManagement {
+                initial_value: 1_000_000_000_000,
+                refueling_value: 1_00_000_000_000,
+                refueling_threshold: 500_000_000_000,
+            },
+            proxy: CycleManagement {
+                initial_value: 2_000_000_000,
+                refueling_value: 1_000_000_000,
+                refueling_threshold: 1_000_000_000,
+            },
+        }
+    }
+}
+
 #[async_trait]
 pub trait Initializer {
-    async fn initialize(&self) -> Result<InitResult, InitError>;
+    async fn initialize(&self, cycles: CycleManagements) -> Result<InitResult, InitError>;
 }
 pub struct InitConfig {
     pub env: Env,
