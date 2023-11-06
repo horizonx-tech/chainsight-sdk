@@ -1,0 +1,18 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: compiled
+---
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+pub struct HttpsSnapshotIndexerSourceAttrs { queries: Vec<(String,String,)> }
+pub type ResponseType = Vec<Box<Sources>>;
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+enum SourceType { evm, https, chainsight }
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+pub struct Sources {
+  source: String,
+  interval_sec: Option<u32>,
+  attributes: HttpsSnapshotIndexerSourceAttrs,
+  source_type: SourceType,
+}
