@@ -10,10 +10,24 @@ impl CanisterMethodIdentifier {
     pub const RESPONSE_TYPE_NAME: &'static str = "ResponseType";
 
     pub fn new(s: &str) -> anyhow::Result<Self> {
+        Self::new_internal(s, None)
+    }
+
+    pub fn new_with_did(s: &str, dependended_did: String) -> anyhow::Result<Self> {
+        Self::new_internal(s, Some(dependended_did))
+    }
+
+    fn new_internal(s: &str, dependended_did: Option<String>) -> anyhow::Result<Self> {
         let (identifier, args_ty, response_ty) = extract_elements(s)?;
         let did: String = Self::generate_did(&args_ty, &response_ty);
 
-        let ast: IDLProg = did.to_string().parse().unwrap();
+        let ast: IDLProg = if let Some(base_did) = dependended_did {
+            format!("{}\n\n{}", base_did, did)
+        } else {
+            did.to_string()
+        }
+        .parse()
+        .unwrap();
         let mut type_env = TypeEnv::new();
         let _ = check_prog(&mut type_env, &ast);
 
@@ -141,12 +155,69 @@ mod tests {
         ),
     ];
 
+    const TEST_IDENTS_WITH_DID: &'static [(&'static str, &'static str, &'static str); 4] = &[
+        (
+            &"single",
+            &"get_snapshot : (nat64) -> (Snapshot)",
+            &"type Snapshot = record { value : text; timestamp : nat64 };",
+        ),
+        (
+            &"multiple",
+            &"get_snapshot : (nat64) -> (Snapshot)",
+            &r#"type CurrencyValue = record { usd : float64 };
+type Snapshot = record { value : SnapshotValue; timestamp : nat64 };
+type SnapshotValue = record { dai : CurrencyValue };
+"#,
+        ),
+        (
+            &"with_variant",
+            &"init_in : (Env) -> (Result)",
+            &r#"type Env = variant { Production; Test; LocalDevelopment };
+type InitError = variant {
+  InvalidDestination : text;
+  InvalidPrincipal : principal;
+  InvalidContent : text;
+  InvalidRequest : text;
+};
+type Result = variant { Ok; Err : InitError };
+"#,
+        ),
+        (
+            &"with_vec",
+            &"get_sources : () -> (vec Sources)",
+            &r#"type HttpsSnapshotIndexerSourceAttrs = record {
+  queries : vec record { text; text };
+};
+type SourceType = variant { evm; https; chainsight };
+type Sources = record {
+  source : text;
+  interval_sec : opt nat32;
+  attributes : HttpsSnapshotIndexerSourceAttrs;
+  source_type : SourceType;
+};
+"#,
+        ),
+    ];
+
     #[test]
     fn test_compile() {
         for (label, s) in TEST_IDENTS {
             let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
             let compiled = ident.compile();
             assert_snapshot!(format!("compile__{}", label.to_string()), compiled);
+        }
+    }
+
+    #[test]
+    fn test_compile_with_depended_did() {
+        for (label, s, did) in TEST_IDENTS_WITH_DID {
+            let ident = CanisterMethodIdentifier::new_with_did(s, did.to_string())
+                .expect("Failed to parse");
+            let compiled = ident.compile();
+            assert_snapshot!(
+                format!("compile_with_depended_did__{}", label.to_string()),
+                compiled
+            );
         }
     }
 
