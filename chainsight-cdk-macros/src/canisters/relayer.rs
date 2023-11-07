@@ -71,7 +71,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let proxy_method_name = "proxy_".to_string() + method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
-        use #canister_name_ident::*;
+        use #canister_name_ident::{CallCanisterResponse, filter};
         #relayer_source_ident
         #call_args_ident
 
@@ -153,7 +153,10 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 }
 
 fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
-    if is_primitive(canister_response_type) {
+    // NOTE: Custom type is Unknown because it does not contain did definitions on which the custom type depends.
+    //       Considering the possibility of panic with is_primitive if Unknown
+    //       https://github.com/dfinity/candid/blob/2022-11-17/rust/candid/src/types/internal.rs#L353-L368
+    if canister_response_type.eq(&Type::Unknown) || is_primitive(canister_response_type) {
         let arg_ident = format_ident!("datum");
         quote! {
             chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
