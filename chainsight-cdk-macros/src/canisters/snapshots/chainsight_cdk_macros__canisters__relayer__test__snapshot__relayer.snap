@@ -21,7 +21,7 @@ timer_task_func!("set_task", "index", true);
 init_in!();
 setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , });
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
-use relayer::*;
+use relayer::{filter, CallCanisterResponse};
 relayer_source!("get_last_snapshot_value", false);
 type CallCanisterArgs = relayer::CallCanisterArgs;
 pub fn call_args() -> CallCanisterArgs {
