@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use anyhow::Ok;
 use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
 
@@ -134,6 +136,20 @@ fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
     ))
 }
 
+// Read .did and remove 'service' section
+pub fn read_did_to_string_without_service<P: AsRef<Path>>(path: P) -> anyhow::Result<String> {
+    let mut data = fs::read_to_string(path)?;
+    Ok(exclude_service_from_did_string(&mut data))
+}
+fn exclude_service_from_did_string(data: &mut String) -> String {
+    // remove 'service' section
+    if let Some(service_start_idx) = data.find("service : {") {
+        data.truncate(service_start_idx);
+    }
+
+    data.trim().to_owned()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,8 +210,7 @@ type Sources = record {
   interval_sec : opt nat32;
   attributes : HttpsSnapshotIndexerSourceAttrs;
   source_type : SourceType;
-};
-"#,
+};"#,
         ),
     ];
 
@@ -251,5 +266,18 @@ type Sources = record {
             response_ty,
             "record { allowance : nat; expires_at : opt nat64 }"
         );
+    }
+
+    #[test]
+    fn test_exclude_service_from_did_string() {
+        let expected = r#"type List = opt record { head: int; tail: List };
+type byte = nat8;".to_string()"#;
+        let mut actual = format!("{}\n", expected)
+            + r#"service : {
+  f : (byte, int, nat, int8) -> (List);
+  g : (List) -> (int) query;
+}"#;
+
+        assert_eq!(exclude_service_from_did_string(&mut actual), expected);
     }
 }
