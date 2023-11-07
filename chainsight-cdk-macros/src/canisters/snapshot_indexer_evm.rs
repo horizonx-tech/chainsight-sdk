@@ -13,7 +13,8 @@ use crate::canisters::utils::{
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: SnapshotIndexerEVMConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: SnapshotIndexerEVMConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     snapshot_indexer_evm(config).into()
 }
 

@@ -10,7 +10,8 @@ use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: RelayerConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: RelayerConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     relayer_canister(config).into()
 }
 

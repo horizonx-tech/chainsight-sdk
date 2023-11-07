@@ -5,7 +5,8 @@ use syn::parse_macro_input;
 
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string = parse_macro_input!(input as syn::LitStr).value();
-    let config: AlgorithmIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: AlgorithmIndexerConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     algorithm_indexer_canister(config).into()
 }
 
