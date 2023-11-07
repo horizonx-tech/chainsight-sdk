@@ -28,8 +28,7 @@ impl CanisterMethodIdentifier {
         } else {
             did.to_string()
         }
-        .parse()
-        .unwrap();
+        .parse()?;
         let mut type_env = TypeEnv::new();
         let _ = check_prog(&mut type_env, &ast);
 
@@ -39,7 +38,9 @@ impl CanisterMethodIdentifier {
         })
     }
 
-    pub fn compile(&self) -> String {
+    pub fn compile(&self) -> anyhow::Result<String> {
+        anyhow::ensure!(self.compilable(), "Not compilable IDLProg");
+
         // TODO: use candid ^0.9
         // let mut config = candid::bindings::rust::Config::new();
         // // Update the structure derive to chainsight's own settings
@@ -81,7 +82,7 @@ impl CanisterMethodIdentifier {
             1,
             "use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};".to_string(),
         );
-        lines.join("\n")
+        Ok(lines.join("\n"))
     }
 
     pub fn get_types(&self) -> (Option<&Type>, Option<&Type>) {
@@ -89,6 +90,20 @@ impl CanisterMethodIdentifier {
             self.find_type(Self::REQUEST_ARGS_TYPE_NAME),
             self.find_type(Self::RESPONSE_TYPE_NAME),
         )
+    }
+
+    fn compilable(&self) -> bool {
+        let (args_ty, response_ty) = self.get_types();
+        let not_compilable_type = &Type::Unknown;
+
+        if args_ty.is_some_and(|ty| ty.eq(not_compilable_type)) {
+            return false;
+        }
+        if response_ty.is_some_and(|ty| ty.eq(not_compilable_type)) {
+            return false;
+        }
+
+        true
     }
 
     fn generate_did(args_ty: &str, response_ty: &str) -> String {
@@ -218,7 +233,7 @@ type Sources = record {
     fn test_compile() {
         for (label, s) in TEST_IDENTS {
             let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
-            let compiled = ident.compile();
+            let compiled = ident.compile().unwrap();
             assert_snapshot!(format!("compile__{}", label.to_string()), compiled);
         }
     }
@@ -228,11 +243,66 @@ type Sources = record {
         for (label, s, did) in TEST_IDENTS_WITH_DID {
             let ident = CanisterMethodIdentifier::new_with_did(s, did.to_string())
                 .expect("Failed to parse");
-            let compiled = ident.compile();
+            let compiled = ident.compile().unwrap();
             assert_snapshot!(
                 format!("compile_with_depended_did__{}", label.to_string()),
                 compiled
             );
+        }
+    }
+
+    #[test]
+    fn test_compile_when_not_compilable() {
+        let s = "get_snapshot : (Input) -> (Output)";
+        let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+        assert_eq!(
+            ident.compile().err().unwrap().to_string(),
+            "Not compilable IDLProg"
+        );
+    }
+
+    #[test]
+    fn test_compilable() {
+        // compilable
+        for (_, s) in TEST_IDENTS {
+            let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+            assert!(ident.compilable());
+        }
+        for (_, s, did) in TEST_IDENTS_WITH_DID {
+            let ident = CanisterMethodIdentifier::new_with_did(s, did.to_string())
+                .expect("Failed to parse");
+            assert!(ident.compilable());
+        }
+
+        // not compilable
+        let not_compilable = vec![
+            "get_snapshot : (Input) -> (Output)",
+            "get_snapshot : (nat64) -> (Snapshot)",
+            "get_snapshot : (Snapshot) -> (nat64)",
+        ];
+        for s in not_compilable {
+            let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+            assert!(!ident.compilable());
+        }
+
+        let not_compilable_with_did = vec![
+            (
+                "get_snapshot : (Snapshot) -> (Snapshot)",
+                "type Snapshot_1 = record { value : text; timestamp : nat64 };",
+            ),
+            (
+                "get_snapshot : (nat64) -> (Snapshot)",
+                "type Snapshot_1 = record { value : text; timestamp : nat64 };",
+            ),
+            (
+                "get_snapshot : (Snapshot) -> (nat64)",
+                "type Snapshot_1 = record { value : text; timestamp : nat64 };",
+            ),
+        ];
+        for (s, did) in not_compilable_with_did {
+            let ident = CanisterMethodIdentifier::new_with_did(s, did.to_string())
+                .expect("Failed to parse");
+            assert!(!ident.compilable());
         }
     }
 
