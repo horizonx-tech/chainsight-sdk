@@ -63,7 +63,10 @@ pub fn contract_event_derive(input: TokenStream) -> TokenStream {
 }
 
 pub fn define_transform_for_web3() -> TokenStream {
-    let output = quote! {
+    define_transform_for_web3_internal().into()
+}
+fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
+    quote! {
         use ic_web3_rs::transforms::transform::TransformProcessor;
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -96,13 +99,14 @@ pub fn define_transform_for_web3() -> TokenStream {
             processor.transform(response)
         }
 
-    };
-    output.into()
+    }
 }
 
 pub fn define_web3_ctx() -> TokenStream {
-    let output = quote! {
-
+    define_web3_ctx_internal().into()
+}
+fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
+    quote! {
         manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
 
         pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
@@ -118,12 +122,14 @@ pub fn define_web3_ctx() -> TokenStream {
                 param.env.ecdsa_key_name(),
             )
         }
-    };
-    output.into()
+    }
 }
 
 pub fn define_get_ethereum_address() -> TokenStream {
-    let output = quote! {
+    define_get_ethereum_address_internal().into()
+}
+fn define_get_ethereum_address_internal() -> proc_macro2::TokenStream {
+    quote! {
         fn default_derivation_key() -> Vec<u8> {
             ic_cdk::id().as_slice().to_vec()
         }
@@ -143,6 +149,40 @@ pub fn define_get_ethereum_address() -> TokenStream {
                 Err(msg) => msg,
             }
         }
-    };
-    output.into()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_define_transform_for_web3() {
+        let generated = define_transform_for_web3_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__define_transform_for_web3", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_define_web3_ctx() {
+        let generated = define_web3_ctx_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__define_web3_ctx", formatted);
+    }
+
+    #[test]
+    fn define_get_ethereum_address() {
+        let generated = define_get_ethereum_address_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__define_get_ethereum_address", formatted);
+    }
 }
