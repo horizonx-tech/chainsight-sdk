@@ -1,7 +1,7 @@
 use chainsight_cdk::storage::Data;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse::Parse, parse_macro_input, Expr, LitBool, LitStr, Type};
+use syn::{parse::{Parse, ParseStream}, parse_macro_input, Expr, LitBool, LitStr, Type};
 
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
@@ -114,9 +114,8 @@ struct SingleStateInput {
     is_expose_getter: LitBool,
     init: Option<Expr>,
 }
-
 impl Parse for SingleStateInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let name: LitStr = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let ty: Type = input.parse()?;
@@ -137,12 +136,16 @@ impl Parse for SingleStateInput {
     }
 }
 pub fn manage_single_state(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as SingleStateInput);
+    manage_single_state_internal(args).into()
+}
+fn manage_single_state_internal(args: SingleStateInput) -> proc_macro2::TokenStream {
     let SingleStateInput {
         name,
         ty,
         is_expose_getter,
         init,
-    } = parse_macro_input!(input as SingleStateInput);
+    } = args;
 
     let var_ident = syn::Ident::new(&name.value().to_uppercase(), name.span());
     let get_ident = syn::Ident::new(&format!("get_{}", name.value()), name.span());
@@ -161,7 +164,7 @@ pub fn manage_single_state(input: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let output = quote! {
+    quote! {
         thread_local! {
             static #var_ident: std::cell::RefCell<#ty> = std::cell::RefCell::new(#init);
         }
@@ -174,8 +177,7 @@ pub fn manage_single_state(input: TokenStream) -> TokenStream {
         pub fn #set_ident(value: #ty) {
             #var_ident.with(|state| *state.borrow_mut() = value);
         }
-    };
-    output.into()
+    }
 }
 
 struct VecStateInput {
@@ -183,8 +185,8 @@ struct VecStateInput {
     ty: Type,
     is_expose_getter: LitBool,
 }
-impl syn::parse::Parse for VecStateInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+impl Parse for VecStateInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let ty = input.parse()?;
@@ -198,11 +200,15 @@ impl syn::parse::Parse for VecStateInput {
     }
 }
 pub fn manage_vec_state(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as VecStateInput);
+    manage_vec_state_internal(args).into()
+}
+fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
     let VecStateInput {
         name,
         ty,
         is_expose_getter,
-    } = parse_macro_input!(input as VecStateInput);
+    } = args;
 
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
@@ -238,7 +244,7 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         #[candid::candid_method(update)]
     };
 
-    let expanded = quote! {
+    quote! {
         thread_local! {
             static #state_upper_name: std::cell::RefCell<Vec<#ty>> = std::cell::RefCell::new(Vec::new());
         }
@@ -349,9 +355,7 @@ pub fn manage_vec_state(input: TokenStream) -> TokenStream {
         pub fn #add_elem_func(value: #ty) {
             #state_upper_name.with(|state| state.borrow_mut().push(value));
         }
-    };
-
-    TokenStream::from(expanded)
+    }
 }
 
 struct MapStateInput {
@@ -360,8 +364,8 @@ struct MapStateInput {
     val_ty: Type,
     is_expose_getter: LitBool,
 }
-impl syn::parse::Parse for MapStateInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+impl Parse for MapStateInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let key_ty = input.parse()?;
@@ -378,12 +382,16 @@ impl syn::parse::Parse for MapStateInput {
     }
 }
 pub fn manage_map_state(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as MapStateInput);
+    manage_map_state_internal(args).into()
+}
+fn manage_map_state_internal(args: MapStateInput) -> proc_macro2::TokenStream {
     let MapStateInput {
         name,
         key_ty,
         val_ty,
         is_expose_getter,
-    } = parse_macro_input!(input as MapStateInput);
+    } = args;
 
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
@@ -400,7 +408,7 @@ pub fn manage_map_state(input: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let expanded = quote! {
+    quote! {
         thread_local! {
             static #state_upper_name: std::cell::RefCell<std::collections::HashMap<#key_ty, #val_ty>> = std::cell::RefCell::new(std::collections::HashMap::new());
         }
@@ -418,7 +426,46 @@ pub fn manage_map_state(input: TokenStream) -> TokenStream {
         pub fn #insert_elem_func(key: #key_ty, value: #val_ty) {
             #state_upper_name.with(|state| state.borrow_mut().insert(key, value));
         }
-    };
+    }
+}
 
-    TokenStream::from(expanded)
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_manage_single_state() {
+        let input = quote! {"timer_id", TimerId, true};
+        let args: syn::Result<SingleStateInput> = syn::parse2(input);
+        let generated = manage_single_state_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__manage_single_state", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_manage_vec_state() {
+        let input = quote! {"snapshots", Snapshot, true};
+        let args: syn::Result<VecStateInput> = syn::parse2(input);
+        let generated = manage_vec_state_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__manage_vec_state", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_manage_map_state() {
+        let input = quote! {"time_differences", String, u64, true};
+        let args: syn::Result<MapStateInput> = syn::parse2(input);
+        let generated = manage_map_state_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__manage_map_state", formatted);
+    }
 }
