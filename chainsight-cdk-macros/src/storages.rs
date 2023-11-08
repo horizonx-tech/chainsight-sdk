@@ -30,7 +30,6 @@ struct StableMemoryStorableOpts {
     max_size: Option<u32>,
     is_fixed_size: Option<bool>,
 }
-
 pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
@@ -169,7 +168,6 @@ fn mem_id(input: DeriveInput) -> u8 {
     assert!(memory_id < 6, "memory_id must be less than 6");
     memory_id
 }
-
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let name = input.clone().ident;
@@ -623,5 +621,44 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
             let res = #state_upper_name.with(|vec| vec.borrow_mut().push(&value));
             res.map_err(|e| format!("{:?}", e))
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_prepare_stable_structure() {
+        let generated = prepare_stable_structure_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__prepare_stable_structure", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_stable_memory_for_scalar() {
+        let input = quote! {"timestamp", u64, 0, true};
+        let args: syn::Result<StableMemoryForScalarInput> = syn::parse2(input);
+        let generated = stable_memory_for_scalar_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__stable_memory_for_scalar", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_stable_memory_for_vec() {
+        let input = quote! {"timestamp", u64, 0, true};
+        let args: syn::Result<StableMemoryForVecInput> = syn::parse2(input);
+        let generated = stable_memory_for_vec_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__stable_memory_for_vec", formatted);
     }
 }
