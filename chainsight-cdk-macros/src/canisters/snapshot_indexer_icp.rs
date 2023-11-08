@@ -86,19 +86,15 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let call_canister_args_ident = if lens_targets.is_some() {
-        let lens_targets: Vec<Principal> = lens_targets
-            .clone()
-            .map(|t| {
-                t.identifiers
-                    .iter()
-                    .map(|p| Principal::from_text(p).expect("lens target must be principal"))
-                    .collect()
-            })
-            .or_else(|| Some(vec![]))
-            .unwrap();
+    let call_canister_args_ident = if let Some(lens_targets) = lens_targets {
+        let lens_target_principals: Vec<Principal> = lens_targets
+            .identifiers
+            .iter()
+            .map(|p| Principal::from_text(p).expect("lens target must be principal"))
+            .collect();
 
-        let lens_targets_string_ident: Vec<_> = lens_targets.iter().map(|p| p.to_text()).collect();
+        let lens_targets_string_ident: Vec<_> =
+            lens_target_principals.iter().map(|p| p.to_text()).collect();
 
         quote! {
             type CallCanisterArgs = Vec<String>;
