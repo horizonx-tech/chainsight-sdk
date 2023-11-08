@@ -90,7 +90,11 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
 }
 
 pub fn setup_func(input: TokenStream) -> TokenStream {
-    let SetupArgs { fields } = syn::parse_macro_input!(input as SetupArgs);
+    let args = syn::parse_macro_input!(input as SetupArgs);
+    setup_func_internal(args).into()
+}
+fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
+    let SetupArgs { fields } = input;
 
     let setters: Vec<_> = fields
         .iter()
@@ -100,7 +104,7 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
     let names: Vec<_> = fields.iter().map(|field| &field.name).collect();
     let types: Vec<_> = fields.iter().map(|field| &field.ty).collect();
 
-    let expanded = quote! {
+    quote! {
         chainsight_cdk_macros::manage_single_state!("setup_flag", bool, false);
 
         #[ic_cdk::update]
@@ -111,8 +115,7 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
             set_setup_flag(true);
             Ok(())
         }
-    };
-    TokenStream::from(expanded)
+    }
 }
 
 pub fn timer_task_func(input: TokenStream) -> TokenStream {
@@ -263,6 +266,23 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
+
+    #[test]
+    fn test_snapshot_setup_fumc() {
+        let input = quote! {
+            {
+                target_canister: String,
+                target_addr: String,
+                web3_ctx_param: Web3CtxParam
+            }
+        };
+        let args: syn::Result<SetupArgs> = syn::parse2(input);
+        let generated = setup_func_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__setup_func", formatted);
+    }
 
     #[test]
     fn test_snapshot_lens_method() {
