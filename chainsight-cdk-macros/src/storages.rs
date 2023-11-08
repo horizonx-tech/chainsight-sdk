@@ -100,13 +100,17 @@ impl Parse for StableMemoryForScalarInput {
     }
 }
 pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as StableMemoryForScalarInput);
+    stable_memory_for_scalar_internal(args).into()
+}
+fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_macro2::TokenStream {
     let StableMemoryForScalarInput {
         name,
         ty,
         memory_id,
         is_expose_getter,
         init,
-    } = parse_macro_input!(input as StableMemoryForScalarInput);
+    } = args;
 
     let var_ident = syn::Ident::new(&name.value().to_uppercase(), name.span());
     let get_ident = syn::Ident::new(&format!("get_{}", name.value()), name.span());
@@ -125,7 +129,7 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let output = quote! {
+    quote! {
         thread_local! {
             static #var_ident: std::cell::RefCell<ic_stable_structures::StableCell<#ty, Memory>> = std::cell::RefCell::new(
                 ic_stable_structures::StableCell::init(
@@ -146,8 +150,7 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
             let res = #var_ident.with(|cell| cell.borrow_mut().set(value));
             res.map(|_| ()).map_err(|e| format!("{:?}", e))
         }
-    };
-    output.into()
+    }
 }
 
 struct StableMemoryForVecInput {
