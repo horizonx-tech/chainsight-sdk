@@ -3,53 +3,6 @@ use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream};
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
-struct SetupArgs {
-    fields: Punctuated<NamedField, Token![,]>,
-}
-impl Parse for SetupArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-        braced!(content in input);
-        let fields = Punctuated::parse_terminated(&content)?;
-        Ok(SetupArgs { fields })
-    }
-}
-struct NamedField {
-    name: Ident,
-    _colon_token: Token![:],
-    ty: Type,
-}
-impl Parse for NamedField {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(NamedField {
-            name: input.parse()?,
-            _colon_token: input.parse()?,
-            ty: input.parse()?,
-        })
-    }
-}
-
-struct LensArgs {
-    target_count: usize,
-    func_arg: Option<Type>,
-}
-
-impl Parse for LensArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let target_count: syn::LitInt = input.parse()?;
-
-        let func_arg = if input.peek(syn::Token![,]) {
-            input.parse::<syn::Token![,]>()?;
-            Some(input.parse()?)
-        } else {
-            None
-        };
-        Ok(LensArgs {
-            target_count: target_count.base10_parse().unwrap(),
-            func_arg,
-        })
-    }
-}
 pub fn init_in_env(_input: TokenStream) -> TokenStream {
     quote! {
         #[ic_cdk::update]
@@ -89,6 +42,31 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
     .into()
 }
 
+struct SetupArgs {
+    fields: Punctuated<NamedField, Token![,]>,
+}
+impl Parse for SetupArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        braced!(content in input);
+        let fields = Punctuated::parse_terminated(&content)?;
+        Ok(SetupArgs { fields })
+    }
+}
+struct NamedField {
+    name: Ident,
+    _colon_token: Token![:],
+    ty: Type,
+}
+impl Parse for NamedField {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(NamedField {
+            name: input.parse()?,
+            _colon_token: input.parse()?,
+            ty: input.parse()?,
+        })
+    }
+}
 pub fn setup_func(input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(input as SetupArgs);
     setup_func_internal(args).into()
@@ -181,11 +159,30 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
     }
 }
 
+struct LensArgs {
+    target_count: usize,
+    func_arg: Option<Type>,
+}
+impl Parse for LensArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let target_count: syn::LitInt = input.parse()?;
+
+        let func_arg = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(LensArgs {
+            target_count: target_count.base10_parse().unwrap(),
+            func_arg,
+        })
+    }
+}
 pub fn lens_method(input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(input as LensArgs);
     lens_method_internal(args).into()
 }
-
 fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
