@@ -4,6 +4,9 @@ use syn::parse::{Parse, ParseStream};
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
 pub fn init_in_env(_input: TokenStream) -> TokenStream {
+    init_in_env_internal().into()
+}
+fn init_in_env_internal() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -39,7 +42,6 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
             static ENV: std::cell::RefCell<chainsight_cdk::core::Env> = std::cell::RefCell::new(chainsight_cdk::core::Env::default());
         }
     }
-    .into()
 }
 
 struct SetupArgs {
@@ -266,6 +268,15 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
+
+    #[test]
+    fn test_snapshot_init_in_env() {
+        let generated = init_in_env_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__init_in_env", formatted);
+    }
 
     #[test]
     fn test_snapshot_setup_fumc() {
