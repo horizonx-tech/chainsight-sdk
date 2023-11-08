@@ -1,0 +1,97 @@
+---
+source: chainsight-cdk-macros/src/states.rs
+expression: formatted
+---
+thread_local! { static SNAPSHOTSS : std :: cell :: RefCell < Vec < Snapshot >> = std :: cell :: RefCell :: new (Vec :: new ()) ; }
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_snapshotss() -> Vec<Snapshot> {
+    _get_snapshotss()
+}
+pub fn _get_snapshotss() -> Vec<Snapshot> {
+    SNAPSHOTSS.with(|state| state.borrow().clone())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_snapshotss(input: Vec<u8>) -> Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<Snapshot>>::new(proxy(), _get_snapshotss)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn snapshotss_len() -> usize {
+    _snapshotss_len()
+}
+pub fn _snapshotss_len() -> usize {
+    SNAPSHOTSS.with(|state| state.borrow().len())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_snapshotss_len(input: Vec<u8>) -> Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<usize>::new(proxy(), _snapshotss_len)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_last_snapshots() -> Snapshot {
+    _get_last_snapshots()
+}
+pub fn _get_last_snapshots() -> Snapshot {
+    SNAPSHOTSS.with(|state| state.borrow().last().unwrap().clone())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_last_snapshots(input: Vec<u8>) -> Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Snapshot>::new(proxy(), _get_last_snapshots)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_top_snapshotss(n: usize) -> Vec<Snapshot> {
+    _get_top_snapshotss(n)
+}
+pub fn _get_top_snapshotss(n: usize) -> Vec<Snapshot> {
+    SNAPSHOTSS.with(|state| {
+        state
+            .borrow()
+            .iter()
+            .rev()
+            .take(n)
+            .cloned()
+            .collect::<Vec<_>>()
+    })
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_top_snapshotss(input: Vec<u8>) -> Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProvider::<usize, Vec<Snapshot>>::new(proxy(), _get_top_snapshotss)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_snapshots(idx: usize) -> Snapshot {
+    _get_snapshots(idx)
+}
+pub fn _get_snapshots(idx: usize) -> Snapshot {
+    SNAPSHOTSS.with(|state| state.borrow()[idx].clone())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_snapshots(input: Vec<u8>) -> Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProvider::<usize, Snapshot>::new(proxy(), _get_snapshots)
+        .reply(input)
+        .await
+}
+pub fn add_snapshots(value: Snapshot) {
+    SNAPSHOTSS.with(|state| state.borrow_mut().push(value));
+}
+
