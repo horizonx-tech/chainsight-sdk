@@ -1,7 +1,7 @@
 use std::{fs::File, path::Path};
 
 use chainsight_cdk::{
-    config::components::{EventIndexerConfig, EventIndexerEventDefinition},
+    config::components::{CommonConfig, EventIndexerConfig, EventIndexerEventDefinition},
     convert::evm::{convert_type_from_ethabi_param_type, ADDRESS_TYPE, U256_TYPE},
 };
 use ethabi;
@@ -21,9 +21,22 @@ pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
 }
 
 fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStream {
-    let monitor_duration = config.common.monitor_duration;
-    let canister_name = config.common.canister_name.clone();
-    let common = quote! {
+    let common = common_code(&config.common);
+    let custom = custom_code(config);
+
+    quote! {
+        #common
+        #custom
+    }
+}
+
+fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
+    let CommonConfig {
+        monitor_duration,
+        canister_name,
+    } = common;
+
+    quote! {
         use candid::CandidType;
         use chainsight_cdk::{
             core::{U256},
@@ -57,12 +70,6 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
             config: IndexingConfig,
         });
         init_in!();
-    };
-
-    let custom = custom_code(config);
-    quote! {
-        #common
-        #custom
     }
 }
 
