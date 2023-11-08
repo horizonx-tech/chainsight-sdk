@@ -4,7 +4,10 @@ use quote::quote;
 use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
 pub fn prepare_stable_structure() -> TokenStream {
-    let output = quote! {
+    prepare_stable_structure_internal().into()
+}
+fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {
+    quote! {
         type Memory = ic_stable_structures::memory_manager::VirtualMemory<ic_stable_structures::DefaultMemoryImpl>;
 
         thread_local! {
@@ -14,8 +17,7 @@ pub fn prepare_stable_structure() -> TokenStream {
                 )
             );
         }
-    };
-    output.into()
+    }
 }
 
 #[derive(FromDeriveInput, Default)]
