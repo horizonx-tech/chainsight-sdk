@@ -93,3 +93,33 @@ fn did_export_internal(args: syn::LitStr) -> proc_macro2::TokenStream {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_chainsight_common() {
+        let input = quote! {60};
+        let args: syn::Result<syn::LitInt> = syn::parse2(input);
+        let generated = chainsight_common_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__chainsight_common", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_did_export() {
+        let input = quote! {"sample_component"};
+        let args: syn::Result<syn::LitStr> = syn::parse2(input);
+        let generated = did_export_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__did_export", formatted);
+    }
+}
