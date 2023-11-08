@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::parse::{Parse, ParseStream, Parser};
+use syn::parse::{Parse, ParseStream};
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
 struct SetupArgs {
@@ -118,35 +118,40 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
     }
 }
 
-pub fn timer_task_func(input: TokenStream) -> TokenStream {
-    let parser = syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated;
-    let args = parser.parse(input).expect("Failed to parse input");
-    if args.len() != 3 {
-        panic!("Expected 3 arguments");
+struct TimerTaskArgs {
+    func_name: syn::LitStr,
+    called_func_name: syn::LitStr,
+    _is_async: syn::LitBool,
+}
+impl Parse for TimerTaskArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let func_name: syn::LitStr = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let called_func_name: syn::LitStr = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let _is_async: syn::LitBool = input.parse()?;
+        Ok(TimerTaskArgs {
+            func_name,
+            called_func_name,
+            _is_async,
+        })
     }
+}
+pub fn timer_task_func(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as TimerTaskArgs);
+    timer_task_func_internal(args).into()
+}
+fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
+    let TimerTaskArgs {
+        func_name,
+        called_func_name,
+        _is_async,
+    } = args;
 
-    let func_name = match &args[0] {
-        syn::Expr::Lit(lit) => {
-            if let syn::Lit::Str(lit_str) = &lit.lit {
-                syn::Ident::new(&lit_str.value().to_string(), lit_str.span())
-            } else {
-                panic!("Expected a string literal for the variable name");
-            }
-        }
-        _ => panic!("Expected a string literal for the variable name"),
-    };
-    let called_func_name_str = match &args[1] {
-        syn::Expr::Lit(lit) => {
-            if let syn::Lit::Str(lit_str) = &lit.lit {
-                lit_str.value().to_string()
-            } else {
-                panic!("Expected a string literal for the variable name");
-            }
-        }
-        _ => panic!("Expected a string literal for the variable name"),
-    };
+    let func_name_ident = format_ident!("{}", func_name.value());
+    let called_func_name_str = called_func_name.value().to_string();
 
-    let output = quote! {
+    quote! {
         thread_local! {
             static INDEXING_INTERVAL: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
         }
@@ -160,7 +165,7 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        pub async fn #func_name(task_interval_secs: u32, delay_secs: u32) {
+        pub async fn #func_name_ident(task_interval_secs: u32, delay_secs: u32) {
             set_indexing_interval(task_interval_secs);
             let res = ic_cdk::api::call::call::<(u32, u32, String, Vec<u8>), ()>(
                 proxy(),
@@ -173,9 +178,7 @@ pub fn timer_task_func(input: TokenStream) -> TokenStream {
                 Err(e) => { panic!("Failed to start indexing: {:?}", e) }
             };
         }
-    };
-
-    output.into()
+    }
 }
 
 pub fn lens_method(input: TokenStream) -> TokenStream {
@@ -282,6 +285,17 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__setup_func", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_timer_task_func() {
+        let input = quote! {"set_task","HELLO",false};
+        let args: syn::Result<TimerTaskArgs> = syn::parse2(input);
+        let generated = timer_task_func_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__timer_task_func", formatted);
     }
 
     #[test]
