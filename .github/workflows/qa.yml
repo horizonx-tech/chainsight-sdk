@@ -67,3 +67,10 @@ jobs:
           rustup component add rustfmt
       - name: Execute unit test
         run: cargo test --all-features --no-fail-fast
+      - uses: actions-rs/grcov@v0.1
+        id: coverage
+      - name: Coveralls upload
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ${{ steps.coverage.outputs.report }}
