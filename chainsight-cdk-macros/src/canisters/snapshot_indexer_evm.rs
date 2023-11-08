@@ -28,8 +28,10 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
 }
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
-    let id = &config.canister_name;
-    let duration = config.monitor_duration;
+    let CommonConfig {
+        monitor_duration,
+        canister_name,
+    } = config;
 
     quote! {
         use std::str::FromStr;
@@ -38,10 +40,10 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         use ic_web3_rs::types::Address;
 
-        did_export!(#id); // NOTE: need to be declared before query, update
+        did_export!(#canister_name); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#duration);
+        chainsight_common!(#monitor_duration);
 
         define_web3_ctx!();
         define_transform_for_web3!();
