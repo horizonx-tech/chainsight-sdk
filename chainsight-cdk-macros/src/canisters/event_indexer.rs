@@ -88,15 +88,15 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
 
     let event = {
         let reader = File::open(Path::new(&abi_file_path))
-            .expect(&format!("Couldn't open {}", &abi_file_path));
+            .unwrap_or_else(|_| panic!("Couldn't open {}", &abi_file_path));
         let binding = ethabi::Contract::load(reader)
-            .expect(&format!("Fail to load ABI from {}", &abi_file_path));
+            .unwrap_or_else(|_| panic!("Fail to load ABI from {}", &abi_file_path));
         // NOTE: Can I use .event? https://docs.rs/ethabi/latest/ethabi/struct.Contract.html#method.event
         binding
             .events_by_name(&identifier)
-            .expect(&format!("Failed to find event by name {}", &identifier))
+            .unwrap_or_else(|_| panic!("Failed to find event by name {}", &identifier))
             .first()
-            .expect(&format!("Failed to no events, name is {}", &identifier))
+            .unwrap_or_else(|| panic!("Failed to no events, name is {}", &identifier))
             .clone()
     };
 
@@ -133,9 +133,14 @@ fn generate_event_struct(event: ethabi::Event) -> (proc_macro2::Ident, proc_macr
         .clone()
         .into_iter()
         .map(|event_param| {
-            let field_name_ident = format_ident!("{}", event_param.name);
-            let field_ty_ident = convert_event_param_type_to_field_ty_ident(event_param.kind)
-                .expect("Failed to convert event's ParamType to field type ident");
+            let field_name_ident = format_ident!("{}", &event_param.name);
+            let field_ty_ident = convert_event_param_type_to_field_ty_ident(&event_param.kind)
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "Failed to convert event's ParamType `{}` to field type ident",
+                        &event_param.kind
+                    )
+                });
             quote! { pub #field_name_ident: #field_ty_ident }
         })
         .collect::<Vec<_>>();
@@ -162,7 +167,7 @@ fn generate_event_struct(event: ethabi::Event) -> (proc_macro2::Ident, proc_macr
 }
 
 fn convert_event_param_type_to_field_ty_ident(
-    param_type: ethabi::ParamType,
+    param_type: &ethabi::ParamType,
 ) -> anyhow::Result<proc_macro2::Ident> {
     let field_ty =
         convert_type_from_ethabi_param_type(param_type).map_err(|e| anyhow::anyhow!(e))?;

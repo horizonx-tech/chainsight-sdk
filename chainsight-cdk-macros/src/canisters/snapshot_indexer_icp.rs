@@ -90,7 +90,10 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         let lens_target_principals: Vec<Principal> = lens_targets
             .identifiers
             .iter()
-            .map(|p| Principal::from_text(p).expect("lens target must be principal"))
+            .map(|p| {
+                Principal::from_text(p)
+                    .unwrap_or_else(|_| panic!("lens target must be principal '{}'", p))
+            })
             .collect();
 
         let lens_targets_string_ident: Vec<_> =
