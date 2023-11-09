@@ -103,14 +103,13 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
         in_type,
         call_method,
     } = args;
-    let source = sources::algorithm_indexer_source();
+
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)
         }
-        #source
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
@@ -170,7 +169,7 @@ fn algorithm_indexer_with_args_internal(
         args,
         call_method,
     } = args;
-    let source = sources::algorithm_indexer_source();
+
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         thread_local!{
@@ -193,7 +192,7 @@ fn algorithm_indexer_with_args_internal(
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
             chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist, get_args())
         }
-        #source
+
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {

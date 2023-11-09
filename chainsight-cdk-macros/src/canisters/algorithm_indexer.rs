@@ -27,7 +27,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         use chainsight_cdk::indexer::IndexingConfig;
         use chainsight_cdk_macros::{
             algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
-            timer_task_func,
+            timer_task_func, algorithm_indexer_source,
         };
         use serde::{Deserialize, Serialize};
         use std::collections::HashMap;
@@ -38,6 +38,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         timer_task_func!("set_task", "index");
         use #canister_name_ident::*;
 
+        algorithm_indexer_source!();
         algorithm_indexer!(#input_ty, #method_name);
         did_export!(#canister_name);
     }

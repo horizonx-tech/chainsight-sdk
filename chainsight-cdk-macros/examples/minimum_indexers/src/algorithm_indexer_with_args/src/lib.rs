@@ -2,7 +2,7 @@ use candid::{CandidType, Principal};
 use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
 use chainsight_cdk_macros::{
     algorithm_indexer_with_args, chainsight_common, did_export, init_in, manage_single_state,
-    setup_func, timer_task_func, KeyValueStore, KeyValuesStore, Persist,
+    setup_func, timer_task_func, algorithm_indexer_source, KeyValueStore, KeyValuesStore, Persist,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ setup_func!({
     target_addr: String,
     config: IndexingConfig
 });
+algorithm_indexer_source!();
 algorithm_indexer_with_args!(TransferEvent, (Principal, String, String), "proxy_call");
 timer_task_func!("set_task", "index");
 

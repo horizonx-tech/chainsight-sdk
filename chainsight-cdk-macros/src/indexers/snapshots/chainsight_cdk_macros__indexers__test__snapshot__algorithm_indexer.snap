@@ -11,16 +11,6 @@ async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<HashMap<u64, V
         persist,
     )
 }
-#[ic_cdk::query]
-#[candid::candid_method(query)]
-fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
-    vec![chainsight_cdk::core::Sources::<
-        std::collections::HashMap<String, String>,
-    >::new_algorithm_indexer(
-        get_target_addr(),
-        get_indexing_interval(),
-    )]
-}
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
