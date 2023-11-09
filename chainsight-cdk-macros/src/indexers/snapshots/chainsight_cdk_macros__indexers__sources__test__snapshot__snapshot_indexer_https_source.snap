@@ -1,0 +1,17 @@
+---
+source: chainsight-cdk-macros/src/indexers/sources.rs
+expression: formatted
+---
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_sources(
+) -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>> {
+    vec![chainsight_cdk::core::Sources::<
+        chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs,
+    >::new_https_snapshot_indexer(
+        URL.to_string(),
+        get_indexing_interval(),
+        get_attrs(),
+    )]
+}
+
