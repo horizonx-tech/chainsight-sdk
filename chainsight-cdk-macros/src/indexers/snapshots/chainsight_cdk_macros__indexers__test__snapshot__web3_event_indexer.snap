@@ -1,5 +1,5 @@
 ---
-source: chainsight-cdk-macros/src/indexers.rs
+source: chainsight-cdk-macros/src/indexers/mod.rs
 expression: formatted
 ---
 #[ic_cdk::query]
