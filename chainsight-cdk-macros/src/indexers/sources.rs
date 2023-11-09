@@ -36,8 +36,12 @@ pub fn generate_algorithm_indexer_source() -> proc_macro2::TokenStream {
         }
     }
 }
+
 pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
     let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
+    snapshot_web3_source_internal(func_name).into()
+}
+fn snapshot_web3_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -49,9 +53,13 @@ pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
                 #func_name.to_string(),
             )]
         }
-    }.into()
+    }
 }
-pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
+
+pub fn snapshot_https_source() -> TokenStream {
+    snapshot_https_source_internal().into()
+}
+fn snapshot_https_source_internal() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -62,10 +70,14 @@ pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
                 get_attrs(),
             )]
         }
-    }.into()
+    }
 }
+
 pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
     let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
+    snapshot_icp_source_internal(func_name).into()
+}
+pub fn snapshot_icp_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -76,7 +88,7 @@ pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
                 #func_name.to_string(),
             )]
         }
-    }.into()
+    }
 }
 
 pub struct RelayerSourceInput {
@@ -95,10 +107,15 @@ impl Parse for RelayerSourceInput {
     }
 }
 pub fn relayer_source(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as RelayerSourceInput);
+    relayer_source_internal(args).into()
+}
+fn relayer_source_internal(args: RelayerSourceInput) -> proc_macro2::TokenStream {
     let RelayerSourceInput {
-        from_lens,
         method_identifier,
-    } = parse_macro_input!(input as RelayerSourceInput);
+        from_lens,
+    } = args;
+
     if from_lens.value {
         return quote! {
             #[ic_cdk::query]
@@ -113,7 +130,7 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
                     ),
                 ]
             }
-        }.into();
+        };
     }
 
     quote! {
@@ -129,5 +146,75 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
                 )
             ]
         }
-    }.into()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_algorithm_indexer_source() {
+        let generated = generate_algorithm_indexer_source();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_indexer_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_snapshot_web3_source() {
+        let input = quote! {"total_supply"};
+        let args: syn::Result<syn::LitStr> = syn::parse2(input);
+        let generated = snapshot_web3_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__snapshot_indexer_web3_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_snapshot_indexer_https_source() {
+        let generated = snapshot_https_source_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__snapshot_indexer_https_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_snapshot_indexer_icp_source() {
+        let input = quote! {"icrc1_balance_of"};
+        let args: syn::Result<syn::LitStr> = syn::parse2(input);
+        let generated = snapshot_icp_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__snapshot_indexer_icp_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_relayer_source() {
+        let input = quote! {"icrc1_balance_of", true};
+        let args: syn::Result<RelayerSourceInput> = syn::parse2(input);
+        let generated = relayer_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_relayer_source_from_lens() {
+        let input = quote! {"calculate", true};
+        let args: syn::Result<RelayerSourceInput> = syn::parse2(input);
+        let generated = relayer_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer_source__from_lens", formatted);
+    }
 }

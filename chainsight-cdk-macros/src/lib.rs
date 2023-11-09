@@ -126,7 +126,7 @@ pub fn def_snapshot_indexer_icp_canister(input: TokenStream) -> TokenStream {
 }
 #[proc_macro]
 pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
-    indexers::sources::snapshot_https_source(_input)
+    indexers::sources::snapshot_https_source()
 }
 #[proc_macro]
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
