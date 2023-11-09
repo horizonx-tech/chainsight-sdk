@@ -69,7 +69,7 @@ impl Default for CycleManagements {
             },
             db: CycleManagement {
                 initial_value: 2_000_000_000_000,
-                refueling_value: 1_00_000_000_000,
+                refueling_value: 1_000_000_000_000,
                 refueling_threshold: 1_000_000_000_000,
             },
             proxy: CycleManagement {

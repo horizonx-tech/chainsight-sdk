@@ -23,7 +23,7 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
             INITIALIZED.with(|f| *f.borrow_mut() = true);
             PROXY.with(|f| *f.borrow_mut() = proxy);
             ENV.with(|f| *f.borrow_mut() = env);
-            
+
             let canister_id = ic_cdk::api::id();
             let vault = init_result.vault;
             let (status,) = ic_cdk::api::management_canister::main::canister_status(CanisterIdRecord {
