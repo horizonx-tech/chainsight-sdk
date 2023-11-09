@@ -43,18 +43,16 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
-    let (call_args_ident, relayer_source_ident) = if lens_targets.is_some() {
+    let (call_args_ident, source_ident) = if lens_targets.is_some() {
         (
             quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
                     get_lens_targets()
                 }
             },
-            quote! {
-                relayer_source!(#method_name, true);
-                manage_single_state!("lens_targets", Vec<String>, false);
-            },
+            quote! { relayer_source!(#method_name, true); },
         )
     } else {
         (
@@ -73,8 +71,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
-        #relayer_source_ident
         #call_args_ident
+
+        #source_ident
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
