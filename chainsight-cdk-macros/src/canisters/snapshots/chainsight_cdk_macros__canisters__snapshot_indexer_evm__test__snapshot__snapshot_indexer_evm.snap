@@ -5,7 +5,7 @@ expression: formatted
 use candid::{Decode, Encode};
 use chainsight_cdk_macros::{
     chainsight_common, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-    manage_single_state, prepare_stable_structure, setup_func, snapshot_web3_source,
+    manage_single_state, prepare_stable_structure, setup_func, snapshot_indexer_web3_source,
     stable_memory_for_vec, timer_task_func, StableMemoryStorable,
 };
 use ic_web3_rs::types::Address;
@@ -94,7 +94,7 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
 ic_solidity_bindgen::contract_abi!(
     "examples/minimum_indexers/src/snapshot_indexer_evm/abi/ERC20.json"
 );
-snapshot_web3_source!("total_supply");
+snapshot_indexer_web3_source!("total_supply");
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {

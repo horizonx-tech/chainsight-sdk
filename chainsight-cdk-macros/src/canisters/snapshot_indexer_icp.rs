@@ -31,7 +31,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
     quote! {
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_icp_source};
+        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_indexer_icp_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 
         mod types;
@@ -121,7 +121,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
         #queries_expect_timestamp
 
-        snapshot_icp_source!(#method_ident);
+        snapshot_indexer_icp_source!(#method_ident);
 
         #call_canister_args_ident
         type CallCanisterResponse = SnapshotValue;

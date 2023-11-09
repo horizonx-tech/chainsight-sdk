@@ -36,7 +36,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_web3_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_indexer_web3_source};
 
         use ic_web3_rs::types::Address;
 
@@ -135,7 +135,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         #queries_expect_timestamp
 
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
-        snapshot_web3_source!(#method_ident_str);
+        snapshot_indexer_web3_source!(#method_ident_str);
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]

@@ -6,15 +6,15 @@ use candid::{Decode, Encode};
 use chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs;
 use chainsight_cdk::web2::{HttpsSnapshotParam, Web2HttpsSnapshotIndexer};
 use chainsight_cdk_macros::{
-    chainsight_common, did_export, init_in, prepare_stable_structure, snapshot_https_source,
-    stable_memory_for_vec, timer_task_func, StableMemoryStorable,
+    chainsight_common, did_export, init_in, prepare_stable_structure,
+    snapshot_indexer_https_source, stable_memory_for_vec, timer_task_func, StableMemoryStorable,
 };
 use sample_snapshot_indexer_https::*;
 use std::collections::HashMap;
 did_export!("sample_snapshot_indexer_https");
 init_in!();
 chainsight_common!(60u32);
-snapshot_https_source!();
+snapshot_indexer_https_source!();
 #[derive(
     Debug,
     Clone,
