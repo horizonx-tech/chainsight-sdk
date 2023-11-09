@@ -27,7 +27,7 @@ chainsight_common!(1000u32);
 define_web3_ctx!();
 define_transform_for_web3!();
 define_get_ethereum_address!();
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 manage_single_state!("target_addr", String, false);
 setup_func ! ({ target_addr : String , web3_ctx_param : Web3CtxParam , config : IndexingConfig , });
 init_in!();

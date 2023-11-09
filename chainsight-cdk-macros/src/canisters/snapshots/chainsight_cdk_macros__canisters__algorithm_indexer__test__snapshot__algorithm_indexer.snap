@@ -14,7 +14,7 @@ chainsight_common!(3600u32);
 init_in!();
 manage_single_state!("target_addr", String, false);
 setup_func ! ({ target_addr : String , config : IndexingConfig });
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 use example_canister::*;
 algorithm_indexer ! (HashMap < u64 , Vec < String >> , "get_list");
 did_export!("example_canister");

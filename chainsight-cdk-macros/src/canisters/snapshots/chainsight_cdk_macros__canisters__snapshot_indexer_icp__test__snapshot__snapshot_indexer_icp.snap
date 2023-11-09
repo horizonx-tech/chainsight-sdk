@@ -16,7 +16,7 @@ manage_single_state!("target_canister", String, false);
 setup_func ! ({ target_canister : String });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 #[derive(
     Clone,
     Debug,
