@@ -16,9 +16,14 @@ impl Parse for Web3EventIndexerInput {
     }
 }
 pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
-    let Web3EventIndexerInput { out_type } = parse_macro_input!(input as Web3EventIndexerInput);
+    let args = parse_macro_input!(input as Web3EventIndexerInput);
+    web3_event_indexer_internal(args).into()
+}
+fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::TokenStream {
+    let Web3EventIndexerInput { out_type } = args;
     let common = event_indexer_common(out_type.clone());
     let source = generate_event_indexer_source(out_type.clone());
+
     quote! {
         #source
         #common
@@ -35,7 +40,6 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
         }
 
     }
-    .into()
 }
 fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
     let output = quote! {
@@ -156,11 +160,15 @@ impl Parse for AlgorithmIndexerWithArgsInput {
     }
 }
 pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
+    algorithm_indexer_with_args_internal(args).into()
+}
+fn algorithm_indexer_with_args_internal(args: AlgorithmIndexerWithArgsInput) -> proc_macro2::TokenStream {
     let AlgorithmIndexerWithArgsInput {
         in_type,
         args,
         call_method,
-    } = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
+    } = args;
     let source = generate_algorithm_indexer_source();
     quote! {
         manage_single_state!("config", IndexingConfig, false);
@@ -204,7 +212,6 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
         }
 
     }
-    .into()
 }
 
 pub struct AlgorithmLensFinderInput {
@@ -235,12 +242,16 @@ impl Parse for AlgorithmLensFinderInput {
     }
 }
 pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as AlgorithmLensFinderInput);
+    algorithm_lens_finder_internal(args).into() 
+}
+fn algorithm_lens_finder_internal(args: AlgorithmLensFinderInput) -> proc_macro2::TokenStream {
     let AlgorithmLensFinderInput {
         id,
         call_method,
         return_ty,
         args_ty,
-    } = parse_macro_input!(input as AlgorithmLensFinderInput);
+    } = args;
 
     let finder_method_name = format_ident!("finder_{}", id.value().to_lowercase());
     let get_method_name = format_ident!("get_{}", id.value().to_lowercase());
@@ -270,7 +281,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                         )
                     )
                 }
-            }.into()
+            }
         }
         None => {
             quote! {
@@ -293,7 +304,7 @@ pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
                         )
                     )
                 }
-            }.into()
+            }
         }
     }
 }
@@ -424,4 +435,56 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
             ]
         }
     }.into()
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_web3_event_indexer() {
+        let input = quote! {Transfer};
+        let args: syn::Result<Web3EventIndexerInput> = syn::parse2(input);
+        let generated = web3_event_indexer_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__web3_event_indexer", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_algorithm_indexer() {
+        let input = quote! {HashMap<u64, Vec<String>>, "get_list"};
+        let args: syn::Result<AlgorithmIndexerInput> = syn::parse2(input);
+        let generated = algorithm_indexer_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_indexer", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_algorithm_indexer_with_args() {
+        let input = quote! {TransferEvent, (Principal, String, String), "get_transfers"};
+        let args: syn::Result<AlgorithmIndexerWithArgsInput> = syn::parse2(input);
+        let generated = algorithm_indexer_with_args_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_indexer_witg_args", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_algorithm_lens_finder() {
+        let input = quote! {"user", "get_user", User, u64};
+        let args: syn::Result<AlgorithmLensFinderInput> = syn::parse2(input);
+        let generated = algorithm_lens_finder_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_lens_finder", formatted);
+    }
 }

@@ -1,0 +1,48 @@
+---
+source: chainsight-cdk-macros/src/indexers.rs
+expression: formatted
+---
+manage_single_state!("config", IndexingConfig, false);
+use chainsight_cdk::indexer::Indexer;
+async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<HashMap<u64, Vec<String>>> {
+    chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(
+        _get_target_proxy(get_target()).await,
+        "get_list",
+        persist,
+    )
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+    vec![chainsight_cdk::core::Sources::<
+        std::collections::HashMap<String, String>,
+    >::new_algorithm_indexer(
+        get_target_addr(),
+        get_indexing_interval(),
+    )]
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn index() {
+    if ic_cdk::caller() != proxy() {
+        panic!("Not permitted")
+    }
+    let mut config = get_config();
+    let stored = chainsight_cdk::storage::get_last_key();
+    ic_cdk::println!("stored: {:?}", stored);
+    let stored_u64 = stored.parse::<u64>().unwrap_or(0);
+    ic_cdk::println!("stored_u64: {:?}", stored_u64);
+    if stored_u64 > config.start_from {
+        config.start_from = stored_u64;
+    }
+    indexer().await.index(config).await.unwrap();
+}
+fn get_target() -> candid::Principal {
+    candid::Principal::from_text(get_target_addr()).unwrap()
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn event_source() -> candid::Principal {
+    get_target()
+}
+
