@@ -29,7 +29,7 @@ static LINEAR_EQUATION: fn() -> () = || {
     ic_cdk::println!("x={}, solution={}, ts={}", x, solution, current_ts_sec);
     set_x(x + 1);
 };
-timer_task_func!("set_task", "LINEAR_EQUATION", false);
+timer_task_func!("set_task", "LINEAR_EQUATION");
 
 // Function with dependencies
 fn proxy() -> candid::Principal {

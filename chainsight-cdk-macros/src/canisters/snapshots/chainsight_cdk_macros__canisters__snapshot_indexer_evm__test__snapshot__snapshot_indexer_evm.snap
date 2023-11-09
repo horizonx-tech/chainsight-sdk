@@ -19,7 +19,7 @@ manage_single_state!("target_addr", String, false);
 setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 #[derive(
     Debug,
     Clone,

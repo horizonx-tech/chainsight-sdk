@@ -35,7 +35,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         init_in!();
         manage_single_state!("target_addr", String, false);
         setup_func!({ target_addr: String, config: IndexingConfig });
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         use #canister_name_ident::*;
 
         algorithm_indexer!(#input_ty, #method_name);

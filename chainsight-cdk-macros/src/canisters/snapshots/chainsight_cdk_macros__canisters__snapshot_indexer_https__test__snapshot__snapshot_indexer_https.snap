@@ -30,7 +30,7 @@ pub struct Snapshot {
 }
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 const URL: &str = "https://api.coingecko.com/api/v3/simple/price";
 fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
     HttpsSnapshotIndexerSourceAttrs {
