@@ -2,10 +2,14 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input
+    parse_macro_input,
 };
 
-pub fn web3_event_indexer_source(tt: syn::Type) -> proc_macro2::TokenStream {
+pub fn web3_event_indexer_source(input: TokenStream) -> TokenStream {
+    let tt = parse_macro_input!(input as syn::Type);
+    web3_event_indexer_source_internal(tt).into()
+}
+fn web3_event_indexer_source_internal(tt: syn::Type) -> proc_macro2::TokenStream {
     let type_str = quote!(#tt).to_string();
     quote! {
         #[ic_cdk::query]
@@ -22,6 +26,7 @@ pub fn web3_event_indexer_source(tt: syn::Type) -> proc_macro2::TokenStream {
         }
     }
 }
+
 pub fn algorithm_indexer_source() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
@@ -155,6 +160,17 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
+
+    #[test]
+    fn test_snapshot_web3_event_indexer_source() {
+        let input = quote! {Transfer};
+        let args: syn::Result<syn::Type> = syn::parse2(input);
+        let generated = web3_event_indexer_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__web3_event_indexer_source", formatted);
+    }
 
     #[test]
     fn test_snapshot_algorithm_indexer_source() {

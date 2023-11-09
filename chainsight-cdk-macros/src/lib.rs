@@ -158,6 +158,10 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn web3_event_indexer_source(input: TokenStream) -> TokenStream {
+    indexers::sources::web3_event_indexer_source(input)
+}
+#[proc_macro]
 pub fn snapshot_indexer_web3_source(input: TokenStream) -> TokenStream {
     indexers::sources::snapshot_indexer_web3_source(input)
 }

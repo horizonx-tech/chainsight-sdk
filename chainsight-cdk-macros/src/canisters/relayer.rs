@@ -131,7 +131,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     quote! {
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export,relayer_source};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, relayer_source};
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;

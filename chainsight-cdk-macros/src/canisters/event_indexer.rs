@@ -46,7 +46,7 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         };
         use chainsight_cdk_macros::{
             define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-            manage_single_state, chainsight_common, setup_func, web3_event_indexer,timer_task_func,
+            manage_single_state, chainsight_common, setup_func, web3_event_indexer,timer_task_func, web3_event_indexer_source,
             ContractEvent, Persist,
         };
         use ic_solidity_bindgen::{types::EventLog};
@@ -104,6 +104,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
     let (event_struct_ident, event_struct) = generate_event_struct(event);
     quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
+        web3_event_indexer_source!(#event_struct_ident);
         web3_event_indexer!(#event_struct_ident);
         #event_struct
 
