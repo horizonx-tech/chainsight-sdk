@@ -163,7 +163,9 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as AlgorithmIndexerWithArgsInput);
     algorithm_indexer_with_args_internal(args).into()
 }
-fn algorithm_indexer_with_args_internal(args: AlgorithmIndexerWithArgsInput) -> proc_macro2::TokenStream {
+fn algorithm_indexer_with_args_internal(
+    args: AlgorithmIndexerWithArgsInput,
+) -> proc_macro2::TokenStream {
     let AlgorithmIndexerWithArgsInput {
         in_type,
         args,
@@ -243,7 +245,7 @@ impl Parse for AlgorithmLensFinderInput {
 }
 pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as AlgorithmLensFinderInput);
-    algorithm_lens_finder_internal(args).into() 
+    algorithm_lens_finder_internal(args).into()
 }
 fn algorithm_lens_finder_internal(args: AlgorithmLensFinderInput) -> proc_macro2::TokenStream {
     let AlgorithmLensFinderInput {

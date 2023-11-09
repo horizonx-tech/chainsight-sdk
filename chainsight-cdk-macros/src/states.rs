@@ -1,7 +1,10 @@
 use chainsight_cdk::storage::Data;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse::{Parse, ParseStream}, parse_macro_input, Expr, LitBool, LitStr, Type};
+use syn::{
+    parse::{Parse, ParseStream},
+    parse_macro_input, Expr, LitBool, LitStr, Type,
+};
 
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
