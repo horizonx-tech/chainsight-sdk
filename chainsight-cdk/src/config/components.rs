@@ -86,7 +86,7 @@ pub struct AlgorithmIndexerConfig {
 pub struct AlgorithmLensConfig {
     pub common: CommonConfig,
     pub target_count: usize,
-    pub args_type: Option<String>
+    pub args_type: Option<String>,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]

@@ -198,12 +198,15 @@ mod test {
                     "zfcdd-tqaaa-aaaaq-aaaga-cai".to_string(), // SNS-1
                     "mxzaz-hqaaa-aaaar-qaada-cai".to_string(), // ckBTC
                 ],
-            })
+            }),
         };
         let generated = snapshot_indexer_icp(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
-        assert_display_snapshot!("snapshot__snapshot_indexer_icp__with_lens_targets", formatted);
+        assert_display_snapshot!(
+            "snapshot__snapshot_indexer_icp__with_lens_targets",
+            formatted
+        );
     }
 }

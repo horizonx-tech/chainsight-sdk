@@ -48,7 +48,7 @@ mod test {
                 canister_name: "app".to_string(),
             },
             target_count: 10,
-            args_type: None
+            args_type: None,
         };
         let generated = algorithm_lens_canister(config);
         let formatted = RustFmt::default()
@@ -65,7 +65,7 @@ mod test {
                 canister_name: "app".to_string(),
             },
             target_count: 10,
-            args_type: Some("CalculateArgs".to_string())
+            args_type: Some("CalculateArgs".to_string()),
         };
         let generated = algorithm_lens_canister(config);
         let formatted = RustFmt::default()
