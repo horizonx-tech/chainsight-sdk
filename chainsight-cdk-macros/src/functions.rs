@@ -197,7 +197,7 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                         panic!("Expected {} targets", #target_count);
                     }
                     _calc(targets, input).await
-                    }
+                }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #value_ty>::new(
@@ -220,7 +220,7 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                         panic!("Expected {} targets", #target_count);
                     }
                     _calc(targets).await
-                    }
+                }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #value_ty>::new(
@@ -303,14 +303,23 @@ mod test {
 
     #[test]
     fn test_snapshot_lens_method() {
-        let args = LensArgs {
-            target_count: 10,
-            func_arg: None,
-        };
-        let generated = lens_method_internal(args);
+        let input = quote! {10};
+        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let generated = lens_method_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__lens_method", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_lens_method_with_args() {
+        let input = quote! {10, CalculateArgs};
+        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let generated = lens_method_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__lens_method__with_args", formatted);
     }
 }

@@ -15,6 +15,11 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
     let canister_name = config.common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
     let lens_size = config.target_count;
+    let lens_method_quote = if let Some(args_type) = config.args_type {
+        quote! { lens_method!(#lens_size, #args_type); }
+    } else {
+        quote! { lens_method!(#lens_size); }
+    };
     quote! {
         did_export!(#canister_name);
         use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method};
@@ -22,7 +27,7 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         chainsight_common!(#monitor_duration);
         init_in!();
         use #canister_name_ident::*;
-        lens_method!(#lens_size);
+        #lens_method_quote
 
     }
 }
@@ -36,18 +41,36 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_snapshot() {
+    fn test_snapshot_without_args() {
         let config = AlgorithmLensConfig {
             common: CommonConfig {
                 monitor_duration: 1000,
                 canister_name: "app".to_string(),
             },
             target_count: 10,
+            args_type: None
         };
         let generated = algorithm_lens_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__algorithm_lens", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_args() {
+        let config = AlgorithmLensConfig {
+            common: CommonConfig {
+                monitor_duration: 1000,
+                canister_name: "app".to_string(),
+            },
+            target_count: 10,
+            args_type: Some("CalculateArgs".to_string())
+        };
+        let generated = algorithm_lens_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__algorithm_lens_with_args", formatted);
     }
 }
