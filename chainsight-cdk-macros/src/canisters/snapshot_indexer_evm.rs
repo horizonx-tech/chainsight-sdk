@@ -55,7 +55,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
     }
 }
 

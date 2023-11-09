@@ -62,7 +62,7 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         define_web3_ctx!();
         define_transform_for_web3!();
         define_get_ethereum_address!();
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         manage_single_state!("target_addr", String, false);
         setup_func!({
             target_addr: String,

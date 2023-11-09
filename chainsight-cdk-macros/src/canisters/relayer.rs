@@ -142,7 +142,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         manage_single_state!("target_addr", String, false);
         define_get_ethereum_address!();
         manage_single_state!("target_canister", String, false);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         init_in!();
         setup_func!({
             target_addr: String,
