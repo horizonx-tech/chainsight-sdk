@@ -1,0 +1,28 @@
+---
+source: chainsight-cdk-macros/src/indexers.rs
+expression: formatted
+---
+pub async fn get_user(target_principal: String, args: u64) -> std::result::Result<User, String> {
+    let method = finder_user(target_principal.clone());
+    method
+        .await
+        .find(args)
+        .await
+        .map_err(|e| format!("{:?}", e))
+}
+pub async fn get_user_unwrap(target_principal: String, args: u64) -> User {
+    finder_user(target_principal.clone())
+        .await
+        .find(args)
+        .await
+        .unwrap()
+}
+async fn finder_user(target_principal: String) -> chainsight_cdk::lens::AlgorithmLensFinder<User> {
+    use chainsight_cdk::lens::LensFinder;
+    let recipient = candid::Principal::from_text(target_principal).unwrap();
+    chainsight_cdk::lens::AlgorithmLensFinder::new(chainsight_cdk::lens::LensTarget::<User>::new(
+        _get_target_proxy(recipient).await,
+        "get_user",
+    ))
+}
+

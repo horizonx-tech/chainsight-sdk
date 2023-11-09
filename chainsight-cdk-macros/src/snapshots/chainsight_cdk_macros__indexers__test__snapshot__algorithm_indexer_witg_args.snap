@@ -1,0 +1,58 @@
+---
+source: chainsight-cdk-macros/src/indexers.rs
+expression: formatted
+---
+manage_single_state!("config", IndexingConfig, false);
+thread_local! { static ARGS : std :: cell :: RefCell < Option < (Principal , String , String) >> = std :: cell :: RefCell :: new (None) ; }
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+fn set_args(args: (Principal, String, String)) {
+    ARGS.with(|cell| {
+        *cell.borrow_mut() = Some(args);
+    });
+}
+fn get_args() -> (Principal, String, String) {
+    ARGS.with(|cell| cell.borrow().clone().unwrap())
+}
+use chainsight_cdk::indexer::Indexer;
+async fn indexer(
+) -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<TransferEvent, (Principal, String, String)>
+{
+    chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(
+        _get_target_proxy(get_target()).await,
+        "get_transfers",
+        persist,
+        get_args(),
+    )
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
+    vec![chainsight_cdk::core::Sources::<
+        std::collections::HashMap<String, String>,
+    >::new_algorithm_indexer(
+        get_target_addr(),
+        get_indexing_interval(),
+    )]
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn index() {
+    if ic_cdk::caller() != proxy() {
+        panic!("Not permitted")
+    }
+    indexer()
+        .await
+        .index(chainsight_cdk::indexer::IndexingConfig::default())
+        .await
+        .unwrap()
+}
+fn get_target() -> candid::Principal {
+    candid::Principal::from_text(get_target_addr()).unwrap()
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn event_source() -> candid::Principal {
+    get_target()
+}
+

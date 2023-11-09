@@ -3,8 +3,11 @@ use quote::quote;
 use syn::parse_macro_input;
 
 pub fn chainsight_common(input: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(input as syn::LitInt);
-    let output = quote! {
+    let args = parse_macro_input!(input as syn::LitInt);
+    chainsight_common_internal(args).into()
+}
+fn chainsight_common_internal(args: syn::LitInt) -> proc_macro2::TokenStream {
+    quote! {
         #[derive(Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize)]
         pub struct CanisterMetricsSnapshot {
             pub timestamp: u64,
@@ -15,10 +18,10 @@ pub fn chainsight_common(input: TokenStream) -> TokenStream {
         fn setup_monitoring_canister_metrics() {
             let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
             let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
-            let delay = round_timestamp(current_time_sec, #item) + #item - current_time_sec;
+            let delay = round_timestamp(current_time_sec, #args) + #args - current_time_sec;
 
             ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
-                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#item as u64), || {
+                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#args as u64), || {
                     monitor_canister_metrics();
                 });
             });
@@ -63,14 +66,16 @@ pub fn chainsight_common(input: TokenStream) -> TokenStream {
             let out: ic_cdk::api::call::CallResult<(candid::Principal,)> = ic_cdk::api::call::call(target, "get_proxy", ()).await;
             out.unwrap().0
         }
-    };
-    output.into()
+    }
 }
 
 pub fn did_export(input: TokenStream) -> TokenStream {
-    let item = parse_macro_input!(input as syn::LitStr);
-    let file_name = item.value() + ".did";
-    TokenStream::from(quote! {
+    let args = parse_macro_input!(input as syn::LitStr);
+    did_export_internal(args).into()
+}
+fn did_export_internal(args: syn::LitStr) -> proc_macro2::TokenStream {
+    let file_name = args.value() + ".did";
+    quote! {
         candid::export_service!();
         #[ic_cdk::query(name = "__get_candid_interface_tmp_hack")]
         #[candid::candid_method(query, rename = "__get_candid_interface_tmp_hack")]
@@ -86,5 +91,35 @@ pub fn did_export(input: TokenStream) -> TokenStream {
                 std::fs::write(#file_name, __export_service()).unwrap();
             }
         }
-    })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_chainsight_common() {
+        let input = quote! {60};
+        let args: syn::Result<syn::LitInt> = syn::parse2(input);
+        let generated = chainsight_common_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__chainsight_common", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_did_export() {
+        let input = quote! {"sample_component"};
+        let args: syn::Result<syn::LitStr> = syn::parse2(input);
+        let generated = did_export_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__did_export", formatted);
+    }
 }

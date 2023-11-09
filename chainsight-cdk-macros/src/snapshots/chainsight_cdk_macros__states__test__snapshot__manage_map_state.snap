@@ -1,0 +1,19 @@
+---
+source: chainsight-cdk-macros/src/states.rs
+expression: formatted
+---
+thread_local! { static TIME_DIFFERENCESS : std :: cell :: RefCell < std :: collections :: HashMap < String , u64 >> = std :: cell :: RefCell :: new (std :: collections :: HashMap :: new ()) ; }
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+pub fn time_differencess_len() -> usize {
+    TIME_DIFFERENCESS.with(|state| state.borrow().len())
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+pub fn get_time_differences(key: String) -> u64 {
+    TIME_DIFFERENCESS.with(|state| state.borrow().get(&key).cloned().expect("key not found"))
+}
+pub fn insert_time_differences(key: String, value: u64) {
+    TIME_DIFFERENCESS.with(|state| state.borrow_mut().insert(key, value));
+}
+
