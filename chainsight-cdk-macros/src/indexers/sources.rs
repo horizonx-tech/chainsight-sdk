@@ -5,7 +5,7 @@ use syn::{
     parse_macro_input
 };
 
-pub fn generate_event_indexer_source(tt: syn::Type) -> proc_macro2::TokenStream {
+pub fn web3_event_indexer_source(tt: syn::Type) -> proc_macro2::TokenStream {
     let type_str = quote!(#tt).to_string();
     quote! {
         #[ic_cdk::query]
@@ -22,7 +22,7 @@ pub fn generate_event_indexer_source(tt: syn::Type) -> proc_macro2::TokenStream 
         }
     }
 }
-pub fn generate_algorithm_indexer_source() -> proc_macro2::TokenStream {
+pub fn algorithm_indexer_source() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -37,11 +37,11 @@ pub fn generate_algorithm_indexer_source() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
+pub fn snapshot_indexer_web3_source(input: TokenStream) -> TokenStream {
     let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
-    snapshot_web3_source_internal(func_name).into()
+    snapshot_indexer_web3_source_internal(func_name).into()
 }
-fn snapshot_web3_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
+fn snapshot_indexer_web3_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -56,10 +56,10 @@ fn snapshot_web3_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenSt
     }
 }
 
-pub fn snapshot_https_source() -> TokenStream {
-    snapshot_https_source_internal().into()
+pub fn snapshot_indexer_https_source() -> TokenStream {
+    snapshot_indexer_https_source_internal().into()
 }
-fn snapshot_https_source_internal() -> proc_macro2::TokenStream {
+fn snapshot_indexer_https_source_internal() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -73,11 +73,11 @@ fn snapshot_https_source_internal() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
+pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {
     let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
-    snapshot_icp_source_internal(func_name).into()
+    snapshot_indexer_icp_source_internal(func_name).into()
 }
-pub fn snapshot_icp_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
+pub fn snapshot_indexer_icp_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -158,7 +158,7 @@ mod test {
 
     #[test]
     fn test_snapshot_algorithm_indexer_source() {
-        let generated = generate_algorithm_indexer_source();
+        let generated = algorithm_indexer_source();
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
@@ -166,10 +166,10 @@ mod test {
     }
 
     #[test]
-    fn test_snapshot_snapshot_web3_source() {
+    fn test_snapshot_snapshot_indexer_web3_source() {
         let input = quote! {"total_supply"};
         let args: syn::Result<syn::LitStr> = syn::parse2(input);
-        let generated = snapshot_web3_source_internal(args.unwrap());
+        let generated = snapshot_indexer_web3_source_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
@@ -178,7 +178,7 @@ mod test {
 
     #[test]
     fn test_snapshot_snapshot_indexer_https_source() {
-        let generated = snapshot_https_source_internal();
+        let generated = snapshot_indexer_https_source_internal();
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
@@ -189,7 +189,7 @@ mod test {
     fn test_snapshot_snapshot_indexer_icp_source() {
         let input = quote! {"icrc1_balance_of"};
         let args: syn::Result<syn::LitStr> = syn::parse2(input);
-        let generated = snapshot_icp_source_internal(args.unwrap());
+        let generated = snapshot_indexer_icp_source_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");

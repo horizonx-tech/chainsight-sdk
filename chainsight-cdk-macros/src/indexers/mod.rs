@@ -23,7 +23,7 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::TokenStream {
     let Web3EventIndexerInput { out_type } = args;
     let common = event_indexer_common(out_type.clone());
-    let source = sources::generate_event_indexer_source(out_type.clone());
+    let source = sources::web3_event_indexer_source(out_type.clone());
 
     quote! {
         #source
@@ -105,7 +105,7 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
         in_type,
         call_method,
     } = args;
-    let source = sources::generate_algorithm_indexer_source();
+    let source = sources::algorithm_indexer_source();
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
@@ -172,7 +172,7 @@ fn algorithm_indexer_with_args_internal(
         args,
         call_method,
     } = args;
-    let source = sources::generate_algorithm_indexer_source();
+    let source = sources::algorithm_indexer_source();
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         thread_local!{
