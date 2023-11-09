@@ -83,16 +83,16 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
 }
 #[proc_macro]
 pub fn relayer_source(input: TokenStream) -> TokenStream {
-    indexers::relayer_source(input)
+    indexers::sources::relayer_source(input)
 }
 
 #[proc_macro]
 pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
-    indexers::snapshot_icp_source(input)
+    indexers::sources::snapshot_icp_source(input)
 }
 #[proc_macro]
 pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
-    indexers::snapshot_web3_source(input)
+    indexers::sources::snapshot_web3_source(input)
 }
 #[proc_macro]
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
@@ -126,7 +126,7 @@ pub fn def_snapshot_indexer_icp_canister(input: TokenStream) -> TokenStream {
 }
 #[proc_macro]
 pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
-    indexers::snapshot_https_source(_input)
+    indexers::sources::snapshot_https_source(_input)
 }
 #[proc_macro]
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
