@@ -1,0 +1,18 @@
+---
+source: chainsight-cdk-macros/src/indexers/sources.rs
+expression: formatted
+---
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_sources(
+) -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>> {
+    vec![chainsight_cdk::core::Sources::<
+        chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs,
+    >::new_web3_snapshot_indexer(
+        get_target_addr(),
+        get_indexing_interval(),
+        get_web3_ctx_param().chain_id,
+        "total_supply".to_string(),
+    )]
+}
+

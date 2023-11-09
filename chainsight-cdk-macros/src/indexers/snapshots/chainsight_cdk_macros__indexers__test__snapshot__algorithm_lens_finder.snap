@@ -1,5 +1,5 @@
 ---
-source: chainsight-cdk-macros/src/indexers.rs
+source: chainsight-cdk-macros/src/indexers/mod.rs
 expression: formatted
 ---
 pub async fn get_user(target_principal: String, args: u64) -> std::result::Result<User, String> {

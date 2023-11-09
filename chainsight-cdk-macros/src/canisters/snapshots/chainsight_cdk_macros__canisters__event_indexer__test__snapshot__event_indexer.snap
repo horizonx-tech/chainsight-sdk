@@ -12,7 +12,7 @@ use chainsight_cdk::{
 use chainsight_cdk_macros::{
     chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
     did_export, init_in, manage_single_state, setup_func, timer_task_func, web3_event_indexer,
-    ContractEvent, Persist,
+    web3_event_indexer_source, ContractEvent, Persist,
 };
 use ic_solidity_bindgen::types::EventLog;
 use ic_web3_rs::{
@@ -32,6 +32,7 @@ manage_single_state!("target_addr", String, false);
 setup_func ! ({ target_addr : String , web3_ctx_param : Web3CtxParam , config : IndexingConfig , });
 init_in!();
 ic_solidity_bindgen::contract_abi!("examples/minimum_indexers/src/event_indexer/abi/ERC20.json");
+web3_event_indexer_source!(Transfer);
 web3_event_indexer!(Transfer);
 #[derive(Clone, Debug, Default, candid :: CandidType, ContractEvent, Serialize, Persist)]
 pub struct Transfer {

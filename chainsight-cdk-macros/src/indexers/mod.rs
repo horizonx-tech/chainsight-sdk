@@ -1,10 +1,11 @@
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, Type,
 };
+
+pub mod sources;
 
 pub struct Web3EventIndexerInput {
     out_type: syn::Type,
@@ -22,10 +23,8 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
 fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::TokenStream {
     let Web3EventIndexerInput { out_type } = args;
     let common = event_indexer_common(out_type.clone());
-    let source = generate_event_indexer_source(out_type.clone());
 
     quote! {
-        #source
         #common
         fn indexer() -> chainsight_cdk::web3::Web3Indexer<#out_type> {
             chainsight_cdk::web3::Web3Indexer::new(get_logs, None)
@@ -41,7 +40,7 @@ fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::Toke
 
     }
 }
-fn event_indexer_common(out_type: syn::Type) -> TokenStream2 {
+fn event_indexer_common(out_type: syn::Type) -> proc_macro2::TokenStream {
     let output = quote! {
         manage_single_state!("config", IndexingConfig, false);
         #[ic_cdk::query]
@@ -104,14 +103,13 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
         in_type,
         call_method,
     } = args;
-    let source = generate_algorithm_indexer_source();
+
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)
         }
-        #source
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
@@ -171,7 +169,7 @@ fn algorithm_indexer_with_args_internal(
         args,
         call_method,
     } = args;
-    let source = generate_algorithm_indexer_source();
+
     quote! {
         manage_single_state!("config", IndexingConfig, false);
         thread_local!{
@@ -194,7 +192,7 @@ fn algorithm_indexer_with_args_internal(
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexerWithArgs<#in_type, #args> {
             chainsight_cdk::algorithm::AlgorithmIndexerWithArgs::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist, get_args())
         }
-        #source
+
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
@@ -309,134 +307,6 @@ fn algorithm_lens_finder_internal(args: AlgorithmLensFinderInput) -> proc_macro2
             }
         }
     }
-}
-
-// Source getters
-fn generate_event_indexer_source(tt: syn::Type) -> TokenStream2 {
-    let type_str = quote!(#tt).to_string();
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3EventIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3EventIndexerSourceAttrs>::new_event_indexer(
-            get_target_addr(),
-            get_indexing_interval(),
-            chainsight_cdk::core::Web3EventIndexerSourceAttrs {
-                chain_id: get_web3_ctx_param().chain_id,
-                event_name: #type_str.to_string(),
-            })
-            ]
-        }
-    }
-}
-fn generate_algorithm_indexer_source() -> TokenStream2 {
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
-            vec![
-                chainsight_cdk::core::Sources::<std::collections::HashMap<String, String>>::new_algorithm_indexer(
-                    get_target_addr(),
-                    get_indexing_interval()
-                )
-            ]
-        }
-    }
-}
-pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
-    let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>::new_web3_snapshot_indexer(
-                get_target_addr(),
-                get_indexing_interval(),
-                get_web3_ctx_param().chain_id,
-                #func_name.to_string(),
-            )]
-        }
-    }.into()
-}
-pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>::new_https_snapshot_indexer(
-                URL.to_string(),
-                get_indexing_interval(),
-                get_attrs(),
-            )]
-        }
-    }.into()
-}
-pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
-    let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
-                get_target_canister(),
-                get_indexing_interval(),
-                #func_name.to_string(),
-            )]
-        }
-    }.into()
-}
-
-pub struct RelayerSourceInput {
-    method_identifier: syn::LitStr,
-    from_lens: syn::LitBool,
-}
-impl Parse for RelayerSourceInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let method_identifier: syn::LitStr = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let from_lens: syn::LitBool = input.parse()?;
-        Ok(RelayerSourceInput {
-            method_identifier,
-            from_lens,
-        })
-    }
-}
-pub fn relayer_source(input: TokenStream) -> TokenStream {
-    let RelayerSourceInput {
-        from_lens,
-        method_identifier,
-    } = parse_macro_input!(input as RelayerSourceInput);
-    if from_lens.value {
-        return quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-            fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::RelayerWithLensSourceAttrs>> {
-                vec![
-                    chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
-                        get_target_canister(),
-                        get_indexing_interval(),
-                        #method_identifier,
-                        call_args()
-                    ),
-                ]
-            }
-        }.into();
-    }
-
-    quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::RelayerWithLensSourceAttrs>> {
-            vec![
-                chainsight_cdk::core::Sources::<chainsight_cdk::core::RelayerWithLensSourceAttrs>::new_relayer(
-                    get_target_canister(),
-                    get_indexing_interval(),
-                    #method_identifier,
-                    vec![]
-                )
-            ]
-        }
-    }.into()
 }
 
 #[cfg(test)]

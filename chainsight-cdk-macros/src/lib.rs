@@ -81,19 +81,7 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
 pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_scalar(input)
 }
-#[proc_macro]
-pub fn relayer_source(input: TokenStream) -> TokenStream {
-    indexers::relayer_source(input)
-}
 
-#[proc_macro]
-pub fn snapshot_icp_source(input: TokenStream) -> TokenStream {
-    indexers::snapshot_icp_source(input)
-}
-#[proc_macro]
-pub fn snapshot_web3_source(input: TokenStream) -> TokenStream {
-    indexers::snapshot_web3_source(input)
-}
 #[proc_macro]
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     canisters::algorithm_indexer::def_algorithm_indexer_canister(input)
@@ -123,10 +111,6 @@ pub fn def_snapshot_indexer_https_canister(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn def_snapshot_indexer_icp_canister(input: TokenStream) -> TokenStream {
     canisters::snapshot_indexer_icp::def_snapshot_indexer_icp(input)
-}
-#[proc_macro]
-pub fn snapshot_https_source(_input: TokenStream) -> TokenStream {
-    indexers::snapshot_https_source(_input)
 }
 #[proc_macro]
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
@@ -171,4 +155,29 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn lens_method(input: TokenStream) -> TokenStream {
     functions::lens_method(input)
+}
+
+#[proc_macro]
+pub fn algorithm_indexer_source(_input: TokenStream) -> TokenStream {
+    indexers::sources::algorithm_indexer_source()
+}
+#[proc_macro]
+pub fn web3_event_indexer_source(input: TokenStream) -> TokenStream {
+    indexers::sources::web3_event_indexer_source(input)
+}
+#[proc_macro]
+pub fn snapshot_indexer_web3_source(input: TokenStream) -> TokenStream {
+    indexers::sources::snapshot_indexer_web3_source(input)
+}
+#[proc_macro]
+pub fn snapshot_indexer_https_source(_input: TokenStream) -> TokenStream {
+    indexers::sources::snapshot_indexer_https_source()
+}
+#[proc_macro]
+pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {
+    indexers::sources::snapshot_indexer_icp_source(input)
+}
+#[proc_macro]
+pub fn relayer_source(input: TokenStream) -> TokenStream {
+    indexers::sources::relayer_source(input)
 }
