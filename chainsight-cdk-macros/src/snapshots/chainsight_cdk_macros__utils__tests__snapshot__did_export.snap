@@ -1,0 +1,19 @@
+---
+source: chainsight-cdk-macros/src/utils.rs
+expression: formatted
+---
+candid::export_service!();
+#[ic_cdk::query(name = "__get_candid_interface_tmp_hack")]
+#[candid::candid_method(query, rename = "__get_candid_interface_tmp_hack")]
+fn __export_did_tmp_() -> String {
+    __export_service()
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn gen_candid() {
+        std::fs::write("sample_component.did", __export_service()).unwrap();
+    }
+}
+

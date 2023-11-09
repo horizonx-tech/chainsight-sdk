@@ -6,7 +6,8 @@ use candid::{Decode, Encode};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, manage_single_state, prepare_stable_structure,
-    setup_func, snapshot_icp_source, stable_memory_for_vec, timer_task_func, StableMemoryStorable,
+    setup_func, snapshot_indexer_icp_source, stable_memory_for_vec, timer_task_func,
+    StableMemoryStorable,
 };
 mod types;
 did_export!("sample_snapshot_indexer_icp");
@@ -16,7 +17,7 @@ manage_single_state!("target_canister", String, false);
 setup_func ! ({ target_canister : String });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 #[derive(
     Clone,
     Debug,
@@ -88,7 +89,7 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .reply(input)
         .await
 }
-snapshot_icp_source!("proxy_get_last_snapshot");
+snapshot_indexer_icp_source!("proxy_get_last_snapshot");
 type CallCanisterArgs = sample_snapshot_indexer_icp::CallCanisterArgs;
 pub fn call_args() -> CallCanisterArgs {
     sample_snapshot_indexer_icp::call_args()

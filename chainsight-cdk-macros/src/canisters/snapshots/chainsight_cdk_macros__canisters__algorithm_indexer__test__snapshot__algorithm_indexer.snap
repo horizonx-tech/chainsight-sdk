@@ -5,8 +5,8 @@ expression: formatted
 use candid::CandidType;
 use chainsight_cdk::indexer::IndexingConfig;
 use chainsight_cdk_macros::{
-    algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
-    timer_task_func,
+    algorithm_indexer, algorithm_indexer_source, chainsight_common, did_export, init_in,
+    manage_single_state, setup_func, timer_task_func,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -14,8 +14,9 @@ chainsight_common!(3600u32);
 init_in!();
 manage_single_state!("target_addr", String, false);
 setup_func ! ({ target_addr : String , config : IndexingConfig });
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 use example_canister::*;
+algorithm_indexer_source!();
 algorithm_indexer ! (HashMap < u64 , Vec < String >> , "get_list");
 did_export!("example_canister");
 

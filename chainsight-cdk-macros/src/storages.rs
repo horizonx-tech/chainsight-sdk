@@ -4,7 +4,10 @@ use quote::quote;
 use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
 pub fn prepare_stable_structure() -> TokenStream {
-    let output = quote! {
+    prepare_stable_structure_internal().into()
+}
+fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {
+    quote! {
         type Memory = ic_stable_structures::memory_manager::VirtualMemory<ic_stable_structures::DefaultMemoryImpl>;
 
         thread_local! {
@@ -14,8 +17,7 @@ pub fn prepare_stable_structure() -> TokenStream {
                 )
             );
         }
-    };
-    output.into()
+    }
 }
 
 #[derive(FromDeriveInput, Default)]
@@ -28,7 +30,6 @@ struct StableMemoryStorableOpts {
     max_size: Option<u32>,
     is_fixed_size: Option<bool>,
 }
-
 pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
@@ -98,13 +99,17 @@ impl Parse for StableMemoryForScalarInput {
     }
 }
 pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as StableMemoryForScalarInput);
+    stable_memory_for_scalar_internal(args).into()
+}
+fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_macro2::TokenStream {
     let StableMemoryForScalarInput {
         name,
         ty,
         memory_id,
         is_expose_getter,
         init,
-    } = parse_macro_input!(input as StableMemoryForScalarInput);
+    } = args;
 
     let var_ident = syn::Ident::new(&name.value().to_uppercase(), name.span());
     let get_ident = syn::Ident::new(&format!("get_{}", name.value()), name.span());
@@ -123,7 +128,7 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let output = quote! {
+    quote! {
         thread_local! {
             static #var_ident: std::cell::RefCell<ic_stable_structures::StableCell<#ty, Memory>> = std::cell::RefCell::new(
                 ic_stable_structures::StableCell::init(
@@ -144,32 +149,6 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
             let res = #var_ident.with(|cell| cell.borrow_mut().set(value));
             res.map(|_| ()).map_err(|e| format!("{:?}", e))
         }
-    };
-    output.into()
-}
-
-struct StableMemoryForVecInput {
-    name: LitStr,
-    ty: Type,
-    memory_id: u8,
-    is_expose_getter: LitBool,
-}
-impl syn::parse::Parse for StableMemoryForVecInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let name = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let ty = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let lit_memory_id: LitInt = input.parse()?;
-        let memory_id = lit_memory_id.base10_parse::<u8>().unwrap();
-        input.parse::<syn::Token![,]>()?;
-        let is_expose_getter: LitBool = input.parse()?;
-        Ok(StableMemoryForVecInput {
-            name,
-            ty,
-            memory_id,
-            is_expose_getter,
-        })
     }
 }
 
@@ -189,7 +168,6 @@ fn mem_id(input: DeriveInput) -> u8 {
     assert!(memory_id < 6, "memory_id must be less than 6");
     memory_id
 }
-
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let name = input.clone().ident;
@@ -441,13 +419,41 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     .into()
 }
 
+struct StableMemoryForVecInput {
+    name: LitStr,
+    ty: Type,
+    memory_id: u8,
+    is_expose_getter: LitBool,
+}
+impl syn::parse::Parse for StableMemoryForVecInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let name = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let ty = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let lit_memory_id: LitInt = input.parse()?;
+        let memory_id = lit_memory_id.base10_parse::<u8>().unwrap();
+        input.parse::<syn::Token![,]>()?;
+        let is_expose_getter: LitBool = input.parse()?;
+        Ok(StableMemoryForVecInput {
+            name,
+            ty,
+            memory_id,
+            is_expose_getter,
+        })
+    }
+}
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as StableMemoryForVecInput);
+    stable_memory_for_vec_internal(args).into()
+}
+fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2::TokenStream {
     let StableMemoryForVecInput {
         name,
         ty,
         memory_id,
         is_expose_getter,
-    } = parse_macro_input!(input as StableMemoryForVecInput);
+    } = args;
 
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
@@ -483,7 +489,7 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
         #[candid::candid_method(update)]
     };
 
-    let output = quote! {
+    quote! {
         thread_local! {
             static #state_upper_name: std::cell::RefCell<ic_stable_structures::StableVec<#ty, Memory>> = std::cell::RefCell::new(
                 ic_stable_structures::StableVec::init(
@@ -615,7 +621,44 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
             let res = #state_upper_name.with(|vec| vec.borrow_mut().push(&value));
             res.map_err(|e| format!("{:?}", e))
         }
-    };
+    }
+}
 
-    output.into()
+#[cfg(test)]
+mod test {
+    use insta::assert_snapshot;
+    use rust_format::{Formatter, RustFmt};
+
+    use super::*;
+
+    #[test]
+    fn test_snapshot_prepare_stable_structure() {
+        let generated = prepare_stable_structure_internal();
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__prepare_stable_structure", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_stable_memory_for_scalar() {
+        let input = quote! {"timestamp", u64, 0, true};
+        let args: syn::Result<StableMemoryForScalarInput> = syn::parse2(input);
+        let generated = stable_memory_for_scalar_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__stable_memory_for_scalar", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_stable_memory_for_vec() {
+        let input = quote! {"timestamp", u64, 0, true};
+        let args: syn::Result<StableMemoryForVecInput> = syn::parse2(input);
+        let generated = stable_memory_for_vec_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__stable_memory_for_vec", formatted);
+    }
 }

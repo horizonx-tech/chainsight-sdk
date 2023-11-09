@@ -7,7 +7,8 @@ use crate::canisters::utils::generate_queries_without_timestamp;
 
 pub fn def_snapshot_indexer_https(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: SnapshotIndexerHTTPSConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: SnapshotIndexerHTTPSConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     snapshot_indexer_https(config).into()
 }
 
@@ -30,7 +31,7 @@ fn generate_use_idents(id: &str) -> proc_macro2::TokenStream {
         use chainsight_cdk::web2::{HttpsSnapshotParam, Web2HttpsSnapshotIndexer};
         use chainsight_cdk_macros::{
             chainsight_common, did_export, init_in, prepare_stable_structure, stable_memory_for_vec,
-            timer_task_func, snapshot_https_source, StableMemoryStorable,
+            timer_task_func, snapshot_indexer_https_source, StableMemoryStorable,
         };
         use candid::{Decode, Encode};
         use #id_ident::*;
@@ -57,7 +58,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         did_export!(#id); // NOTE: need to be declared before query, update
         init_in!();
         chainsight_common!(#duration);
-        snapshot_https_source!();
+        snapshot_indexer_https_source!();
 
         #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
         #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
@@ -67,7 +68,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         }
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
 
         const URL : &str = #url;
         fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {

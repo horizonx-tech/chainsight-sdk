@@ -10,7 +10,8 @@ use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: RelayerConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: RelayerConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     relayer_canister(config).into()
 }
 
@@ -42,18 +43,16 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
-    let (call_args_ident, relayer_source_ident) = if lens_targets.is_some() {
+    let (call_args_ident, source_ident) = if lens_targets.is_some() {
         (
             quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
                     get_lens_targets()
                 }
             },
-            quote! {
-                relayer_source!(#method_name, true);
-                manage_single_state!("lens_targets", Vec<String>, false);
-            },
+            quote! { relayer_source!(#method_name, true); },
         )
     } else {
         (
@@ -71,9 +70,10 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let proxy_method_name = "proxy_".to_string() + method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
-        use #canister_name_ident::*;
-        #relayer_source_ident
+        use #canister_name_ident::{CallCanisterResponse, filter};
         #call_args_ident
+
+        #source_ident
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -130,7 +130,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     quote! {
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export,relayer_source};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, relayer_source};
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
@@ -141,7 +141,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         manage_single_state!("target_addr", String, false);
         define_get_ethereum_address!();
         manage_single_state!("target_canister", String, false);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         init_in!();
         setup_func!({
             target_addr: String,
@@ -153,7 +153,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 }
 
 fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
-    if is_primitive(canister_response_type) {
+    if is_ethabi_encodable_type(canister_response_type) {
         let arg_ident = format_ident!("datum");
         quote! {
             chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
@@ -164,6 +164,17 @@ fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::
     }
 }
 
+/// Whether EthAbiEncoder is available
+fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
+    // NOTE: Custom type is Unknown because it does not contain did definitions on which the custom type depends.
+    //       Considering the possibility of panic with is_primitive if Unknown
+    //       https://github.com/dfinity/candid/blob/2022-11-17/rust/candid/src/types/internal.rs#L353-L368
+    match canister_response_type {
+        Type::Unknown | Type::Var(_) => false,
+        _ => is_primitive(canister_response_type),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use chainsight_cdk::config::components::CommonConfig;
@@ -171,6 +182,19 @@ mod test {
     use rust_format::{Formatter, RustFmt};
 
     use super::*;
+
+    #[test]
+    fn test_is_ethabi_encodable_type() {
+        assert!(is_ethabi_encodable_type(&Type::Text));
+        assert!(is_ethabi_encodable_type(&Type::Nat));
+        assert!(is_ethabi_encodable_type(&Type::Int64));
+        assert!(is_ethabi_encodable_type(&Type::Float32));
+        // check no panic
+        assert!(!is_ethabi_encodable_type(&Type::Unknown));
+        assert!(!is_ethabi_encodable_type(&Type::Var(
+            "Snapshot".to_string()
+        )));
+    }
 
     #[test]
     fn test_snapshot() {

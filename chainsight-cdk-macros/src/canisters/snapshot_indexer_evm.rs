@@ -13,7 +13,8 @@ use crate::canisters::utils::{
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: SnapshotIndexerEVMConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: SnapshotIndexerEVMConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     snapshot_indexer_evm(config).into()
 }
 
@@ -27,20 +28,22 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
 }
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
-    let id = &config.canister_name;
-    let duration = config.monitor_duration;
+    let CommonConfig {
+        monitor_duration,
+        canister_name,
+    } = config;
 
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_web3_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_indexer_web3_source};
 
         use ic_web3_rs::types::Address;
 
-        did_export!(#id); // NOTE: need to be declared before query, update
+        did_export!(#canister_name); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#duration);
+        chainsight_common!(#monitor_duration);
 
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -52,7 +55,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
     }
 }
 
@@ -132,7 +135,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         #queries_expect_timestamp
 
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
-        snapshot_web3_source!(#method_ident_str);
+        snapshot_indexer_web3_source!(#method_ident_str);
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]

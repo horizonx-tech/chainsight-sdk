@@ -1,7 +1,7 @@
 use std::{fs::File, path::Path};
 
 use chainsight_cdk::{
-    config::components::EventIndexerConfig,
+    config::components::{CommonConfig, EventIndexerConfig, EventIndexerEventDefinition},
     convert::evm::{convert_type_from_ethabi_param_type, ADDRESS_TYPE, U256_TYPE},
 };
 use ethabi;
@@ -15,14 +15,28 @@ use super::utils::extract_contract_name_from_path;
 
 pub fn def_event_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: EventIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: EventIndexerConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     event_indexer_canister(config).into()
 }
 
 fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStream {
-    let monitor_duration = config.common.monitor_duration;
-    let canister_name = config.common.canister_name.clone();
-    let common = quote! {
+    let common = common_code(&config.common);
+    let custom = custom_code(config);
+
+    quote! {
+        #common
+        #custom
+    }
+}
+
+fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
+    let CommonConfig {
+        monitor_duration,
+        canister_name,
+    } = common;
+
+    quote! {
         use candid::CandidType;
         use chainsight_cdk::{
             core::{U256},
@@ -32,7 +46,7 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
         };
         use chainsight_cdk_macros::{
             define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-            manage_single_state, chainsight_common, setup_func, web3_event_indexer,timer_task_func,
+            manage_single_state, chainsight_common, setup_func, web3_event_indexer,timer_task_func, web3_event_indexer_source,
             ContractEvent, Persist,
         };
         use ic_solidity_bindgen::{types::EventLog};
@@ -48,7 +62,7 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
         define_web3_ctx!();
         define_transform_for_web3!();
         define_get_ethereum_address!();
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         manage_single_state!("target_addr", String, false);
         setup_func!({
             target_addr: String,
@@ -56,62 +70,41 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
             config: IndexingConfig,
         });
         init_in!();
-    };
-    let custom = custom_code(config);
-    quote! {
-        #common
-        #custom
     }
 }
 
 fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
-    let EventIndexerConfig { common: _, def } = config;
-    let abi_file_path = def.abi_file_path;
+    let EventIndexerConfig {
+        common: _,
+        def:
+            EventIndexerEventDefinition {
+                identifier,
+                abi_file_path,
+            },
+    } = config;
+
     let contract_struct_name_ident =
         format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
-    let binding = ethabi::Contract::load(File::open(Path::new(&abi_file_path)).unwrap()).unwrap();
-    let event = binding
-        .events_by_name(def.identifier.as_str())
-        .unwrap()
-        .first()
-        .unwrap();
-    let event_struct_ident = format_ident!("{}", event.name);
-    let event_struct_field_tokens = event
-        .inputs
-        .clone()
-        .into_iter()
-        .map(|event| {
-            let field_name_ident = format_ident!("{}", event.name);
-            let field_ty = convert_type_from_ethabi_param_type(event.kind).unwrap();
-            let field_ty_ident = if field_ty == ADDRESS_TYPE {
-                format_ident!("String")
-            } else if field_ty == U256_TYPE {
-                format_ident!("U256")
-            } else {
-                format_ident!("{}", field_ty)
-            }; // todo: refactor
-            quote! { pub #field_name_ident: #field_ty_ident }
-        })
-        .collect::<Vec<_>>();
-    let event_struct = quote! {
-        #[derive(Clone, Debug,  Default, candid::CandidType, ContractEvent, Serialize, Persist)]
-        pub struct #event_struct_ident {
-            #(#event_struct_field_tokens),*
-        }
 
-        impl chainsight_cdk::indexer::Event<EventLog> for #event_struct_ident {
-            fn tokenize(&self) -> chainsight_cdk::storage::Data {
-                self._tokenize()
-            }
-
-            fn untokenize(data: chainsight_cdk::storage::Data) -> Self {
-                #event_struct_ident::_untokenize(data)
-            }
-        }
+    let event = {
+        let reader = File::open(Path::new(&abi_file_path))
+            .unwrap_or_else(|_| panic!("Couldn't open {}", &abi_file_path));
+        let binding = ethabi::Contract::load(reader)
+            .unwrap_or_else(|_| panic!("Fail to load ABI from {}", &abi_file_path));
+        // NOTE: Can I use .event? https://docs.rs/ethabi/latest/ethabi/struct.Contract.html#method.event
+        binding
+            .events_by_name(&identifier)
+            .unwrap_or_else(|_| panic!("Failed to find event by name {}", &identifier))
+            .first()
+            .unwrap_or_else(|| panic!("Failed to no events, name is {}", &identifier))
+            .clone()
     };
+
     let call_func_ident = format_ident!("event_{}", camel_to_snake(&event.name));
+    let (event_struct_ident, event_struct) = generate_event_struct(event);
     quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
+        web3_event_indexer_source!(#event_struct_ident);
         web3_event_indexer!(#event_struct_ident);
         #event_struct
 
@@ -132,6 +125,59 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
             }.boxed()
         }
     }
+}
+
+fn generate_event_struct(event: ethabi::Event) -> (proc_macro2::Ident, proc_macro2::TokenStream) {
+    let ethabi::Event { name, inputs, .. } = event;
+    let struct_ident = format_ident!("{}", &name);
+    let struct_field_tokens = inputs
+        .clone()
+        .into_iter()
+        .map(|event_param| {
+            let field_name_ident = format_ident!("{}", &event_param.name);
+            let field_ty_ident = convert_event_param_type_to_field_ty_ident(&event_param.kind)
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "Failed to convert event's ParamType `{}` to field type ident",
+                        &event_param.kind
+                    )
+                });
+            quote! { pub #field_name_ident: #field_ty_ident }
+        })
+        .collect::<Vec<_>>();
+
+    (
+        struct_ident.clone(),
+        quote! {
+            #[derive(Clone, Debug,  Default, candid::CandidType, ContractEvent, Serialize, Persist)]
+            pub struct #struct_ident {
+                #(#struct_field_tokens),*
+            }
+
+            impl chainsight_cdk::indexer::Event<EventLog> for #struct_ident {
+                fn tokenize(&self) -> chainsight_cdk::storage::Data {
+                    self._tokenize()
+                }
+
+                fn untokenize(data: chainsight_cdk::storage::Data) -> Self {
+                    #struct_ident::_untokenize(data)
+                }
+            }
+        },
+    )
+}
+
+fn convert_event_param_type_to_field_ty_ident(
+    param_type: &ethabi::ParamType,
+) -> anyhow::Result<proc_macro2::Ident> {
+    let field_ty =
+        convert_type_from_ethabi_param_type(param_type).map_err(|e| anyhow::anyhow!(e))?;
+    let field_ty_ident = match field_ty.as_str() {
+        ADDRESS_TYPE => format_ident!("String"),
+        U256_TYPE => format_ident!("U256"),
+        _ => format_ident!("{}", field_ty),
+    };
+    Ok(field_ty_ident)
 }
 
 #[cfg(test)]

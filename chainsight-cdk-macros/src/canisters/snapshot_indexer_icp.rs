@@ -11,7 +11,8 @@ use crate::canisters::utils::generate_queries_without_timestamp;
 
 pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
-    let config: SnapshotIndexerICPConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: SnapshotIndexerICPConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     snapshot_indexer_icp(config).into()
 }
 
@@ -30,7 +31,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
     quote! {
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_icp_source};
+        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_indexer_icp_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 
         mod types;
@@ -45,7 +46,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
     }
 }
 
@@ -85,19 +86,18 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let call_canister_args_ident = if lens_targets.is_some() {
-        let lens_targets: Vec<Principal> = lens_targets
-            .clone()
-            .map(|t| {
-                t.identifiers
-                    .iter()
-                    .map(|p| Principal::from_text(p).expect("lens target must be principal"))
-                    .collect()
+    let call_canister_args_ident = if let Some(lens_targets) = lens_targets {
+        let lens_target_principals: Vec<Principal> = lens_targets
+            .identifiers
+            .iter()
+            .map(|p| {
+                Principal::from_text(p)
+                    .unwrap_or_else(|_| panic!("lens target must be principal '{}'", p))
             })
-            .or_else(|| Some(vec![]))
-            .unwrap();
+            .collect();
 
-        let lens_targets_string_ident: Vec<_> = lens_targets.iter().map(|p| p.to_text()).collect();
+        let lens_targets_string_ident: Vec<_> =
+            lens_target_principals.iter().map(|p| p.to_text()).collect();
 
         quote! {
             type CallCanisterArgs = Vec<String>;
@@ -121,7 +121,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
         #queries_expect_timestamp
 
-        snapshot_icp_source!(#method_ident);
+        snapshot_indexer_icp_source!(#method_ident);
 
         #call_canister_args_ident
         type CallCanisterResponse = SnapshotValue;

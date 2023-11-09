@@ -1,0 +1,18 @@
+---
+source: chainsight-cdk-macros/src/indexers/sources.rs
+expression: formatted
+---
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_sources(
+) -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::RelayerWithLensSourceAttrs>> {
+    vec![chainsight_cdk::core::Sources::<
+        chainsight_cdk::core::RelayerWithLensSourceAttrs,
+    >::new_relayer(
+        get_target_canister(),
+        get_indexing_interval(),
+        "icrc1_balance_of",
+        call_args(),
+    )]
+}
+

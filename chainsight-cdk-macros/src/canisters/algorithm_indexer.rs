@@ -5,7 +5,8 @@ use syn::parse_macro_input;
 
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string = parse_macro_input!(input as syn::LitStr).value();
-    let config: AlgorithmIndexerConfig = serde_json::from_str(&input_json_string).unwrap();
+    let config: AlgorithmIndexerConfig =
+        serde_json::from_str(&input_json_string).expect("Failed to parse input_json_string");
     algorithm_indexer_canister(config).into()
 }
 
@@ -26,7 +27,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         use chainsight_cdk::indexer::IndexingConfig;
         use chainsight_cdk_macros::{
             algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
-            timer_task_func,
+            timer_task_func, algorithm_indexer_source,
         };
         use serde::{Deserialize, Serialize};
         use std::collections::HashMap;
@@ -34,9 +35,10 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         init_in!();
         manage_single_state!("target_addr", String, false);
         setup_func!({ target_addr: String, config: IndexingConfig });
-        timer_task_func!("set_task", "index", true);
+        timer_task_func!("set_task", "index");
         use #canister_name_ident::*;
 
+        algorithm_indexer_source!();
         algorithm_indexer!(#input_ty, #method_name);
         did_export!(#canister_name);
     }

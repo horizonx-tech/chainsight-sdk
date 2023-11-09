@@ -1,0 +1,107 @@
+---
+source: chainsight-cdk-macros/src/storages.rs
+expression: formatted
+---
+thread_local! { static TIMESTAMPS : std :: cell :: RefCell < ic_stable_structures :: StableVec < u64 , Memory >> = std :: cell :: RefCell :: new (ic_stable_structures :: StableVec :: init (MEMORY_MANAGER . with (| mm | mm . borrow () . get (ic_stable_structures :: memory_manager :: MemoryId :: new (0u8)))) . unwrap ()) ; }
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_timestamps() -> Vec<u64> {
+    _get_timestamps()
+}
+pub fn _get_timestamps() -> Vec<u64> {
+    TIMESTAMPS.with(|mem| mem.borrow().iter().collect())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_timestamps(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<u64>>::new(proxy(), _get_timestamps)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn timestamps_len() -> u64 {
+    _timestamps_len()
+}
+pub fn _timestamps_len() -> u64 {
+    TIMESTAMPS.with(|mem| mem.borrow().len())
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_timestamps_len(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(proxy(), _timestamps_len)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_last_timestamp() -> u64 {
+    _get_last_timestamp()
+}
+pub fn _get_last_timestamp() -> u64 {
+    TIMESTAMPS
+        .with(|mem| {
+            let borrowed_mem = mem.borrow();
+            let len = borrowed_mem.len();
+            borrowed_mem.get(len - 1)
+        })
+        .unwrap()
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_last_timestamp(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(proxy(), _get_last_timestamp)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+pub fn get_top_timestamps(n: u64) -> Vec<u64> {
+    _get_top_timestamps(n)
+}
+pub fn _get_top_timestamps(n: u64) -> Vec<u64> {
+    TIMESTAMPS.with(|mem| {
+        let borrowed_mem = mem.borrow();
+        let len = borrowed_mem.len();
+        let mut res = Vec::new();
+        for i in 0..n {
+            if i >= len {
+                break;
+            }
+            res.push(borrowed_mem.get(len - i - 1).unwrap());
+        }
+        res
+    })
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_top_timestamps(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<u64>>::new(proxy(), _get_top_timestamps)
+        .reply(input)
+        .await
+}
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_timestamp(idx: u64) -> u64 {
+    _get_timestamp(idx)
+}
+pub fn _get_timestamp(idx: u64) -> u64 {
+    TIMESTAMPS.with(|mem| mem.borrow().get(idx)).unwrap()
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_timestamp(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    use chainsight_cdk::rpc::Receiver;
+    chainsight_cdk::rpc::ReceiverProvider::<u64, u64>::new(proxy(), _get_timestamp)
+        .reply(input)
+        .await
+}
+pub fn add_timestamp(value: u64) -> Result<(), String> {
+    let res = TIMESTAMPS.with(|vec| vec.borrow_mut().push(&value));
+    res.map_err(|e| format!("{:?}", e))
+}
+

@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/horizonx-tech/chainsight-sdk/badge.svg?branch=main)](https://coveralls.io/github/horizonx-tech/chainsight-sdk?branch=main)
+
 # ChainSight Software Development Kit
 
 <p>
