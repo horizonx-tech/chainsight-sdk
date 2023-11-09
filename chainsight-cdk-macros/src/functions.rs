@@ -101,19 +101,15 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
 struct TimerTaskArgs {
     func_name: syn::LitStr,
     called_func_name: syn::LitStr,
-    _is_async: syn::LitBool,
 }
 impl Parse for TimerTaskArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let func_name: syn::LitStr = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let called_func_name: syn::LitStr = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let _is_async: syn::LitBool = input.parse()?;
         Ok(TimerTaskArgs {
             func_name,
             called_func_name,
-            _is_async,
         })
     }
 }
@@ -125,7 +121,6 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
     let TimerTaskArgs {
         func_name,
         called_func_name,
-        _is_async,
     } = args;
 
     let func_name_ident = format_ident!("{}", func_name.value());
