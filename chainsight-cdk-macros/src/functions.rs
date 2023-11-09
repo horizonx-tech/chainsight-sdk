@@ -178,6 +178,7 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
     }
 }
 
+#[derive(Debug)]
 struct LensArgs {
     target_count: usize,
     func_arg: Option<Type>,
@@ -185,7 +186,6 @@ struct LensArgs {
 impl Parse for LensArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let target_count: syn::LitInt = input.parse()?;
-
         let func_arg = if input.peek(syn::Token![,]) {
             input.parse::<syn::Token![,]>()?;
             Some(input.parse()?)
@@ -218,8 +218,8 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    _calc(targets, input).await
-                    }
+                    _calc((targets, input)).await
+                }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<(Vec<String>, #arg_ty), #value_ty>::new(
@@ -228,8 +228,8 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                 )
             },
             quote! {
-                fn _calc(targets: Vec<String>, args: #arg_ty) -> BoxFuture<'static, #value_ty> {
-                    async move { calculate(targets, args).await }.boxed()
+                fn _calc(args: (Vec<String>, #arg_ty)) -> BoxFuture<'static, #value_ty> {
+                    async move { calculate(args.0, args.1).await }.boxed()
                 }
             },
         ),
@@ -242,7 +242,7 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                         panic!("Expected {} targets", #target_count);
                     }
                     _calc(targets).await
-                    }
+                }
             },
             quote! {
                 chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, #value_ty>::new(
@@ -325,14 +325,23 @@ mod test {
 
     #[test]
     fn test_snapshot_lens_method() {
-        let args = LensArgs {
-            target_count: 10,
-            func_arg: None,
-        };
-        let generated = lens_method_internal(args);
+        let input = quote! {10};
+        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let generated = lens_method_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__lens_method", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_lens_method_with_args() {
+        let input = quote! {10, CalculateArgs};
+        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let generated = lens_method_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__lens_method__with_args", formatted);
     }
 }
