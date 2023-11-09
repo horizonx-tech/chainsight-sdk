@@ -28,15 +28,11 @@ impl Initializer for ChainsightInitializer {
         deployer: &Principal,
         cycles: &CycleManagements,
     ) -> Result<InitResult, InitError> {
-        let total_cycles = cycles.vault_intial_supply
-            + cycles.indexer.initial_value
-            + cycles.db.initial_value
-            + cycles.proxy.initial_value;
         let res: CallResult<(InitializeOutput,)> = ic_cdk::api::call::call_with_payment128(
             self.config.env.initializer(),
             "initialize",
             (deployer, cycles),
-            msg_cycles_accept128(total_cycles),
+            msg_cycles_accept128(cycles.initial_supply()),
         )
         .await;
         let out = res.unwrap().0;

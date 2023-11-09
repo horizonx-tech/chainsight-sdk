@@ -34,8 +34,8 @@ impl std::error::Error for InitError {
 
 #[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 pub struct CycleManagement {
-    pub initial_value: u128,
-    pub refueling_value: u128,
+    pub initial_supply: u128,
+    pub refueling_amount: u128,
     pub refueling_threshold: u128,
 }
 
@@ -51,33 +51,9 @@ pub struct CycleManagements {
 impl CycleManagements {
     pub fn initial_supply(&self) -> u128 {
         self.vault_intial_supply
-            + self.indexer.initial_value
-            + self.db.initial_value
-            + self.proxy.initial_value
-    }
-}
-
-impl Default for CycleManagements {
-    fn default() -> Self {
-        Self {
-            refueling_interval: 86400,
-            vault_intial_supply: 1_000_000_000_000,
-            indexer: CycleManagement {
-                initial_value: 0,
-                refueling_value: 1_000_000_000_000,
-                refueling_threshold: 500_000_000_000,
-            },
-            db: CycleManagement {
-                initial_value: 2_000_000_000_000,
-                refueling_value: 1_000_000_000_000,
-                refueling_threshold: 1_000_000_000_000,
-            },
-            proxy: CycleManagement {
-                initial_value: 2_000_000_000,
-                refueling_value: 1_000_000_000,
-                refueling_threshold: 1_000_000_000,
-            },
-        }
+            + self.indexer.initial_supply
+            + self.db.initial_supply
+            + self.proxy.initial_supply
     }
 }
 
