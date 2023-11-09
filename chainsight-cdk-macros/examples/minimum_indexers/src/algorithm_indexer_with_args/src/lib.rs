@@ -19,7 +19,7 @@ setup_func!({
     config: IndexingConfig
 });
 algorithm_indexer_with_args!(TransferEvent, (Principal, String, String), "proxy_call");
-timer_task_func!("set_task", "index", true);
+timer_task_func!("set_task", "index");
 
 /// This is auto-generated from yaml
 #[derive(Debug, Clone, CandidType, Default, Deserialize, Serialize)]
