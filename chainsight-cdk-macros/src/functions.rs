@@ -292,7 +292,7 @@ mod test {
 
     #[test]
     fn test_snapshot_timer_task_func() {
-        let input = quote! {"set_task","HELLO",false};
+        let input = quote! {"set_task","HELLO"};
         let args: syn::Result<TimerTaskArgs> = syn::parse2(input);
         let generated = timer_task_func_internal(args.unwrap());
         let formatted = RustFmt::default()
