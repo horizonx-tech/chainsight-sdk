@@ -156,6 +156,7 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
     }
 }
 
+#[derive(Debug)]
 struct LensArgs {
     target_count: usize,
     func_arg: Option<Type>,
@@ -163,7 +164,6 @@ struct LensArgs {
 impl Parse for LensArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let target_count: syn::LitInt = input.parse()?;
-
         let func_arg = if input.peek(syn::Token![,]) {
             input.parse::<syn::Token![,]>()?;
             Some(input.parse()?)
@@ -196,7 +196,7 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                     if targets.len() != #target_count {
                         panic!("Expected {} targets", #target_count);
                     }
-                    _calc(targets, input).await
+                    _calc((targets, input)).await
                 }
             },
             quote! {
@@ -206,8 +206,8 @@ fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
                 )
             },
             quote! {
-                fn _calc(targets: Vec<String>, args: #arg_ty) -> BoxFuture<'static, #value_ty> {
-                    async move { calculate(targets, args).await }.boxed()
+                fn _calc(args: (Vec<String>, #arg_ty)) -> BoxFuture<'static, #value_ty> {
+                    async move { calculate(args.0, args.1).await }.boxed()
                 }
             },
         ),

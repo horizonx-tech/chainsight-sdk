@@ -1,5 +1,6 @@
 use chainsight_cdk_macros::def_algorithm_lens_canister;
 mod app; // NOTE: logics
+use app::CalculateArgs;
 
 def_algorithm_lens_canister!(
     "{
@@ -7,6 +8,7 @@ def_algorithm_lens_canister!(
             \"canister_name\": \"app\",
             \"monitor_duration\": 1000
         },
-        \"target_count\": 10
+        \"target_count\": 10,
+        \"args_type\": \"CalculateArgs\"
     }"
 );

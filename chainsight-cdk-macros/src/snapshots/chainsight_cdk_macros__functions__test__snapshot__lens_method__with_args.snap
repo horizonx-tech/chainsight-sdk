@@ -8,7 +8,7 @@ async fn get_result(targets: Vec<String>, input: CalculateArgs) -> LensValue {
     if targets.len() != 10usize {
         panic!("Expected {} targets", 10usize);
     }
-    _calc(targets, input).await
+    _calc((targets, input)).await
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
@@ -25,7 +25,7 @@ async fn proxy_get_result(input: Vec<u8>) -> Vec<u8> {
 fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
     vec![]
 }
-fn _calc(targets: Vec<String>, args: CalculateArgs) -> BoxFuture<'static, LensValue> {
-    async move { calculate(targets, args).await }.boxed()
+fn _calc(args: (Vec<String>, CalculateArgs)) -> BoxFuture<'static, LensValue> {
+    async move { calculate(args.0, args.1).await }.boxed()
 }
 

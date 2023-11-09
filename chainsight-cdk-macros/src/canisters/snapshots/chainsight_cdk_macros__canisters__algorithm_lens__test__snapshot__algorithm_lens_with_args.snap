@@ -8,5 +8,5 @@ use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
 chainsight_common!(1000u32);
 init_in!();
 use app::*;
-lens_method!(10usize, "CalculateArgs");
+lens_method!(10usize, CalculateArgs);
 

@@ -16,7 +16,8 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
     let lens_size = config.target_count;
     let lens_method_quote = if let Some(args_type) = config.args_type {
-        quote! { lens_method!(#lens_size, #args_type); }
+        let args_type_ident = format_ident!("{}", args_type);
+        quote! { lens_method!(#lens_size, #args_type_ident); }
     } else {
         quote! { lens_method!(#lens_size); }
     };
@@ -28,7 +29,6 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         init_in!();
         use #canister_name_ident::*;
         #lens_method_quote
-
     }
 }
 
