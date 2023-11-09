@@ -159,7 +159,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::config::components::CommonConfig;
+    use chainsight_cdk::config::components::{CommonConfig, LensTargets};
     use insta::assert_display_snapshot;
     use rust_format::{Formatter, RustFmt};
 
@@ -181,5 +181,32 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_display_snapshot!("snapshot__snapshot_indexer_icp", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_lens_targets() {
+        let config = SnapshotIndexerICPConfig {
+            common: CommonConfig {
+                monitor_duration: 60,
+                canister_name: "sample_snapshot_indexer_icp".to_string(),
+            },
+            method_identifier:
+                "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })".to_string(),
+            lens_targets: Some(LensTargets {
+                identifiers: vec![
+                    "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(), // NNS Ledger
+                    "zfcdd-tqaaa-aaaaq-aaaga-cai".to_string(), // SNS-1
+                    "mxzaz-hqaaa-aaaar-qaada-cai".to_string(), // ckBTC
+                ],
+            }),
+        };
+        let generated = snapshot_indexer_icp(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_display_snapshot!(
+            "snapshot__snapshot_indexer_icp__with_lens_targets",
+            formatted
+        );
     }
 }
