@@ -1,12 +1,15 @@
 mod sources_snapshot_indexer_web3 {
-    use chainsight_cdk::{core::{Sources, SourceType, Web3SnapshotIndexerSourceAttrs, Env}, web3::Web3CtxParam};
+    use chainsight_cdk::{
+        core::{Env, SourceType, Sources, Web3SnapshotIndexerSourceAttrs},
+        web3::Web3CtxParam,
+    };
     use chainsight_cdk_macros::snapshot_indexer_web3_source;
 
     fn get_target_addr() -> String {
         "target_addr".to_string()
     }
     fn get_indexing_interval() -> u32 {
-        60*60
+        60 * 60
     }
     fn get_web3_ctx_param() -> Web3CtxParam {
         Web3CtxParam {
@@ -25,10 +28,13 @@ mod sources_snapshot_indexer_web3 {
         let source = sources.first().unwrap();
         assert_eq!(source.source_type, SourceType::Evm);
         assert_eq!(source.source, get_target_addr());
-        assert_eq!(source.attributes, Web3SnapshotIndexerSourceAttrs {
-            chain_id: 31337,
-            function_name: "total_supply".to_string(),
-        });
-        assert_eq!(source.interval_sec, Some(60*60));
+        assert_eq!(
+            source.attributes,
+            Web3SnapshotIndexerSourceAttrs {
+                chain_id: 31337,
+                function_name: "total_supply".to_string(),
+            }
+        );
+        assert_eq!(source.interval_sec, Some(60 * 60));
     }
 }
