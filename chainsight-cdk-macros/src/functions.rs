@@ -53,6 +53,7 @@ impl Parse for LensArgs {
 pub fn init_in_env(_input: TokenStream) -> TokenStream {
     quote! {
         use chainsight_cdk::initializer::{CycleManagements, Initializer};
+        use ic_cdk::api::management_canister::{provisional::{CanisterIdRecord, CanisterSettings}, main::{update_settings, UpdateSettingsArgument}};
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
@@ -60,11 +61,32 @@ pub fn init_in_env(_input: TokenStream) -> TokenStream {
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
                 chainsight_cdk::initializer::InitConfig { env: env.clone() },
             );
-            let init_result = initializer.initialize(cycles).await?;
+            let deployer = ic_cdk::caller();
+            let init_result = initializer.initialize(&deployer, &cycles).await?;
             let proxy = init_result.proxy;
             INITIALIZED.with(|f| *f.borrow_mut() = true);
             PROXY.with(|f| *f.borrow_mut() = proxy);
             ENV.with(|f| *f.borrow_mut() = env);
+            
+            let canister_id = ic_cdk::api::id();
+            let vault = init_result.vault;
+            let (status,) = ic_cdk::api::management_canister::main::canister_status(CanisterIdRecord {
+                canister_id,
+            })
+            .await
+            .unwrap();
+            let mut controllers = status.settings.controllers.clone();
+            controllers.push(vault.clone());
+            update_settings(UpdateSettingsArgument {
+                canister_id,
+                settings: CanisterSettings {
+                    controllers: Some(controllers),
+                    compute_allocation: None,
+                    freezing_threshold: None,
+                    memory_allocation: None,
+                },
+            })
+            .await.unwrap();
             Ok(())
         }
         fn proxy() -> candid::Principal {
