@@ -15,13 +15,15 @@ fn web3_event_indexer_source_internal(tt: syn::Type) -> proc_macro2::TokenStream
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3EventIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3EventIndexerSourceAttrs>::new_event_indexer(
-            get_target_addr(),
-            get_indexing_interval(),
-            chainsight_cdk::core::Web3EventIndexerSourceAttrs {
-                chain_id: get_web3_ctx_param().chain_id,
-                event_name: #type_str.to_string(),
-            })
+            vec![
+                chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3EventIndexerSourceAttrs>::new_event_indexer(
+                    get_target_addr(),
+                    get_indexing_interval(),
+                    chainsight_cdk::core::Web3EventIndexerSourceAttrs {
+                        chain_id: get_web3_ctx_param().chain_id,
+                        event_name: #type_str.to_string(),
+                    }
+                )
             ]
         }
     }
@@ -54,12 +56,14 @@ fn snapshot_indexer_web3_source_internal(func_name: syn::LitStr) -> proc_macro2:
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>::new_web3_snapshot_indexer(
-                get_target_addr(),
-                get_indexing_interval(),
-                get_web3_ctx_param().chain_id,
-                #func_name.to_string(),
-            )]
+            vec![
+                chainsight_cdk::core::Sources::<chainsight_cdk::core::Web3SnapshotIndexerSourceAttrs>::new_web3_snapshot_indexer(
+                    get_target_addr(),
+                    get_indexing_interval(),
+                    get_web3_ctx_param().chain_id,
+                    #func_name.to_string(),
+                )
+            ]
         }
     }
 }
@@ -72,11 +76,13 @@ fn snapshot_indexer_https_source_internal() -> proc_macro2::TokenStream {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>::new_https_snapshot_indexer(
-                URL.to_string(),
-                get_indexing_interval(),
-                get_attrs(),
-            )]
+            vec![
+                chainsight_cdk::core::Sources::<chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs>::new_https_snapshot_indexer(
+                    URL.to_string(),
+                    get_indexing_interval(),
+                    get_attrs(),
+                )
+            ]
         }
     }
 }
@@ -90,11 +96,13 @@ pub fn snapshot_indexer_icp_source_internal(func_name: syn::LitStr) -> proc_macr
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>> {
-            vec![chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
-                get_target_canister(),
-                get_indexing_interval(),
-                #func_name.to_string(),
-            )]
+            vec![
+                chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
+                    get_target_canister(),
+                    get_indexing_interval(),
+                    #func_name.to_string(),
+                )
+            ]
         }
     }
 }

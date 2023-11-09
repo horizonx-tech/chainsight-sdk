@@ -51,24 +51,24 @@ pub enum SourceType {
     #[serde(rename = "https")]
     Https,
 }
-#[derive(Clone, CandidType, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct Web3EventIndexerSourceAttrs {
     pub chain_id: u64,
     pub event_name: String,
 }
 
-#[derive(Clone, CandidType, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct Web3AlgorithmIndexerSourceAttrs {
     pub chain_id: u64,
     pub function_name: String,
 }
 
-#[derive(Clone, CandidType, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct ICSnapshotIndexerSourceAttrs {
     pub function_name: String,
 }
 
-#[derive(Clone, CandidType, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct RelayerWithLensSourceAttrs {
     pub function_name: String,
     pub sources: Vec<String>,
@@ -76,7 +76,7 @@ pub struct RelayerWithLensSourceAttrs {
 
 pub type Web3SnapshotIndexerSourceAttrs = Web3AlgorithmIndexerSourceAttrs;
 
-#[derive(Clone, CandidType, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct HttpsSnapshotIndexerSourceAttrs {
     pub queries: HashMap<String, String>,
 }
