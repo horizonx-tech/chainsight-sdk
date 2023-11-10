@@ -177,7 +177,7 @@ fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::config::components::CommonConfig;
+    use chainsight_cdk::config::components::{CommonConfig, LensTargets};
     use insta::assert_snapshot;
     use rust_format::{Formatter, RustFmt};
 
@@ -196,9 +196,8 @@ mod test {
         )));
     }
 
-    #[test]
-    fn test_snapshot() {
-        let config = RelayerConfig {
+    fn config() -> RelayerConfig {
+        RelayerConfig {
             common: CommonConfig {
                 monitor_duration: 60,
                 canister_name: "relayer".to_string(),
@@ -208,11 +207,32 @@ mod test {
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             lens_targets: None,
-        };
-        let generated = relayer_canister(config);
+        }
+    }
+
+    #[test]
+    fn test_snapshot() {
+        let generated = relayer_canister(config());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_lens_targets() {
+        let mut config = config();
+        config.lens_targets = Some(LensTargets {
+            identifiers: vec![
+                "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(), // NNS Ledger
+                "zfcdd-tqaaa-aaaaq-aaaga-cai".to_string(), // SNS-1
+                "mxzaz-hqaaa-aaaar-qaada-cai".to_string(), // ckBTC
+            ],
+        });
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer__with_lens_targets", formatted);
     }
 }
