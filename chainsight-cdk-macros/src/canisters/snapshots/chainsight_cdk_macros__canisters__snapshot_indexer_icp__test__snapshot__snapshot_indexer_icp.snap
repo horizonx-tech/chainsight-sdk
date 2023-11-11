@@ -14,7 +14,7 @@ did_export!("sample_snapshot_indexer_icp");
 init_in!();
 chainsight_common!(60u32);
 manage_single_state!("target_canister", String, false);
-setup_func ! ({ target_canister : String });
+setup_func ! ({ target_canister : String , });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
 timer_task_func!("set_task", "index");
