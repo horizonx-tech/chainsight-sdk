@@ -6,6 +6,11 @@
       "package": "relayer",
       "candid": "src/relayer/relayer.did"
     },
+    "relayer_with_lens_target": {
+      "type": "rust",
+      "package": "relayer_with_lens_target",
+      "candid": "src/relayer_with_lens_target/relayer_with_lens_target.did"
+    },
     "event_indexer": {
       "type": "rust",
       "package": "event_indexer",

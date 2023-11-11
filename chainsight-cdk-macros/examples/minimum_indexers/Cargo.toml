@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "src/relayer",
+    "src/relayer_with_lens_target",
     "src/event_indexer",
     "src/algorithm_indexer",
     "src/algorithm_indexer_with_args",
