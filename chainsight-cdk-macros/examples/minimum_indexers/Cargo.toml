@@ -9,6 +9,7 @@ members = [
     "src/snapshot_indexer_evm",
     "src/snapshot_indexer_https",
     "src/snapshot_indexer_icp",
+    "src/snapshot_indexer_icp_with_lens_target"
 ]
 
 [workspace.dependencies]

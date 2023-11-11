@@ -45,6 +45,11 @@
       "type": "rust",
       "package": "snapshot_indexer_icp",
       "candid": "src/snapshot_indexer_icp/snapshot_indexer_icp.did"
+    },
+    "snapshot_indexer_icp_with_lens_target": {
+      "type": "rust",
+      "package": "snapshot_indexer_icp_with_lens_target",
+      "candid": "src/snapshot_indexer_icp_with_lens_target/snapshot_indexer_icp_with_lens_target.did"
     }
   },
   "defaults": {
