@@ -14,25 +14,15 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
         #[candid::candid_method(update)]
         async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
             assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
-            let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
-                chainsight_cdk::initializer::InitConfig { env: env.clone() },
-            );
-            let deployer = ic_cdk::caller();
-            let init_result = initializer.initialize(&deployer, &cycles).await?;
-            let proxy = init_result.proxy;
-            INITIALIZED.with(|f| *f.borrow_mut() = true);
-            PROXY.with(|f| *f.borrow_mut() = proxy);
-            ENV.with(|f| *f.borrow_mut() = env);
 
             let canister_id = ic_cdk::api::id();
-            let vault = init_result.vault;
             let (status,) = ic_cdk::api::management_canister::main::canister_status(CanisterIdRecord {
                 canister_id,
             })
             .await
             .unwrap();
             let mut controllers = status.settings.controllers.clone();
-            controllers.push(vault.clone());
+            controllers.push(env.initializer());
             update_settings(UpdateSettingsArgument {
                 canister_id,
                 settings: CanisterSettings {
@@ -43,6 +33,17 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
                 },
             })
             .await.unwrap();
+
+            let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
+                chainsight_cdk::initializer::InitConfig { env: env.clone() },
+            );
+            let deployer = ic_cdk::caller();
+            let init_result = initializer.initialize(&deployer, &cycles).await?;
+            let proxy = init_result.proxy;
+            INITIALIZED.with(|f| *f.borrow_mut() = true);
+            PROXY.with(|f| *f.borrow_mut() = proxy);
+            ENV.with(|f| *f.borrow_mut() = env);
+
             Ok(())
         }
         fn proxy() -> candid::Principal {
