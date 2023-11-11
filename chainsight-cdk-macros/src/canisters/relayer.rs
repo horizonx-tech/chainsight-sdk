@@ -134,7 +134,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
-        did_export!(#canister_name);
+        did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!(#duration);
         define_web3_ctx!();
         define_transform_for_web3!();

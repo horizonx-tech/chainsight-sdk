@@ -1,4 +1,3 @@
-use candid::Principal;
 use chainsight_cdk::{
     config::components::{CommonConfig, SnapshotIndexerICPConfig},
     convert::candid::CanisterMethodIdentifier,
@@ -17,7 +16,7 @@ pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
 }
 
 fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
-    let common = common_code(&config.common);
+    let common = common_code(&config.common, config.lens_targets.is_some());
     let custom = custom_code(config);
     quote! {
         #common
@@ -25,9 +24,15 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
     }
 }
 
-fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
+fn common_code(config: &CommonConfig, with_lens_target: bool) -> proc_macro2::TokenStream {
     let id = &config.canister_name;
     let duration = config.monitor_duration;
+
+    let lens_targets_quote = if with_lens_target {
+        quote! { lens_targets: Vec<String> }
+    } else {
+        quote! {}
+    };
 
     quote! {
         use candid::{Decode, Encode};
@@ -42,7 +47,10 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         chainsight_common!(#duration);
 
         manage_single_state!("target_canister", String, false);
-        setup_func!({ target_canister: String });
+        setup_func!({
+            target_canister: String,
+            #lens_targets_quote
+        });
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 0, true);
@@ -86,25 +94,12 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let call_canister_args_ident = if let Some(lens_targets) = lens_targets {
-        let lens_target_principals: Vec<Principal> = lens_targets
-            .identifiers
-            .iter()
-            .map(|p| {
-                Principal::from_text(p)
-                    .unwrap_or_else(|_| panic!("lens target must be principal '{}'", p))
-            })
-            .collect();
-
-        let lens_targets_string_ident: Vec<_> =
-            lens_target_principals.iter().map(|p| p.to_text()).collect();
-
+    let call_canister_args_ident = if lens_targets.is_some() {
         quote! {
+            manage_single_state!("lens_targets", Vec<String>, false);
             type CallCanisterArgs = Vec<String>;
             pub fn call_args() -> CallCanisterArgs {
-                vec![
-                    #(#lens_targets_string_ident.to_string()),*
-                ]
+                get_lens_targets()
             }
         }
     } else {
