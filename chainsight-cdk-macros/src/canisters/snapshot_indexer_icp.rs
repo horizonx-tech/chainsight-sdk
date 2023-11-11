@@ -27,7 +27,6 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     let id = &config.canister_name;
-    let duration = config.monitor_duration;
 
     quote! {
         use candid::{Decode, Encode};
@@ -39,7 +38,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         did_export!(#id); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#duration);
+        chainsight_common!();
 
         manage_single_state!("target_canister", String, false);
         setup_func!({ target_canister: String });
@@ -52,10 +51,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
 
 fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerICPConfig {
-        common: CommonConfig {
-            canister_name,
-            monitor_duration: _,
-        },
+        common: CommonConfig { canister_name },
         method_identifier: method_identifier_str,
         lens_targets,
     } = config;
@@ -169,7 +165,6 @@ mod test {
     fn test_snapshot() {
         let config = SnapshotIndexerICPConfig {
             common: CommonConfig {
-                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_icp".to_string(),
             },
             method_identifier:
@@ -187,7 +182,6 @@ mod test {
     fn test_snapshot_with_lens_targets() {
         let config = SnapshotIndexerICPConfig {
             common: CommonConfig {
-                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_icp".to_string(),
             },
             method_identifier:

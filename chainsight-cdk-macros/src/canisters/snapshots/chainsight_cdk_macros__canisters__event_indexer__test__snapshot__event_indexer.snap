@@ -23,7 +23,7 @@ use ic_web3_rs::{
 use serde::Serialize;
 use std::{collections::HashMap, str::FromStr};
 did_export!("app");
-chainsight_common!(1000u32);
+chainsight_common!();
 define_web3_ctx!();
 define_transform_for_web3!();
 define_get_ethereum_address!();

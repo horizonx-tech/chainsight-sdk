@@ -35,7 +35,6 @@ lazy_static! {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]
 pub struct CommonConfig {
-    pub monitor_duration: u32,
     pub canister_name: String,
 }
 
@@ -69,7 +68,6 @@ impl Default for AlgorithmIndexerInput {
 impl Default for CommonConfig {
     fn default() -> Self {
         Self {
-            monitor_duration: 3600,
             canister_name: "example_canister".to_string(),
         }
     }

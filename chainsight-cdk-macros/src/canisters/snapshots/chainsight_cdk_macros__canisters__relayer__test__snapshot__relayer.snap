@@ -11,7 +11,7 @@ use chainsight_cdk_macros::{
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
 did_export!("relayer");
-chainsight_common!(60u32);
+chainsight_common!();
 define_web3_ctx!();
 define_transform_for_web3!();
 manage_single_state!("target_addr", String, false);

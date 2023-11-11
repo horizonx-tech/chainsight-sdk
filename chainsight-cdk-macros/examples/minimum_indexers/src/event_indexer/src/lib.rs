@@ -3,8 +3,7 @@ use chainsight_cdk_macros::def_event_indexer_canister;
 def_event_indexer_canister!(
     "{
         \"common\": {
-            \"canister_name\": \"app\",
-            \"monitor_duration\": 1000
+            \"canister_name\": \"app\"
         },
         \"def\": {
             \"identifier\": \"Transfer\",
