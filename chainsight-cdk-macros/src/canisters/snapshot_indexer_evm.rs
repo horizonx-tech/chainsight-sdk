@@ -28,10 +28,7 @@ fn snapshot_indexer_evm(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenS
 }
 
 fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
-    let CommonConfig {
-        monitor_duration,
-        canister_name,
-    } = config;
+    let CommonConfig { canister_name } = config;
 
     quote! {
         use std::str::FromStr;
@@ -43,7 +40,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         did_export!(#canister_name); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#monitor_duration);
+        chainsight_common!();
 
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -268,7 +265,6 @@ mod test {
     fn test_snapshot() {
         let config = SnapshotIndexerEVMConfig {
             common: CommonConfig {
-                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_evm".to_string(),
             },
             method_identifier: "totalSupply():(uint256)".to_string(),

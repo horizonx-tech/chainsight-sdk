@@ -5,7 +5,7 @@ expression: formatted
 did_export!("app");
 use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method};
 use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
-chainsight_common!(1000u32);
+chainsight_common!();
 init_in!();
 use app::*;
 lens_method!(10usize);

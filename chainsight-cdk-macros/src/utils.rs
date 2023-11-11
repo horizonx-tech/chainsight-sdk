@@ -2,66 +2,11 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
 
-pub fn chainsight_common(input: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(input as syn::LitInt);
-    chainsight_common_internal(args).into()
+pub fn chainsight_common() -> TokenStream {
+    chainsight_common_internal().into()
 }
-fn chainsight_common_internal(args: syn::LitInt) -> proc_macro2::TokenStream {
+fn chainsight_common_internal() -> proc_macro2::TokenStream {
     quote! {
-        #[derive(Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize)]
-        pub struct CanisterMetricsSnapshot {
-            pub timestamp: u64,
-            pub cycles: u128,
-        }
-        chainsight_cdk_macros::manage_vec_state!("canister_metrics_snapshot", CanisterMetricsSnapshot, false);
-
-        fn setup_monitoring_canister_metrics() {
-            let round_timestamp = |ts: u32, unit: u32| ts / unit * unit;
-            let current_time_sec = (ic_cdk::api::time() / (1000 * 1000000)) as u32;
-            let delay = round_timestamp(current_time_sec, #args) + #args - current_time_sec;
-
-            ic_cdk_timers::set_timer(std::time::Duration::from_secs(delay as u64), move || {
-                ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#args as u64), || {
-                    monitor_canister_metrics();
-                });
-            });
-            // in first time, immediate execution
-            monitor_canister_metrics();
-        }
-
-        fn monitor_canister_metrics() {
-            let timestamp = ic_cdk::api::time();
-            let cycles = ic_cdk::api::canister_balance128();
-            let datum = CanisterMetricsSnapshot {
-                timestamp,
-                cycles,
-            };
-            ic_cdk::println!("monitoring: {:?}", datum.clone());
-            add_canister_metrics_snapshot(datum);
-        }
-
-        #[ic_cdk_macros::init]
-        fn init() {
-            setup_monitoring_canister_metrics()
-        }
-
-        #[ic_cdk_macros::post_upgrade]
-        fn post_upgrade() {
-            setup_monitoring_canister_metrics()
-        }
-
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        pub fn metric() -> CanisterMetricsSnapshot {
-            get_last_canister_metrics_snapshot()
-        }
-
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-        pub fn metrics(n: usize) -> Vec<CanisterMetricsSnapshot> {
-            get_top_canister_metrics_snapshots(n)
-        }
-
         async fn _get_target_proxy(target: candid::Principal) -> candid::Principal {
             let out: ic_cdk::api::call::CallResult<(candid::Principal,)> = ic_cdk::api::call::call(target, "get_proxy", ()).await;
             out.unwrap().0
@@ -103,9 +48,7 @@ mod tests {
 
     #[test]
     fn test_snapshot_chainsight_common() {
-        let input = quote! {60};
-        let args: syn::Result<syn::LitInt> = syn::parse2(input);
-        let generated = chainsight_common_internal(args.unwrap());
+        let generated = chainsight_common_internal();
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");

@@ -9,8 +9,8 @@ mod web3;
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn chainsight_common(input: TokenStream) -> TokenStream {
-    utils::chainsight_common(input)
+pub fn chainsight_common(_input: TokenStream) -> TokenStream {
+    utils::chainsight_common()
 }
 
 #[proc_macro]

@@ -6,7 +6,6 @@ use app::persist; // NOTE: logics
 def_algorithm_indexer_canister!(
     "{
         \"common\": {
-            \"monitor_duration\": 3600,
             \"canister_name\": \"example_canister\"
         },
         \"indexing\": {

@@ -13,7 +13,7 @@ use sample_snapshot_indexer_https::*;
 use std::collections::HashMap;
 did_export!("sample_snapshot_indexer_https");
 init_in!();
-chainsight_common!(60u32);
+chainsight_common!();
 snapshot_indexer_https_source!();
 #[derive(
     Debug,
