@@ -12,7 +12,7 @@ impl Env {
     pub fn initializer(&self) -> Principal {
         match self {
             Env::LocalDevelopment => Principal::from_text("7fpuj-hqaaa-aaaal-acg7q-cai").unwrap(),
-            Env::Production => Principal::from_text("vvqfh-4aaaa-aaaao-a2mua-cai").unwrap(),
+            Env::Production => Principal::from_text("yhoh2-qaaaa-aaaao-a2n4a-cai").unwrap(),
             Env::Test => Principal::from_text("qoctq-giaaa-aaaaa-aaaea-cai").unwrap(), //TODO
         }
     }
