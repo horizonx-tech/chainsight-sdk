@@ -1,5 +1,5 @@
 use chainsight_cdk::{
-    config::components::{CommonConfig, SnapshotIndexerICPConfig},
+    config::components::{CommonConfig, SnapshotIndexerICPConfig, LensParameter},
     convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
@@ -16,7 +16,7 @@ pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
 }
 
 fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
-    let common = common_code(&config.common, config.lens_targets.is_some());
+    let common = common_code(&config.common, config.lens_parameter.is_some());
     let custom = custom_code(config);
     quote! {
         #common
@@ -24,11 +24,11 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
     }
 }
 
-fn common_code(config: &CommonConfig, with_lens_target: bool) -> proc_macro2::TokenStream {
+fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStream {
     let id = &config.canister_name;
     let duration = config.monitor_duration;
 
-    let lens_targets_quote = if with_lens_target {
+    let lens_targets_quote = if with_lens {
         quote! { lens_targets: Vec<String> }
     } else {
         quote! {}
@@ -65,7 +65,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             monitor_duration: _,
         },
         method_identifier: method_identifier_str,
-        lens_targets,
+        lens_parameter,
     } = config;
 
     let bindings_crate_ident = format_ident!("{}", &canister_name);
@@ -94,12 +94,25 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let call_canister_args_ident = if lens_targets.is_some() {
-        quote! {
-            manage_single_state!("lens_targets", Vec<String>, false);
-            type CallCanisterArgs = Vec<String>;
-            pub fn call_args() -> CallCanisterArgs {
-                get_lens_targets()
+    let call_canister_args_ident = if let Some(LensParameter { with_args }) = lens_parameter {
+        if with_args {
+            quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
+                type CallCanisterArgs = LensArgs;
+                pub fn call_args() -> CallCanisterArgs {
+                    LensArgs {
+                        targets: get_lens_targets(),
+                        args: #bindings_crate_ident::call_args(),
+                    }
+                }
+            }
+        } else {
+            quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
+                type CallCanisterArgs = Vec<String>;
+                pub fn call_args() -> CallCanisterArgs {
+                    get_lens_targets()
+                }
             }
         }
     } else {
@@ -154,7 +167,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::config::components::{CommonConfig, LensTargets};
+    use chainsight_cdk::config::components::CommonConfig;
     use insta::assert_display_snapshot;
     use rust_format::{Formatter, RustFmt};
 
@@ -168,7 +181,7 @@ mod test {
             },
             method_identifier:
                 "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })".to_string(),
-            lens_targets: None,
+            lens_parameter: None,
         }
     }
 
@@ -182,21 +195,17 @@ mod test {
     }
 
     #[test]
-    fn test_snapshot_with_lens_targets() {
+    fn test_snapshot_with_lens() {
         let mut config = config();
-        config.lens_targets =  Some(LensTargets {
-            identifiers: vec![
-                "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(), // NNS Ledger
-                "zfcdd-tqaaa-aaaaq-aaaga-cai".to_string(), // SNS-1
-                "mxzaz-hqaaa-aaaar-qaada-cai".to_string(), // ckBTC
-            ],
+        config.lens_parameter = Some(LensParameter {
+            with_args: false,
         });
         let generated = snapshot_indexer_icp(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_display_snapshot!(
-            "snapshot__snapshot_indexer_icp__with_lens_targets",
+            "snapshot__snapshot_indexer_icp__with_lens",
             formatted
         );
     }

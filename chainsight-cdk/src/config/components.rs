@@ -120,7 +120,7 @@ pub struct SnapshotIndexerHTTPSConfig {
 pub struct SnapshotIndexerICPConfig {
     pub common: CommonConfig,
     pub method_identifier: String,
-    pub lens_targets: Option<LensTargets>,
+    pub lens_parameter: Option<LensParameter>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -130,8 +130,15 @@ pub struct RelayerConfig {
     pub oracle_type: String,
     pub method_identifier: String,
     pub abi_file_path: String,
-    pub lens_targets: Option<LensTargets>,
+    pub lens_parameter: Option<LensParameter>,
 }
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct LensParameter {
+    pub with_args: bool,
+}
+
+// NOTE: not use in sdk, use only in cli
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LensTargets {
     pub identifiers: Vec<String>,

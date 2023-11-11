@@ -1,6 +1,6 @@
 use candid::types::{internal::is_primitive, Type};
 use chainsight_cdk::{
-    config::components::RelayerConfig, convert::candid::CanisterMethodIdentifier,
+    config::components::{RelayerConfig, LensParameter}, convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -29,7 +29,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         common,
         method_identifier,
         abi_file_path,
-        lens_targets,
+        lens_parameter,
         ..
     } = config;
 
@@ -43,14 +43,29 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
-    let (call_args_ident, source_ident) = if lens_targets.is_some() {
-        (
+    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter {
+        let call_args_ident = if with_args {
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
+                type CallCanisterArgs = LensArgs;
+                pub fn call_args() -> CallCanisterArgs {
+                    LensArgs {
+                        targets: get_lens_targets(),
+                        args: #canister_name_ident::call_args(),
+                    }
+                }
+             }
+        } else {
+            quote! {
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
                     get_lens_targets()
                 }
+             }
+        };
+        (
+            quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
+                #call_args_ident
             },
             quote! { relayer_source!(#method_name, true); },
         )
@@ -117,13 +132,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
-        lens_targets,
+        lens_parameter,
         ..
     } = config;
 
     let canister_name = &common.canister_name.clone();
     let duration = &common.monitor_duration;
-    let lens_targets_quote = if lens_targets.is_some() {
+    let lens_targets_quote = if lens_parameter.is_some() {
         quote! { lens_targets: Vec<String> }
     } else {
         quote! {}
@@ -177,7 +192,7 @@ fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::config::components::{CommonConfig, LensTargets};
+    use chainsight_cdk::config::components::CommonConfig;
     use insta::assert_snapshot;
     use rust_format::{Formatter, RustFmt};
 
@@ -206,7 +221,7 @@ mod test {
             oracle_type: "".to_string(), // NOTE: unused
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
-            lens_targets: None,
+            lens_parameter: None,
         }
     }
 
@@ -220,19 +235,15 @@ mod test {
     }
 
     #[test]
-    fn test_snapshot_with_lens_targets() {
+    fn test_snapshot_with_lens() {
         let mut config = config();
-        config.lens_targets = Some(LensTargets {
-            identifiers: vec![
-                "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(), // NNS Ledger
-                "zfcdd-tqaaa-aaaaq-aaaga-cai".to_string(), // SNS-1
-                "mxzaz-hqaaa-aaaar-qaada-cai".to_string(), // ckBTC
-            ],
+        config.lens_parameter = Some(LensParameter {
+            with_args: false,
         });
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
-        assert_snapshot!("snapshot__relayer__with_lens_targets", formatted);
+        assert_snapshot!("snapshot__relayer__with_lens", formatted);
     }
 }
