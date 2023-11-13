@@ -5,10 +5,10 @@ expression: compiled
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct CurrencyValue { usd: f64 }
+pub struct CurrencyValue { pub usd: f64 }
 pub type RequestArgsType = u64;
 pub type ResponseType = Box<Snapshot>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct Snapshot { value: Box<SnapshotValue>, timestamp: u64 }
+pub struct Snapshot { pub value: Box<SnapshotValue>, pub timestamp: u64 }
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct SnapshotValue { dai: CurrencyValue }
+pub struct SnapshotValue { pub dai: CurrencyValue }

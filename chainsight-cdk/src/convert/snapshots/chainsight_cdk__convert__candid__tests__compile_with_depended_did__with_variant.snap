@@ -5,9 +5,9 @@ expression: compiled
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-enum Env { Production, Test, LocalDevelopment }
+pub enum Env { Production, Test, LocalDevelopment }
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-enum InitError {
+pub enum InitError {
   InvalidDestination(String),
   InvalidPrincipal(candid::Principal),
   InvalidContent(String),
@@ -16,4 +16,4 @@ enum InitError {
 pub type RequestArgsType = Env;
 pub type ResponseType = Box<Result>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-enum Result { Ok, Err(InitError) }
+pub enum Result { Ok, Err(InitError) }

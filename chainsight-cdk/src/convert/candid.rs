@@ -2,6 +2,7 @@ use std::{fs, path::Path};
 
 use anyhow::Ok;
 use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
+use regex::Regex;
 
 #[derive(Debug, Clone)]
 pub struct CanisterMethodIdentifier {
@@ -83,7 +84,10 @@ impl CanisterMethodIdentifier {
             1,
             "use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};".to_string(),
         );
-        Ok(lines.join("\n"))
+        // set all structure fields to `pub`
+        // NOTE: configurable in candid ^0.9
+        let codes = make_struct_fields_accessible(lines.join("\n"));
+        Ok(codes)
     }
 
     pub fn get_types(&self) -> (Option<&Type>, Option<&Type>) {
@@ -150,6 +154,15 @@ fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
         trim_type_str(args_ty),
         trim_type_str(response_ty),
     ))
+}
+
+// expose all structure fields (for bindings)
+fn make_struct_fields_accessible(codes: String) -> String {
+    let re = Regex::new(r"[^{](?:pub )*(\w+): ").unwrap();
+    let codes = re.replace_all(&codes, " pub ${1}: ");
+    let re = Regex::new(r"(?:pub )*enum").unwrap();
+    let codes = re.replace_all(&codes, "pub enum");
+    codes.to_string()
 }
 
 // Read .did and remove 'service' section
@@ -350,5 +363,24 @@ type byte = nat8;".to_string()"#;
 }"#;
 
         assert_eq!(exclude_service_from_did_string(&mut actual), expected);
+    }
+
+    #[test]
+    fn test_make_struct_fields_accessible() {
+        let before = r#"enum Result { Ok, Err(InitError) }
+enum SourceType { evm, https, chainsight }
+pub struct LensValue { value: String }
+pub struct ResponseType {
+    value: String,
+    timestamp: u64,
+}"#;
+        let after = r#"pub enum Result { Ok, Err(InitError) }
+pub enum SourceType { evm, https, chainsight }
+pub struct LensValue { pub value: String }
+pub struct ResponseType {
+    pub value: String,
+    pub timestamp: u64,
+}"#;
+        assert_eq!(make_struct_fields_accessible(before.to_string()), after);
     }
 }
