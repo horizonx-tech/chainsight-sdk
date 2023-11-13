@@ -27,7 +27,7 @@ type CallCanisterArgs = Vec<String>;
 pub fn call_args() -> CallCanisterArgs {
     get_lens_targets()
 }
-relayer_source!("get_last_snapshot_value", true);
+relayer_source!("get_last_snapshot_value", "get_lens_targets");
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {

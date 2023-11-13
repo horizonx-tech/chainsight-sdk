@@ -46,9 +46,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter {
         let call_args_ident = if with_args {
             quote! {
-                type CallCanisterArgs = LensArgs;
+                type CallCanisterArgs = #canister_name_ident::LensArgs;
                 pub fn call_args() -> CallCanisterArgs {
-                    LensArgs {
+                    #canister_name_ident::LensArgs {
                         targets: get_lens_targets(),
                         args: #canister_name_ident::call_args(),
                     }
@@ -67,7 +67,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 manage_single_state!("lens_targets", Vec<String>, false);
                 #call_args_ident
             },
-            quote! { relayer_source!(#method_name, true); },
+            quote! { relayer_source!(#method_name, "get_lens_targets"); },
         )
     } else {
         (
@@ -77,7 +77,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                     #canister_name_ident::call_args()
                 }
             },
-            quote! { relayer_source!(#method_name, false); },
+            quote! { relayer_source!(#method_name); },
         )
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);

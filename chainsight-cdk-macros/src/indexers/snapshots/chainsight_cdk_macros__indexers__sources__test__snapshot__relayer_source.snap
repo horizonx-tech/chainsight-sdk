@@ -12,7 +12,7 @@ fn get_sources(
         get_target_canister(),
         get_indexing_interval(),
         "icrc1_balance_of",
-        call_args(),
+        vec![],
     )]
 }
 

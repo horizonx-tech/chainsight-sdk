@@ -64,7 +64,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         lens_parameter,
     } = config;
 
-    let bindings_crate_ident = format_ident!("{}", &canister_name);
+    let canister_name_ident = format_ident!("{}", &canister_name);
 
     let method_identifier =
         CanisterMethodIdentifier::new(&method_identifier_str).expect("invalid method identifier");
@@ -94,11 +94,11 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         if with_args {
             quote! {
                 manage_single_state!("lens_targets", Vec<String>, false);
-                type CallCanisterArgs = LensArgs;
+                type CallCanisterArgs = #canister_name_ident::LensArgs;
                 pub fn call_args() -> CallCanisterArgs {
-                    LensArgs {
+                    #canister_name_ident::LensArgs {
                         targets: get_lens_targets(),
-                        args: #bindings_crate_ident::call_args(),
+                        args: #canister_name_ident::call_args(),
                     }
                 }
             }
@@ -113,9 +113,9 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         }
     } else {
         quote! {
-            type CallCanisterArgs = #bindings_crate_ident::CallCanisterArgs;
+            type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
             pub fn call_args() -> CallCanisterArgs {
-                #bindings_crate_ident::call_args()
+                #canister_name_ident::call_args()
             }
         }
     };

@@ -23,14 +23,14 @@ setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
 use relayer::{filter, CallCanisterResponse};
 manage_single_state!("lens_targets", Vec<String>, false);
-type CallCanisterArgs = LensArgs;
+type CallCanisterArgs = relayer::LensArgs;
 pub fn call_args() -> CallCanisterArgs {
-    LensArgs {
+    relayer::LensArgs {
         targets: get_lens_targets(),
         args: relayer::call_args(),
     }
 }
-relayer_source!("get_last_snapshot_value", true);
+relayer_source!("get_last_snapshot_value", "get_lens_targets");
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
