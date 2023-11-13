@@ -1,3 +1,4 @@
+use chainsight_cdk::config::components::{LENS_FUNCTION_ARGS_TYPE, LENS_FUNCTION_RESPONSE_TYPE};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream};
@@ -207,8 +208,8 @@ fn lens_method_internal(args: LensMethodArgs) -> proc_macro2::TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
-    let args_ty = format_ident!("{}", "LensArgs");
-    let value_ty = format_ident!("{}", "LensValue");
+    let args_ty = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
+    let value_ty = format_ident!("{}", LENS_FUNCTION_RESPONSE_TYPE);
     let target_count = args.target_count;
 
     let (lens_args_def, getter_func, receiver_provider, inter_calc_func) = match args.func_arg {

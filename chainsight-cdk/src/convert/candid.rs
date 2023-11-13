@@ -97,6 +97,10 @@ impl CanisterMethodIdentifier {
         )
     }
 
+    pub fn get_type(&self, key: &str) -> Option<&Type> {
+        self.find_type(key)
+    }
+
     fn compilable(&self) -> bool {
         let (args_ty, response_ty) = self.get_types();
         let not_compilable_type = &Type::Unknown;
