@@ -3,6 +3,7 @@ use std::{fs, path::Path};
 use anyhow::Ok;
 use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
 
+#[derive(Debug, Clone)]
 pub struct CanisterMethodIdentifier {
     pub identifier: String,
     type_env: TypeEnv,
