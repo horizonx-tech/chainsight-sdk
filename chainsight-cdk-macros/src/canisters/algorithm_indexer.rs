@@ -16,7 +16,6 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         indexing: _,
         input,
     } = config;
-    let monitor_duration = common.monitor_duration;
     let canister_name = common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let input_ty = input_type_ident(input.response_type, input.source_type);
@@ -31,7 +30,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         };
         use serde::{Deserialize, Serialize};
         use std::collections::HashMap;
-        chainsight_common!(#monitor_duration);
+        chainsight_common!();
         init_in!();
         manage_single_state!("target_addr", String, false);
         setup_func!({ target_addr: String, config: IndexingConfig });
@@ -89,7 +88,6 @@ mod test {
     fn test_snapshot() {
         let config = AlgorithmIndexerConfig {
             common: CommonConfig {
-                monitor_duration: 3600,
                 canister_name: "example_canister".to_string(),
             },
             indexing: IndexingConfig {

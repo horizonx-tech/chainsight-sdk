@@ -12,7 +12,7 @@ use chainsight_cdk_macros::{
 mod types;
 did_export!("sample_snapshot_indexer_icp");
 init_in!();
-chainsight_common!(60u32);
+chainsight_common!();
 manage_single_state!("target_canister", String, false);
 setup_func ! ({ target_canister : String , });
 prepare_stable_structure!();

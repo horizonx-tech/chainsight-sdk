@@ -3,7 +3,7 @@ use chainsight_cdk_macros::{
     setup_func, timer_task_func,
 };
 
-chainsight_common!(60);
+chainsight_common!();
 
 #[derive(Default, Clone, Debug, PartialEq, candid::CandidType, candid::Deserialize)]
 pub struct Parameter {

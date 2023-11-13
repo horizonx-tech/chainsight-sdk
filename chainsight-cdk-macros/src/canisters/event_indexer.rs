@@ -31,10 +31,7 @@ fn event_indexer_canister(config: EventIndexerConfig) -> proc_macro2::TokenStrea
 }
 
 fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
-    let CommonConfig {
-        monitor_duration,
-        canister_name,
-    } = common;
+    let CommonConfig { canister_name } = common;
 
     quote! {
         use candid::CandidType;
@@ -58,7 +55,7 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         use serde::Serialize;
         use std::{collections::HashMap, str::FromStr};
         did_export!(#canister_name);
-        chainsight_common!(#monitor_duration);
+        chainsight_common!();
         define_web3_ctx!();
         define_transform_for_web3!();
         define_get_ethereum_address!();
@@ -192,7 +189,6 @@ mod test {
     fn test_snapshot() {
         let config = EventIndexerConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
                 canister_name: "app".to_string(),
             },
             def: EventIndexerEventDefinition {

@@ -4,7 +4,6 @@ mod snapshot_indexer_icp; // NOTE: bindings / Originally intended for a differen
 def_snapshot_indexer_icp_canister!(
     "{
         \"common\":{
-            \"monitor_duration\": 60,
             \"canister_name\":\"snapshot_indexer_icp\"
         },
         \"method_identifier\": \"get_last_snapshot : () -> (record { value : text; timestamp : nat64 })\"

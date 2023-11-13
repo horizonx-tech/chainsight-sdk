@@ -1,7 +1,7 @@
 use core::fmt;
 
 use async_trait::async_trait;
-use candid::{CandidType, Principal};
+use candid::{CandidType, Deserialize, Principal};
 
 use crate::core::Env;
 #[derive(Debug, CandidType)]
@@ -32,9 +32,38 @@ impl std::error::Error for InitError {
     }
 }
 
+#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct CycleManagement {
+    pub initial_supply: u128,
+    pub refueling_amount: u128,
+    pub refueling_threshold: u128,
+}
+
+#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+pub struct CycleManagements {
+    pub refueling_interval: u64,
+    pub vault_intial_supply: u128,
+    pub indexer: CycleManagement,
+    pub db: CycleManagement,
+    pub proxy: CycleManagement,
+}
+
+impl CycleManagements {
+    pub fn initial_supply(&self) -> u128 {
+        self.vault_intial_supply
+            + self.indexer.initial_supply
+            + self.db.initial_supply
+            + self.proxy.initial_supply
+    }
+}
+
 #[async_trait]
 pub trait Initializer {
-    async fn initialize(&self) -> Result<InitResult, InitError>;
+    async fn initialize(
+        &self,
+        deployer: &Principal,
+        cycles: &CycleManagements,
+    ) -> Result<InitResult, InitError>;
 }
 pub struct InitConfig {
     pub env: Env,
@@ -42,4 +71,6 @@ pub struct InitConfig {
 
 pub struct InitResult {
     pub proxy: Principal,
+    pub db: Principal,
+    pub vault: Principal,
 }

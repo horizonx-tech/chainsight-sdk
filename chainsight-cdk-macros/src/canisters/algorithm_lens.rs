@@ -11,7 +11,6 @@ pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
 }
 
 fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStream {
-    let monitor_duration = config.common.monitor_duration;
     let canister_name = config.common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", config.common.canister_name);
     let lens_size = config.target_count;
@@ -25,7 +24,7 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         did_export!(#canister_name);
         use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method};
         use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
-        chainsight_common!(#monitor_duration);
+        chainsight_common!();
         init_in!();
         use #canister_name_ident::*;
         #lens_method_quote
@@ -44,7 +43,6 @@ mod test {
     fn test_snapshot_without_args() {
         let config = AlgorithmLensConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
                 canister_name: "app".to_string(),
             },
             target_count: 10,
@@ -61,7 +59,6 @@ mod test {
     fn test_snapshot_with_args() {
         let config = AlgorithmLensConfig {
             common: CommonConfig {
-                monitor_duration: 1000,
                 canister_name: "app".to_string(),
             },
             target_count: 10,

@@ -26,7 +26,6 @@ fn snapshot_indexer_icp(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenS
 
 fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStream {
     let id = &config.canister_name;
-    let duration = config.monitor_duration;
 
     let lens_targets_quote = if with_lens {
         quote! { lens_targets: Vec<String> }
@@ -44,7 +43,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
         did_export!(#id); // NOTE: need to be declared before query, update
 
         init_in!();
-        chainsight_common!(#duration);
+        chainsight_common!();
 
         manage_single_state!("target_canister", String, false);
         setup_func!({
@@ -60,10 +59,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
 fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerICPConfig {
-        common: CommonConfig {
-            canister_name,
-            monitor_duration: _,
-        },
+        common: CommonConfig { canister_name },
         method_identifier: method_identifier_str,
         lens_parameter,
     } = config;
@@ -176,7 +172,6 @@ mod test {
     fn config() -> SnapshotIndexerICPConfig {
         SnapshotIndexerICPConfig {
             common: CommonConfig {
-                monitor_duration: 60,
                 canister_name: "sample_snapshot_indexer_icp".to_string(),
             },
             method_identifier:
@@ -200,6 +195,7 @@ mod test {
         config.lens_parameter = Some(LensParameter {
             with_args: false,
         });
+
         let generated = snapshot_indexer_icp(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())

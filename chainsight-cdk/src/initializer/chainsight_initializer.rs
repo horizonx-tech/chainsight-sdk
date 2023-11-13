@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use candid::{CandidType, Principal};
-use ic_cdk::api::call::CallResult;
+use ic_cdk::api::call::{msg_cycles_accept128, CallResult};
 
-use super::{InitConfig, InitError, InitResult, Initializer};
+use super::{CycleManagements, InitConfig, InitError, InitResult, Initializer};
 
 pub struct ChainsightInitializer {
     config: InitConfig,
@@ -18,15 +18,29 @@ impl ChainsightInitializer {
 pub struct InitializeOutput {
     pub proxy: Principal,
     pub db: Principal,
+    pub vault: Principal,
 }
 
 #[async_trait]
 impl Initializer for ChainsightInitializer {
-    async fn initialize(&self) -> Result<InitResult, InitError> {
-        let out: CallResult<(InitializeOutput,)> =
-            ic_cdk::api::call::call(self.config.env.initializer(), "initialize", ()).await;
+    async fn initialize(
+        &self,
+        deployer: &Principal,
+        cycles: &CycleManagements,
+    ) -> Result<InitResult, InitError> {
+        let res: CallResult<(InitializeOutput,)> = ic_cdk::api::call::call_with_payment128(
+            self.config.env.initializer(),
+            "initialize",
+            (deployer, cycles),
+            msg_cycles_accept128(cycles.initial_supply()),
+        )
+        .await;
+        let out = res.unwrap().0;
+
         Ok(InitResult {
-            proxy: out.unwrap().0.proxy,
+            proxy: out.proxy,
+            db: out.db,
+            vault: out.vault,
         })
     }
 }

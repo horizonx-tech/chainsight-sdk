@@ -4,7 +4,6 @@ mod snapshot_indexer_https; // NOTE: logics / Originally intended for a differen
 def_snapshot_indexer_https_canister!(
     "{
         \"common\":{
-            \"monitor_duration\": 60,
             \"canister_name\":\"snapshot_indexer_https\"
         },
         \"url\": \"https://api.coingecko.com/api/v3/simple/price\",
