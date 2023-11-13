@@ -180,11 +180,11 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
 }
 
 #[derive(Debug)]
-struct LensArgs {
+struct LensMethodArgs {
     target_count: usize,
     func_arg: Option<Type>,
 }
-impl Parse for LensArgs {
+impl Parse for LensMethodArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let target_count: syn::LitInt = input.parse()?;
         let func_arg = if input.peek(syn::Token![,]) {
@@ -193,17 +193,17 @@ impl Parse for LensArgs {
         } else {
             None
         };
-        Ok(LensArgs {
+        Ok(LensMethodArgs {
             target_count: target_count.base10_parse().unwrap(),
             func_arg,
         })
     }
 }
 pub fn lens_method(input: TokenStream) -> TokenStream {
-    let args = syn::parse_macro_input!(input as LensArgs);
+    let args = syn::parse_macro_input!(input as LensMethodArgs);
     lens_method_internal(args).into()
 }
-fn lens_method_internal(args: LensArgs) -> proc_macro2::TokenStream {
+fn lens_method_internal(args: LensMethodArgs) -> proc_macro2::TokenStream {
     let getter_name = format_ident!("{}", "get_result");
     let proxy_getter_name = format_ident!("{}", "proxy_get_result");
 
@@ -339,7 +339,7 @@ mod test {
     #[test]
     fn test_snapshot_lens_method() {
         let input = quote! {10};
-        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let args: syn::Result<LensMethodArgs> = syn::parse2(input);
         let generated = lens_method_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
@@ -350,7 +350,7 @@ mod test {
     #[test]
     fn test_snapshot_lens_method_with_args() {
         let input = quote! {10, CalculateArgs};
-        let args: syn::Result<LensArgs> = syn::parse2(input);
+        let args: syn::Result<LensMethodArgs> = syn::parse2(input);
         let generated = lens_method_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
