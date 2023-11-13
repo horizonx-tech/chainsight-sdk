@@ -2,6 +2,7 @@
 members = [
     "src/relayer",
     "src/relayer_with_lens_target",
+    "src/relayer_with_lens_with_args",
     "src/event_indexer",
     "src/algorithm_indexer",
     "src/algorithm_indexer_with_args",
@@ -9,7 +10,8 @@ members = [
     "src/snapshot_indexer_evm",
     "src/snapshot_indexer_https",
     "src/snapshot_indexer_icp",
-    "src/snapshot_indexer_icp_with_lens_target"
+    "src/snapshot_indexer_icp_with_lens_target",
+    "src/snapshot_indexer_icp_with_lens_with_args"
 ]
 
 [workspace.dependencies]

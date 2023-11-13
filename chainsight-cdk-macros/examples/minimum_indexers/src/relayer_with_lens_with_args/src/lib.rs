@@ -8,10 +8,10 @@ def_relayer_canister!(
         },
         \"destination\":\"0539a0EF8e5E60891fFf0958A059E049e43020d9\",
         \"oracle_type\":\"uint256\",
-        \"method_identifier\":\"get_last_snapshot_value : () -> (text)\",
+        \"method_identifier\":\"get_result : (LensArgs) -> (LensValue)\",
         \"abi_file_path\":\"__interfaces/Uint256Oracle.json\",
         \"lens_parameter\":{
-            \"with_args\": false
+            \"with_args\":true
         }
     }"
 );
