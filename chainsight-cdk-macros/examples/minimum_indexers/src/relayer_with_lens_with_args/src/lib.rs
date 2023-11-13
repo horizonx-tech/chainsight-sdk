@@ -1,10 +1,10 @@
 use chainsight_cdk_macros::def_relayer_canister;
-mod example_relayer; // NOTE: logics
+mod example_canister; // NOTE: logics
 
 def_relayer_canister!(
     "{
         \"common\":{
-            \"canister_name\":\"example_relayer\"
+            \"canister_name\":\"example_canister\"
         },
         \"destination\":\"0539a0EF8e5E60891fFf0958A059E049e43020d9\",
         \"oracle_type\":\"uint256\",

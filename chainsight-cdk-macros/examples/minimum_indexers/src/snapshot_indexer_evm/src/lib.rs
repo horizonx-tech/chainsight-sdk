@@ -3,7 +3,7 @@ use chainsight_cdk_macros::def_snapshot_indexer_evm_canister;
 def_snapshot_indexer_evm_canister!(
     "{
         \"common\":{
-            \"canister_name\":\"snapshot_indexer_evm\"
+            \"canister_name\":\"example_canister\"
         },
         \"method_identifier\":\"totalSupply():(uint256)\",
         \"method_args\":[],
