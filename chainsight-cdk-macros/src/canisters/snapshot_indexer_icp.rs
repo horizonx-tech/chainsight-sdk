@@ -1,5 +1,7 @@
 use chainsight_cdk::{
-    config::components::{CommonConfig, LensParameter, SnapshotIndexerICPConfig},
+    config::components::{
+        CommonConfig, LensParameter, SnapshotIndexerICPConfig, LENS_FUNCTION_ARGS_TYPE,
+    },
     convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
@@ -92,11 +94,12 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
     let call_canister_args_ident = if let Some(LensParameter { with_args }) = lens_parameter {
         if with_args {
+            let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
             quote! {
                 manage_single_state!("lens_targets", Vec<String>, false);
-                type CallCanisterArgs = #canister_name_ident::LensArgs;
+                type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
                 pub fn call_args() -> CallCanisterArgs {
-                    #canister_name_ident::LensArgs {
+                    #canister_name_ident::#lens_args_ident {
                         targets: get_lens_targets(),
                         args: #canister_name_ident::call_args(),
                     }

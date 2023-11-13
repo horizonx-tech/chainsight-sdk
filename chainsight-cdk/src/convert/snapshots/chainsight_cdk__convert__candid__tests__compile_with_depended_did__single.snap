@@ -7,4 +7,4 @@ use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 pub type RequestArgsType = u64;
 pub type ResponseType = Box<Snapshot>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct Snapshot { value: String, timestamp: u64 }
+pub struct Snapshot { pub value: String, pub timestamp: u64 }
