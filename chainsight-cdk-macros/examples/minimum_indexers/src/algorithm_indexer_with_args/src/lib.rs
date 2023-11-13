@@ -48,4 +48,4 @@ pub struct Account {
     value: String,
 }
 
-did_export!("algorithm_indexer_with_args");
+did_export!("example_canister");

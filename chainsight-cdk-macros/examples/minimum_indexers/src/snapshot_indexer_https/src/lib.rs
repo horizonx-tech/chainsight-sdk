@@ -1,10 +1,10 @@
 use chainsight_cdk_macros::def_snapshot_indexer_https_canister;
-mod snapshot_indexer_https; // NOTE: logics / Originally intended for a different crate
+mod example_canister; // NOTE: logics / Originally intended for a different crate
 
 def_snapshot_indexer_https_canister!(
     "{
         \"common\":{
-            \"canister_name\":\"snapshot_indexer_https\"
+            \"canister_name\":\"example_canister\"
         },
         \"url\": \"https://api.coingecko.com/api/v3/simple/price\",
         \"headers\":{

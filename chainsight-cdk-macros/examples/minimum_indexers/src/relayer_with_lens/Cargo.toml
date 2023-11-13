@@ -1,5 +1,5 @@
 [package]
-name = "snapshot_indexer_icp_with_lens_target"
+name = "relayer_with_lens"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,7 +13,6 @@ candid.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-cdk-timers.workspace = true
-ic-stable-structures.workspace = true
 serde.workspace = true
 hex.workspace = true
 
