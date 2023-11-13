@@ -6,10 +6,10 @@
       "package": "relayer",
       "candid": "src/relayer/relayer.did"
     },
-    "relayer_with_lens_target": {
+    "relayer_with_lens": {
       "type": "rust",
-      "package": "relayer_with_lens_target",
-      "candid": "src/relayer_with_lens_target/relayer_with_lens_target.did"
+      "package": "relayer_with_lens",
+      "candid": "src/relayer_with_lens/relayer_with_lens.did"
     },
     "event_indexer": {
       "type": "rust",
@@ -46,10 +46,10 @@
       "package": "snapshot_indexer_icp",
       "candid": "src/snapshot_indexer_icp/snapshot_indexer_icp.did"
     },
-    "snapshot_indexer_icp_with_lens_target": {
+    "snapshot_indexer_icp_with_lens": {
       "type": "rust",
-      "package": "snapshot_indexer_icp_with_lens_target",
-      "candid": "src/snapshot_indexer_icp_with_lens_target/snapshot_indexer_icp_with_lens_target.did"
+      "package": "snapshot_indexer_icp_with_lens",
+      "candid": "src/snapshot_indexer_icp_with_lens/snapshot_indexer_icp_with_lens.did"
     },
     "snapshot_indexer_icp_with_lens_with_args": {
       "type": "rust",
