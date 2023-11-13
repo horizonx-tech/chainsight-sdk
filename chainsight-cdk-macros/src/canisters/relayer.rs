@@ -244,4 +244,17 @@ mod test {
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer__with_lens", formatted);
     }
+
+    #[test]
+    fn test_snapshot_with_lens_with_args() {
+        let mut config = config();
+        config.lens_parameter = Some(LensParameter {
+            with_args: true,
+        });
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer__with_lens_with_args", formatted);
+    }
 }
