@@ -1,5 +1,5 @@
 use chainsight_cdk::{
-    config::components::{CommonConfig, SnapshotIndexerICPConfig, LensParameter},
+    config::components::{CommonConfig, LensParameter, SnapshotIndexerICPConfig},
     convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
@@ -192,26 +192,19 @@ mod test {
     #[test]
     fn test_snapshot_with_lens() {
         let mut config = config();
-        config.lens_parameter = Some(LensParameter {
-            with_args: false,
-        });
+        config.lens_parameter = Some(LensParameter { with_args: false });
 
         let generated = snapshot_indexer_icp(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
-        assert_display_snapshot!(
-            "snapshot__snapshot_indexer_icp__with_lens",
-            formatted
-        );
+        assert_display_snapshot!("snapshot__snapshot_indexer_icp__with_lens", formatted);
     }
 
     #[test]
     fn test_snapshot_with_lens_with_args() {
         let mut config = config();
-        config.lens_parameter = Some(LensParameter {
-            with_args: true,
-        });
+        config.lens_parameter = Some(LensParameter { with_args: true });
 
         let generated = snapshot_indexer_icp(config);
         let formatted = RustFmt::default()

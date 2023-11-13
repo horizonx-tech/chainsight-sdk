@@ -1,6 +1,7 @@
 use candid::types::{internal::is_primitive, Type};
 use chainsight_cdk::{
-    config::components::{RelayerConfig, LensParameter}, convert::candid::CanisterMethodIdentifier,
+    config::components::{LensParameter, RelayerConfig},
+    convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -43,24 +44,25 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
-    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter {
+    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
+    {
         let call_args_ident = if with_args {
             quote! {
-                type CallCanisterArgs = #canister_name_ident::LensArgs;
-                pub fn call_args() -> CallCanisterArgs {
-                    #canister_name_ident::LensArgs {
-                        targets: get_lens_targets(),
-                        args: #canister_name_ident::call_args(),
-                    }
-                }
-             }
+               type CallCanisterArgs = #canister_name_ident::LensArgs;
+               pub fn call_args() -> CallCanisterArgs {
+                   #canister_name_ident::LensArgs {
+                       targets: get_lens_targets(),
+                       args: #canister_name_ident::call_args(),
+                   }
+               }
+            }
         } else {
             quote! {
-                type CallCanisterArgs = Vec<String>;
-                pub fn call_args() -> CallCanisterArgs {
-                    get_lens_targets()
-                }
-             }
+               type CallCanisterArgs = Vec<String>;
+               pub fn call_args() -> CallCanisterArgs {
+                   get_lens_targets()
+               }
+            }
         };
         (
             quote! {
@@ -235,9 +237,7 @@ mod test {
     #[test]
     fn test_snapshot_with_lens() {
         let mut config = config();
-        config.lens_parameter = Some(LensParameter {
-            with_args: false,
-        });
+        config.lens_parameter = Some(LensParameter { with_args: false });
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
@@ -248,9 +248,7 @@ mod test {
     #[test]
     fn test_snapshot_with_lens_with_args() {
         let mut config = config();
-        config.lens_parameter = Some(LensParameter {
-            with_args: true,
-        });
+        config.lens_parameter = Some(LensParameter { with_args: true });
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
