@@ -1,6 +1,7 @@
 use candid::types::{internal::is_primitive, Type};
 use chainsight_cdk::{
-    config::components::RelayerConfig, convert::candid::CanisterMethodIdentifier,
+    config::components::{LensParameter, RelayerConfig},
+    convert::candid::CanisterMethodIdentifier,
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -29,7 +30,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         common,
         method_identifier,
         abi_file_path,
-        lens_targets,
+        lens_parameter,
         ..
     } = config;
 
@@ -43,16 +44,32 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
 
-    let (call_args_ident, source_ident) = if lens_targets.is_some() {
+    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
+    {
+        let call_args_ident = if with_args {
+            quote! {
+               type CallCanisterArgs = #canister_name_ident::LensArgs;
+               pub fn call_args() -> CallCanisterArgs {
+                   #canister_name_ident::LensArgs {
+                       targets: get_lens_targets(),
+                       args: #canister_name_ident::call_args(),
+                   }
+               }
+            }
+        } else {
+            quote! {
+               type CallCanisterArgs = Vec<String>;
+               pub fn call_args() -> CallCanisterArgs {
+                   get_lens_targets()
+               }
+            }
+        };
         (
             quote! {
                 manage_single_state!("lens_targets", Vec<String>, false);
-                type CallCanisterArgs = Vec<String>;
-                pub fn call_args() -> CallCanisterArgs {
-                    get_lens_targets()
-                }
+                #call_args_ident
             },
-            quote! { relayer_source!(#method_name, true); },
+            quote! { relayer_source!(#method_name, "get_lens_targets"); },
         )
     } else {
         (
@@ -62,7 +79,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                     #canister_name_ident::call_args()
                 }
             },
-            quote! { relayer_source!(#method_name, false); },
+            quote! { relayer_source!(#method_name); },
         )
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
@@ -117,12 +134,12 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
-        lens_targets,
+        lens_parameter,
         ..
     } = config;
 
     let canister_name = &common.canister_name.clone();
-    let lens_targets_quote = if lens_targets.is_some() {
+    let lens_targets_quote = if lens_parameter.is_some() {
         quote! { lens_targets: Vec<String> }
     } else {
         quote! {}
@@ -133,7 +150,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use ic_web3_rs::types::{Address, U256};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
-        did_export!(#canister_name);
+        did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
         define_web3_ctx!();
         define_transform_for_web3!();
@@ -195,9 +212,8 @@ mod test {
         )));
     }
 
-    #[test]
-    fn test_snapshot() {
-        let config = RelayerConfig {
+    fn config() -> RelayerConfig {
+        RelayerConfig {
             common: CommonConfig {
                 canister_name: "relayer".to_string(),
             },
@@ -205,12 +221,38 @@ mod test {
             oracle_type: "".to_string(), // NOTE: unused
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
-            lens_targets: None,
-        };
-        let generated = relayer_canister(config);
+            lens_parameter: None,
+        }
+    }
+
+    #[test]
+    fn test_snapshot() {
+        let generated = relayer_canister(config());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_lens() {
+        let mut config = config();
+        config.lens_parameter = Some(LensParameter { with_args: false });
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer__with_lens", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_lens_with_args() {
+        let mut config = config();
+        config.lens_parameter = Some(LensParameter { with_args: true });
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__relayer__with_lens_with_args", formatted);
     }
 }

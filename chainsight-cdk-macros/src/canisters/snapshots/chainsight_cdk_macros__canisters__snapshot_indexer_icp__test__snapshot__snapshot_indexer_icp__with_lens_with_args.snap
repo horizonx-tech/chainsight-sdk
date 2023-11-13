@@ -14,7 +14,7 @@ did_export!("sample_snapshot_indexer_icp");
 init_in!();
 chainsight_common!();
 manage_single_state!("target_canister", String, false);
-setup_func ! ({ target_canister : String , });
+setup_func ! ({ target_canister : String , lens_targets : Vec < String > });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 0, true);
 timer_task_func!("set_task", "index");
@@ -90,9 +90,13 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .await
 }
 snapshot_indexer_icp_source!("proxy_get_last_snapshot");
-type CallCanisterArgs = sample_snapshot_indexer_icp::CallCanisterArgs;
+manage_single_state!("lens_targets", Vec<String>, false);
+type CallCanisterArgs = sample_snapshot_indexer_icp::LensArgs;
 pub fn call_args() -> CallCanisterArgs {
-    sample_snapshot_indexer_icp::call_args()
+    sample_snapshot_indexer_icp::LensArgs {
+        targets: get_lens_targets(),
+        args: sample_snapshot_indexer_icp::call_args(),
+    }
 }
 type CallCanisterResponse = SnapshotValue;
 #[ic_cdk::update]

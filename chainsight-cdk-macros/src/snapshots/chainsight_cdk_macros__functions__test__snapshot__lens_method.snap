@@ -2,9 +2,10 @@
 source: chainsight-cdk-macros/src/functions.rs
 expression: formatted
 ---
+type LensArgs = Vec<String>;
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn get_result(targets: Vec<String>) -> LensValue {
+async fn get_result(targets: LensArgs) -> LensValue {
     if targets.len() != 10usize {
         panic!("Expected {} targets", 10usize);
     }
@@ -15,7 +16,7 @@ async fn get_result(targets: Vec<String>) -> LensValue {
 async fn proxy_get_result(input: Vec<u8>) -> Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     let reciever_provider =
-        chainsight_cdk::rpc::AsyncReceiverProvider::<Vec<String>, LensValue>::new(proxy(), _calc);
+        chainsight_cdk::rpc::AsyncReceiverProvider::<LensArgs, LensValue>::new(proxy(), _calc);
     reciever_provider.reply(input).await
 }
 #[ic_cdk::query]
@@ -23,7 +24,7 @@ async fn proxy_get_result(input: Vec<u8>) -> Vec<u8> {
 fn get_sources() -> Vec<chainsight_cdk::core::Sources<std::collections::HashMap<String, String>>> {
     vec![]
 }
-fn _calc(targets: Vec<String>) -> BoxFuture<'static, LensValue> {
-    async move { calculate(targets).await }.boxed()
+fn _calc(input: LensArgs) -> BoxFuture<'static, LensValue> {
+    async move { calculate(input).await }.boxed()
 }
 

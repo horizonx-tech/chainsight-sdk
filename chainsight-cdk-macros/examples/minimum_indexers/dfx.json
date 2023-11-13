@@ -6,6 +6,11 @@
       "package": "relayer",
       "candid": "src/relayer/relayer.did"
     },
+    "relayer_with_lens_target": {
+      "type": "rust",
+      "package": "relayer_with_lens_target",
+      "candid": "src/relayer_with_lens_target/relayer_with_lens_target.did"
+    },
     "event_indexer": {
       "type": "rust",
       "package": "event_indexer",
@@ -40,6 +45,16 @@
       "type": "rust",
       "package": "snapshot_indexer_icp",
       "candid": "src/snapshot_indexer_icp/snapshot_indexer_icp.did"
+    },
+    "snapshot_indexer_icp_with_lens_target": {
+      "type": "rust",
+      "package": "snapshot_indexer_icp_with_lens_target",
+      "candid": "src/snapshot_indexer_icp_with_lens_target/snapshot_indexer_icp_with_lens_target.did"
+    },
+    "snapshot_indexer_icp_with_lens_with_args": {
+      "type": "rust",
+      "package": "snapshot_indexer_icp_with_lens_with_args",
+      "candid": "src/snapshot_indexer_icp_with_lens_with_args/snapshot_indexer_icp_with_lens_with_args.did"
     }
   },
   "defaults": {

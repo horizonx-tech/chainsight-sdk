@@ -8,14 +8,14 @@ mod sources_relayer_with_lens {
     fn get_indexing_interval() -> u32 {
         60 * 60
     }
-    fn call_args() -> Vec<String> {
+    fn get_lens_targets() -> Vec<String> {
         vec![
             "dummy-00000-00000-00000-001".to_string(),
             "dummy-00000-00000-00000-002".to_string(),
             "dummy-00000-00000-00000-003".to_string(),
         ]
     }
-    relayer_source!("icrc1_balance_of", true);
+    relayer_source!("icrc1_balance_of", "get_lens_targets");
 
     #[test]
     fn test_get_sources() {
@@ -28,7 +28,7 @@ mod sources_relayer_with_lens {
             source.attributes,
             RelayerWithLensSourceAttrs {
                 function_name: "icrc1_balance_of".to_string(),
-                sources: call_args()
+                sources: get_lens_targets()
             }
         );
         assert_eq!(source.interval_sec, Some(60 * 60));

@@ -8,7 +8,7 @@ mod sources_relayer_without_lens {
     fn get_indexing_interval() -> u32 {
         60 * 60
     }
-    relayer_source!("icrc1_balance_of", false);
+    relayer_source!("icrc1_balance_of");
 
     #[test]
     fn test_get_sources() {

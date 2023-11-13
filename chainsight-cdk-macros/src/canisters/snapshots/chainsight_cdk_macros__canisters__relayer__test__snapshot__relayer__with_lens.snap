@@ -19,14 +19,15 @@ define_get_ethereum_address!();
 manage_single_state!("target_canister", String, false);
 timer_task_func!("set_task", "index");
 init_in!();
-setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , });
+setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , lens_targets : Vec < String > });
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
 use relayer::{filter, CallCanisterResponse};
-type CallCanisterArgs = relayer::CallCanisterArgs;
+manage_single_state!("lens_targets", Vec<String>, false);
+type CallCanisterArgs = Vec<String>;
 pub fn call_args() -> CallCanisterArgs {
-    relayer::call_args()
+    get_lens_targets()
 }
-relayer_source!("get_last_snapshot_value");
+relayer_source!("get_last_snapshot_value", "get_lens_targets");
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {

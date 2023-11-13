@@ -12,7 +12,7 @@ fn get_sources(
         get_target_canister(),
         get_indexing_interval(),
         "calculate",
-        call_args(),
+        get_lens_targets(),
     )]
 }
 

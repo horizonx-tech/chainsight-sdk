@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
@@ -109,16 +109,20 @@ pub fn snapshot_indexer_icp_source_internal(func_name: syn::LitStr) -> proc_macr
 
 pub struct RelayerSourceInput {
     method_identifier: syn::LitStr,
-    from_lens: syn::LitBool,
+    getter_ids_func_name_for_lens: Option<syn::LitStr>,
 }
 impl Parse for RelayerSourceInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let method_identifier: syn::LitStr = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let from_lens: syn::LitBool = input.parse()?;
+        let getter_ids_func_name_for_lens = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
         Ok(RelayerSourceInput {
             method_identifier,
-            from_lens,
+            getter_ids_func_name_for_lens,
         })
     }
 }
@@ -129,10 +133,12 @@ pub fn relayer_source(input: TokenStream) -> TokenStream {
 fn relayer_source_internal(args: RelayerSourceInput) -> proc_macro2::TokenStream {
     let RelayerSourceInput {
         method_identifier,
-        from_lens,
+        getter_ids_func_name_for_lens,
     } = args;
 
-    if from_lens.value {
+    if let Some(func_name) = getter_ids_func_name_for_lens {
+        let func_ident = format_ident!("{}", func_name.value());
+
         return quote! {
             #[ic_cdk::query]
             #[candid::candid_method(query)]
@@ -142,7 +148,7 @@ fn relayer_source_internal(args: RelayerSourceInput) -> proc_macro2::TokenStream
                         get_target_canister(),
                         get_indexing_interval(),
                         #method_identifier,
-                        call_args()
+                        #func_ident()
                     ),
                 ]
             }
@@ -225,7 +231,7 @@ mod test {
 
     #[test]
     fn test_snapshot_relayer_source() {
-        let input = quote! {"icrc1_balance_of", true};
+        let input = quote! {"icrc1_balance_of"};
         let args: syn::Result<RelayerSourceInput> = syn::parse2(input);
         let generated = relayer_source_internal(args.unwrap());
         let formatted = RustFmt::default()
@@ -236,7 +242,7 @@ mod test {
 
     #[test]
     fn test_snapshot_relayer_source_from_lens() {
-        let input = quote! {"calculate", true};
+        let input = quote! {"calculate", "get_lens_targets"};
         let args: syn::Result<RelayerSourceInput> = syn::parse2(input);
         let generated = relayer_source_internal(args.unwrap());
         let formatted = RustFmt::default()
