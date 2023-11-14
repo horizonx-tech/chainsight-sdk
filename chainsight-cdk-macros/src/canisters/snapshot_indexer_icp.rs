@@ -141,7 +141,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             }
 
             let current_ts_sec = ic_cdk::api::time() / 1000000;
-            let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
+            let target_canister = candid::Principal::from_text(get_target_canister()).expect("invalid principal");
             let px = _get_target_proxy(target_canister).await;
             let call_result = CallProvider::new()
                 .call(
@@ -149,10 +149,10 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                         call_args(),
                         px.clone(),
                         #method_ident
-                    ).unwrap()
-                ).await.unwrap();
+                    ).expect("failed to create message"),
+                ).await.expect("failed to call");
 
-            let value = call_result.reply::<CallCanisterResponse>().unwrap();
+            let value = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
             let datum = Snapshot {
                 value: value.clone(),
                 timestamp: current_ts_sec,

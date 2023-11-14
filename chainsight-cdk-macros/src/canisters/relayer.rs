@@ -100,11 +100,17 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 panic!("Not permitted");
             }
 
-            let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
+            let target_canister = candid::Principal::from_text(get_target_canister()).expect("Failed to parse to candid::Principal");
             let call_result = CallProvider::new()
-                .call(Message::new::<CallCanisterArgs>(call_args(), _get_target_proxy(target_canister.clone()).await, #proxy_method_name).unwrap())
-                .await.unwrap();
-            let datum = call_result.reply::<CallCanisterResponse>().unwrap();
+                .call(
+                    Message::new::<CallCanisterArgs>(
+                        call_args(),
+                        _get_target_proxy(target_canister.clone()).await,
+                        #proxy_method_name
+                    ).expect("failed to create message")
+                )
+                .await.expect("failed to call by CallProvider");
+            let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
 
             ic_cdk::println!("response from canister = {:?}", datum.clone());
 
@@ -119,11 +125,11 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 w3_ctx_param.env.ecdsa_key_name(),
             );
             use chainsight_cdk::web3::TransactionOptionBuilder;
-            let call_option = call_option_builder.build().await.unwrap();
+            let call_option = call_option_builder.build().await.expect("Failed to build call_option");
             let result = #oracle_ident::new(
-                Address::from_str(&get_target_addr()).unwrap(),
-                &web3_ctx().unwrap()
-            ).update_state(#sync_data_ident, call_option).await.unwrap();
+                Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+                &web3_ctx().expect("Failed to get web3_ctx")
+            ).update_state(#sync_data_ident, call_option).await.expect("Failed to call update_state for oracle");
 
             ic_cdk::println!("value_to_sync={:?}", result);
         }

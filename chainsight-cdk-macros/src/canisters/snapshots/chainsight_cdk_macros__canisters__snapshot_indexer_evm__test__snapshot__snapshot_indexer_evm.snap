@@ -103,12 +103,12 @@ async fn index() {
     }
     let current_ts_sec = ic_cdk::api::time() / 1000000;
     let res = ERC20::new(
-        Address::from_str(&get_target_addr()).unwrap(),
-        &web3_ctx().unwrap(),
+        Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+        &web3_ctx().expect("Failed to get web3_ctx"),
     )
     .total_supply(None)
     .await
-    .unwrap();
+    .expect("Failed to call contract");
     let datum = Snapshot {
         value: (res.to_string()),
         timestamp: current_ts_sec,

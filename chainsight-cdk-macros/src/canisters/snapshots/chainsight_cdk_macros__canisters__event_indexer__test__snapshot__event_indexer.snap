@@ -55,8 +55,9 @@ fn get_logs(
 ) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, chainsight_cdk::indexer::Error>> {
     async move {
         let res = ERC20::new(
-            Address::from_str(get_target_addr().as_str()).unwrap(),
-            &web3_ctx().unwrap(),
+            Address::from_str(get_target_addr().as_str())
+                .expect("Failed to parse target addr to Address"),
+            &web3_ctx().expect("Failed to get web3_ctx"),
         )
         .event_transfer(from, to, call_options)
         .await;
