@@ -37,7 +37,8 @@ async fn index() {
     if ic_cdk::caller() != proxy() {
         panic!("Not permitted");
     }
-    let target_canister = candid::Principal::from_text(get_target_canister()).unwrap();
+    let target_canister = candid::Principal::from_text(get_target_canister())
+        .expect("Failed to parse to candid::Principal");
     let call_result = CallProvider::new()
         .call(
             Message::new::<CallCanisterArgs>(
@@ -45,11 +46,13 @@ async fn index() {
                 _get_target_proxy(target_canister.clone()).await,
                 "proxy_get_last_snapshot_value",
             )
-            .unwrap(),
+            .expect("failed to create message"),
         )
         .await
-        .unwrap();
-    let datum = call_result.reply::<CallCanisterResponse>().unwrap();
+        .expect("failed to call by CallProvider");
+    let datum = call_result
+        .reply::<CallCanisterResponse>()
+        .expect("failed to get reply");
     ic_cdk::println!("response from canister = {:?}", datum.clone());
     if !filter(&datum) {
         return;
@@ -61,17 +64,20 @@ async fn index() {
         w3_ctx_param.env.ecdsa_key_name(),
     );
     use chainsight_cdk::web3::TransactionOptionBuilder;
-    let call_option = call_option_builder.build().await.unwrap();
+    let call_option = call_option_builder
+        .build()
+        .await
+        .expect("Failed to build call_option");
     let result = Uint256Oracle::new(
-        Address::from_str(&get_target_addr()).unwrap(),
-        &web3_ctx().unwrap(),
+        Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+        &web3_ctx().expect("Failed to get web3_ctx"),
     )
     .update_state(
         chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone()),
         call_option,
     )
     .await
-    .unwrap();
+    .expect("Failed to call update_state for oracle");
     ic_cdk::println!("value_to_sync={:?}", result);
 }
 
