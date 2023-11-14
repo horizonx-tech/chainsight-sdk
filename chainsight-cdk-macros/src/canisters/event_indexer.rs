@@ -112,8 +112,8 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
         ) -> BoxFuture<'static, Result<HashMap<u64, Vec<EventLog>>, chainsight_cdk::indexer::Error>> {
             async move {
                 let res = #contract_struct_name_ident::new(
-                    Address::from_str(get_target_addr().as_str()).unwrap(),
-                    &web3_ctx().unwrap()
+                    Address::from_str(get_target_addr().as_str()).expect("Failed to parse target addr to Address"),
+                    &web3_ctx().expect("Failed to get web3_ctx"),
                 ).#call_func_ident(from, to, call_options).await;
                 match res {
                     Ok(logs) => Ok(logs),

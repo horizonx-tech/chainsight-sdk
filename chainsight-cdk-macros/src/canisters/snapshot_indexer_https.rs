@@ -102,7 +102,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                         )*
                     ].into_iter().collect(),
                 }
-            ).await.unwrap();
+            ).await.expect("Failed to get by indexer");
             let snapshot = Snapshot {
                 value: res,
                 timestamp: ic_cdk::api::time() / 1000000,
