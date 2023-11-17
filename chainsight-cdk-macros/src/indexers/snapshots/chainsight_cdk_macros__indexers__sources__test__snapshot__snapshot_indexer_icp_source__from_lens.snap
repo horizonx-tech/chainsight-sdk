@@ -11,8 +11,8 @@ fn get_sources(
     >::new_snapshot_indexer(
         get_target_canister(),
         get_indexing_interval(),
-        "icrc1_balance_of",
-        vec![],
+        "calculate",
+        get_lens_targets(),
     )]
 }
 

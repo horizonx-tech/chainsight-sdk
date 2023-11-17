@@ -89,7 +89,7 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .reply(input)
         .await
 }
-snapshot_indexer_icp_source!("proxy_get_last_snapshot");
+snapshot_indexer_icp_source!("proxy_get_last_snapshot", "get_lens_targets");
 manage_single_state!("lens_targets", Vec<String>, false);
 type CallCanisterArgs = sample_snapshot_indexer_icp::LensArgs;
 pub fn call_args() -> CallCanisterArgs {
