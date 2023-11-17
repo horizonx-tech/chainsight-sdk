@@ -18,6 +18,8 @@ manage_single_state!("x", u64, false);
 manage_vec_state!("solution", u64, true);
 manage_vec_state!("solution_ts", u64, true);
 manage_map_state!("map_solution", u64, u64, false);
+
+#[allow(dead_code)]
 static LINEAR_EQUATION: fn() -> () = || {
     let current_ts_sec = ic_cdk::api::time() / 1000000;
     let param = get_parameter();
