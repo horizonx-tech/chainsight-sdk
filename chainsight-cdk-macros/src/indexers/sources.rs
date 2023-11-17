@@ -87,11 +87,54 @@ fn snapshot_indexer_https_source_internal() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {
-    let func_name: syn::LitStr = parse_macro_input!(input as syn::LitStr);
-    snapshot_indexer_icp_source_internal(func_name).into()
+pub struct SnapshotIndexerICPSourceInput {
+    method_identifier: syn::LitStr,
+    getter_ids_func_name_for_lens: Option<syn::LitStr>,
 }
-pub fn snapshot_indexer_icp_source_internal(func_name: syn::LitStr) -> proc_macro2::TokenStream {
+impl Parse for SnapshotIndexerICPSourceInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let method_identifier: syn::LitStr = input.parse()?;
+        let getter_ids_func_name_for_lens = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(SnapshotIndexerICPSourceInput {
+            method_identifier,
+            getter_ids_func_name_for_lens,
+        })
+    }
+}
+pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as SnapshotIndexerICPSourceInput);
+    snapshot_indexer_icp_source_internal(args).into()
+}
+pub fn snapshot_indexer_icp_source_internal(
+    args: SnapshotIndexerICPSourceInput,
+) -> proc_macro2::TokenStream {
+    let SnapshotIndexerICPSourceInput {
+        method_identifier,
+        getter_ids_func_name_for_lens,
+    } = args;
+
+    if let Some(func_name) = getter_ids_func_name_for_lens {
+        let func_ident = format_ident!("{}", func_name.value());
+        return quote! {
+            #[ic_cdk::query]
+            #[candid::candid_method(query)]
+            fn get_sources() -> Vec<chainsight_cdk::core::Sources<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>> {
+                vec![
+                    chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
+                        get_target_canister(),
+                        get_indexing_interval(),
+                        #method_identifier,
+                        #func_ident()
+                    )
+                ]
+            }
+        };
+    }
     quote! {
         #[ic_cdk::query]
         #[candid::candid_method(query)]
@@ -100,7 +143,8 @@ pub fn snapshot_indexer_icp_source_internal(func_name: syn::LitStr) -> proc_macr
                 chainsight_cdk::core::Sources::<chainsight_cdk::core::ICSnapshotIndexerSourceAttrs>::new_snapshot_indexer(
                     get_target_canister(),
                     get_indexing_interval(),
-                    #func_name.to_string(),
+                    #method_identifier,
+                    vec![]
                 )
             ]
         }
@@ -221,12 +265,26 @@ mod test {
     #[test]
     fn test_snapshot_snapshot_indexer_icp_source() {
         let input = quote! {"icrc1_balance_of"};
-        let args: syn::Result<syn::LitStr> = syn::parse2(input);
+        let args: syn::Result<SnapshotIndexerICPSourceInput> = syn::parse2(input);
         let generated = snapshot_indexer_icp_source_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__snapshot_indexer_icp_source", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_snapshot_indexer_icp_source_from_lens() {
+        let input = quote! {"calculate", "get_lens_targets"};
+        let args: syn::Result<SnapshotIndexerICPSourceInput> = syn::parse2(input);
+        let generated = snapshot_indexer_icp_source_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__snapshot_indexer_icp_source__from_lens",
+            formatted
+        );
     }
 
     #[test]

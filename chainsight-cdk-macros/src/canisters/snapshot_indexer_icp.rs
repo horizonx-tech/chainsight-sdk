@@ -92,11 +92,11 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let call_canister_args_ident = if let Some(LensParameter { with_args }) = lens_parameter {
-        if with_args {
+    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
+    {
+        let call_args_ident = if with_args {
             let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
                 type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
                 pub fn call_args() -> CallCanisterArgs {
                     #canister_name_ident::#lens_args_ident {
@@ -107,20 +107,29 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             }
         } else {
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
                 type CallCanisterArgs = Vec<String>;
                 pub fn call_args() -> CallCanisterArgs {
                     get_lens_targets()
                 }
             }
-        }
+        };
+        (
+            quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
+                #call_args_ident
+            },
+            quote! { snapshot_indexer_icp_source!(#method_ident, "get_lens_targets"); },
+        )
     } else {
-        quote! {
-            type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
-            pub fn call_args() -> CallCanisterArgs {
-                #canister_name_ident::call_args()
-            }
-        }
+        (
+            quote! {
+                type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
+                pub fn call_args() -> CallCanisterArgs {
+                    #canister_name_ident::call_args()
+                }
+            },
+            quote! { snapshot_indexer_icp_source!(#method_ident); },
+        )
     };
 
     quote! {
@@ -128,9 +137,9 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
         #queries_expect_timestamp
 
-        snapshot_indexer_icp_source!(#method_ident);
+        #source_ident
 
-        #call_canister_args_ident
+        #call_args_ident
         type CallCanisterResponse = SnapshotValue;
 
         #[ic_cdk::update]

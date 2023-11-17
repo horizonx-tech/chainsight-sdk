@@ -66,6 +66,7 @@ pub struct Web3AlgorithmIndexerSourceAttrs {
 #[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
 pub struct ICSnapshotIndexerSourceAttrs {
     pub function_name: String,
+    pub sources: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, CandidType, serde::Serialize)]
@@ -122,11 +123,12 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
     pub fn new_snapshot_indexer(
         principal: String,
         interval: u32,
-        method_identifier: String,
+        method_identifier: &str,
+        lens_targets: Vec<String>,
     ) -> Sources<ICSnapshotIndexerSourceAttrs> {
         let mut method_id = match method_identifier.contains(':') {
             true => method_identifier.split(':').collect::<Vec<&str>>()[0].to_string(),
-            false => method_identifier,
+            false => method_identifier.to_string(),
         };
         method_id = method_id.replace(' ', "").replace("()", "");
         Sources::new(
@@ -135,6 +137,7 @@ impl<T: Clone + CandidType + serde::Serialize> Sources<T> {
             Some(interval),
             ICSnapshotIndexerSourceAttrs {
                 function_name: method_id,
+                sources: lens_targets,
             },
         )
     }

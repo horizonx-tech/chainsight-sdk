@@ -8,7 +8,14 @@ mod sources_snapshot_indexer_web3 {
     fn get_indexing_interval() -> u32 {
         60 * 60
     }
-    snapshot_indexer_icp_source!("icrc1_balance_of");
+    fn get_lens_targets() -> Vec<String> {
+        vec![
+            "dummy-00000-00000-00000-001".to_string(),
+            "dummy-00000-00000-00000-002".to_string(),
+            "dummy-00000-00000-00000-003".to_string(),
+        ]
+    }
+    snapshot_indexer_icp_source!("icrc1_balance_of", "get_lens_targets");
 
     #[test]
     fn test_get_sources() {
@@ -21,7 +28,7 @@ mod sources_snapshot_indexer_web3 {
             source.attributes,
             ICSnapshotIndexerSourceAttrs {
                 function_name: "icrc1_balance_of".to_string(),
-                sources: vec![],
+                sources: get_lens_targets(),
             }
         );
         assert_eq!(source.interval_sec, Some(60 * 60));
