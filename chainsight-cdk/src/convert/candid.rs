@@ -1,8 +1,12 @@
-use std::{fs, path::Path};
+use std::{fs, ops::Deref, path::Path};
 
 use anyhow::Ok;
-use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
-use regex::Regex;
+use candid::{
+    bindings::rust::{compile, Target},
+    check_prog,
+    types::{Type, TypeInner},
+    IDLProg, TypeEnv,
+};
 
 #[derive(Debug, Clone)]
 pub struct CanisterMethodIdentifier {
@@ -43,12 +47,11 @@ impl CanisterMethodIdentifier {
     pub fn compile(&self) -> anyhow::Result<String> {
         anyhow::ensure!(self.compilable(), "Not compilable IDLProg");
 
-        // TODO: use candid ^0.9
-        // let mut config = candid::bindings::rust::Config::new();
+        let mut config = candid::bindings::rust::Config::new();
         // // Update the structure derive to chainsight's own settings
-        // config.type_attributes = "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
-        // config.target = Target::CanisterStub;
-        let contents = compile(&self.type_env, &None);
+        config.type_attributes = "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
+        config.target = Target::CanisterStub;
+        let contents = compile(&config, &self.type_env, &None);
 
         let mut lines = contents
             .lines()
@@ -57,24 +60,16 @@ impl CanisterMethodIdentifier {
             // Delete comment lines and blank lines
             .filter(|line| !(line.starts_with("//") || line.is_empty()))
             .map(|line| {
-                // override to chainsight's own derive
-                if line.eq("#[derive(CandidType, Deserialize)]") {
-                    return "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
+                // convert icp's own Nat and Int types to rust native type
+                // NOTE: num-traits can be used, but is not used to reduce dependencies
+                //  https://forum.dfinity.org/t/candid-nat-to-u128/16016
+                //  https://discord.com/channels/748416164832608337/872791506853978142/1162494173933481984
+                // NOTE: when ready to convert to u128/i128, consider with EthAbiEncoder's Encoder trait
+                if line.contains("candid::Nat") {
+                    return line.replace("candid::Nat", "u128");
                 }
-                // expose type/struct
-                if line.starts_with("type") || line.starts_with("struct") {
-                    // convert icp's own Nat and Int types to rust native type
-                    // NOTE: num-traits can be used, but is not used to reduce dependencies
-                    //  https://forum.dfinity.org/t/candid-nat-to-u128/16016
-                    //  https://discord.com/channels/748416164832608337/872791506853978142/1162494173933481984
-                    // NOTE: when ready to convert to u128/i128, consider with EthAbiEncoder's Encoder trait
-                    if line.contains("candid::Nat") {
-                        return format!("pub {}", line.replace("candid::Nat", "u128"));
-                    }
-                    if line.contains("candid::Int") {
-                        return format!("pub {}", line.replace("candid::Int", "i128"));
-                    }
-                    return format!("pub {}", line);
+                if line.contains("candid::Int") {
+                    return line.replace("candid::Int", "i128");
                 }
                 line.to_string()
             })
@@ -84,10 +79,7 @@ impl CanisterMethodIdentifier {
             1,
             "use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};".to_string(),
         );
-        // set all structure fields to `pub`
-        // NOTE: configurable in candid ^0.9
-        let codes = make_struct_fields_accessible(lines.join("\n"));
-        Ok(codes)
+        Ok(lines.join("\n"))
     }
 
     pub fn get_types(&self) -> (Option<&Type>, Option<&Type>) {
@@ -103,12 +95,12 @@ impl CanisterMethodIdentifier {
 
     fn compilable(&self) -> bool {
         let (args_ty, response_ty) = self.get_types();
-        let not_compilable_type = &Type::Unknown;
+        let not_compilable_type = &TypeInner::Unknown;
 
-        if args_ty.is_some_and(|ty| ty.eq(not_compilable_type)) {
+        if args_ty.is_some_and(|ty| ty.deref().eq(not_compilable_type)) {
             return false;
         }
-        if response_ty.is_some_and(|ty| ty.eq(not_compilable_type)) {
+        if response_ty.is_some_and(|ty| ty.deref().eq(not_compilable_type)) {
             return false;
         }
 
@@ -158,15 +150,6 @@ fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
         trim_type_str(args_ty),
         trim_type_str(response_ty),
     ))
-}
-
-// expose all structure fields (for bindings)
-fn make_struct_fields_accessible(codes: String) -> String {
-    let re = Regex::new(r"[^{](?:pub )*(\w+): ").unwrap();
-    let codes = re.replace_all(&codes, " pub ${1}: ");
-    let re = Regex::new(r"(?:pub )*enum").unwrap();
-    let codes = re.replace_all(&codes, "pub enum");
-    codes.to_string()
 }
 
 // Read .did and remove 'service' section
@@ -367,24 +350,5 @@ type byte = nat8;".to_string()"#;
 }"#;
 
         assert_eq!(exclude_service_from_did_string(&mut actual), expected);
-    }
-
-    #[test]
-    fn test_make_struct_fields_accessible() {
-        let before = r#"enum Result { Ok, Err(InitError) }
-enum SourceType { evm, https, chainsight }
-pub struct LensValue { value: String }
-pub struct ResponseType {
-    value: String,
-    timestamp: u64,
-}"#;
-        let after = r#"pub enum Result { Ok, Err(InitError) }
-pub enum SourceType { evm, https, chainsight }
-pub struct LensValue { pub value: String }
-pub struct ResponseType {
-    pub value: String,
-    pub timestamp: u64,
-}"#;
-        assert_eq!(make_struct_fields_accessible(before.to_string()), after);
     }
 }
