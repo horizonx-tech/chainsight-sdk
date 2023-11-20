@@ -24,7 +24,7 @@ serde = "1.0.163"
 serde_bytes = "0.11.12"
 hex = "0.4.3"
 
-ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs.git", branch = "topic/ic-cdk-0.11" }
-ic-solidity-bindgen = { git = "https://github.com/horizonx-tech/ic-solidity-bindgen.git", branch = "topic/ic-cdk-0.11" }
+ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs.git" }
+ic-solidity-bindgen = { git = "https://github.com/horizonx-tech/ic-solidity-bindgen.git" }
 chainsight-cdk = { path = "../../../chainsight-cdk" }
 chainsight-cdk-macros = { path = "../.." }
