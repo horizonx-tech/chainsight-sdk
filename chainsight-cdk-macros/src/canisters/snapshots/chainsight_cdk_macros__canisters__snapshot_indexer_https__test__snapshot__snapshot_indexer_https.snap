@@ -40,6 +40,16 @@ fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
         ]),
     }
 }
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn transform_https_response(
+    response: ic_cdk::api::management_canister::http_request::TransformArgs,
+) -> ic_cdk::api::management_canister::http_request::HttpResponse {
+    use chainsight_cdk::web3::TransformProcessor;
+    let processor =
+        chainsight_cdk::web2::processors::HTTPSResponseTransformProcessor::<SnapshotValue>::new();
+    processor.transform(response)
+}
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
