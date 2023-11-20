@@ -1,13 +1,13 @@
 {
-    "editor.formatOnSave": true,
-    "rust-analyzer.procMacro.enable": true,
-    "rust-analyzer.procMacro.attributes.enable": true,
-    "rust-analyzer.trace.server": "verbose",
-    "rust-analyzer.linkedProjects": [
-        "./chainsight-cdk-macros/examples/minimum_indexers/src/event_indexer/Cargo.toml",
-        "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_indexer/Cargo.toml",
-        "./chainsight-cdk/Cargo.toml",
-        "./chainsight-cdk-macros/examples/minimum_indexers/src/snapshot_web2/Cargo.toml",
-        "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_lens/Cargo.toml"
-    ]
+  "editor.formatOnSave": true,
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.procMacro.attributes.enable": true,
+  "rust-analyzer.trace.server": "verbose",
+  "rust-analyzer.linkedProjects": [
+    "./chainsight-cdk-macros/examples/minimum_indexers/src/event_indexer/Cargo.toml",
+    "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_indexer/Cargo.toml",
+    "./chainsight-cdk/Cargo.toml",
+    "./chainsight-cdk-macros/examples/minimum_indexers/src/snapshot_web2/Cargo.toml",
+    "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_lens/Cargo.toml"
+  ]
 }

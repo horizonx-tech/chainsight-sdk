@@ -4,6 +4,8 @@ use ic_cdk::api::management_canister::http_request::{
     self, http_request, CanisterHttpRequestArgument, HttpHeader,
 };
 use serde::de::DeserializeOwned;
+
+use super::HTTPSResponseTransformProcessor;
 pub struct Web2HttpsSnapshotIndexer {
     pub url: String,
 }
@@ -20,8 +22,9 @@ impl Web2HttpsSnapshotIndexer {
 
     pub async fn get<T, V>(&self, param: HttpsSnapshotParam) -> anyhow::Result<V>
     where
-        V: DeserializeOwned,
+        V: DeserializeOwned + serde::Serialize,
     {
+        use crate::web3::processors::TransformProcessor;
         let headers: Vec<HttpHeader> = param
             .headers
             .iter()
@@ -35,7 +38,7 @@ impl Web2HttpsSnapshotIndexer {
             method: http_request::HttpMethod::GET,
             headers,
             max_response_bytes: None,
-            transform: None,
+            transform: Some(HTTPSResponseTransformProcessor::<V>::new().context()),
             body: None,
         };
         let cycles = http_request_required_cycles(&arg);
