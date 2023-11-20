@@ -7,21 +7,20 @@ use crate::web3::TransformProcessor;
 
 pub const HTTPS_SNAPSHOT_RESPONSE_TRANSFORM_METHOD: &str = "transform_https_response";
 
-pub struct HTTPSResponseTransformProcessor<T>
-where
-    T: DeserializeOwned,
-{
+pub struct HTTPSResponseTransformProcessor<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T> HTTPSResponseTransformProcessor<T>
-where
-    T: DeserializeOwned,
-{
+impl<T> HTTPSResponseTransformProcessor<T> {
     pub fn new() -> Self {
         Self {
             _phantom: PhantomData,
         }
+    }
+}
+impl<T> Default for HTTPSResponseTransformProcessor<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
