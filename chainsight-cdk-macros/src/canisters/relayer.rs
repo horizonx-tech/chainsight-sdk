@@ -1,6 +1,4 @@
-use std::ops::Deref;
-
-use candid::types::{internal::is_primitive, Type, TypeInner};
+use candid::types::{internal::is_primitive, Type};
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
     convert::candid::CanisterMethodIdentifier,
@@ -194,8 +192,8 @@ fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
     // NOTE: Custom type is Unknown because it does not contain did definitions on which the custom type depends.
     //       Considering the possibility of panic with is_primitive if Unknown
     //       https://github.com/dfinity/candid/blob/2022-11-17/rust/candid/src/types/internal.rs#L353-L368
-    match canister_response_type.deref() {
-        TypeInner::Unknown | TypeInner::Var(_) => false,
+    match canister_response_type {
+        Type::Unknown | Type::Var(_) => false,
         _ => is_primitive(canister_response_type),
     }
 }
@@ -210,15 +208,15 @@ mod test {
 
     #[test]
     fn test_is_ethabi_encodable_type() {
-        assert!(is_ethabi_encodable_type(&TypeInner::Text.into()));
-        assert!(is_ethabi_encodable_type(&TypeInner::Nat.into()));
-        assert!(is_ethabi_encodable_type(&TypeInner::Int64.into()));
-        assert!(is_ethabi_encodable_type(&TypeInner::Float32.into()));
+        assert!(is_ethabi_encodable_type(&Type::Text));
+        assert!(is_ethabi_encodable_type(&Type::Nat));
+        assert!(is_ethabi_encodable_type(&Type::Int64));
+        assert!(is_ethabi_encodable_type(&Type::Float32));
         // check no panic
-        assert!(!is_ethabi_encodable_type(&TypeInner::Unknown.into()));
-        assert!(!is_ethabi_encodable_type(
-            &TypeInner::Var("Snapshot".to_string()).into()
-        ));
+        assert!(!is_ethabi_encodable_type(&Type::Unknown));
+        assert!(!is_ethabi_encodable_type(&Type::Var(
+            "Snapshot".to_string()
+        )));
     }
 
     fn config() -> RelayerConfig {

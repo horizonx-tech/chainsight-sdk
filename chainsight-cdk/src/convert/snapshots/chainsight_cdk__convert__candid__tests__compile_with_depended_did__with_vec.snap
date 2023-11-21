@@ -5,19 +5,10 @@ expression: compiled
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct HttpsSnapshotIndexerSourceAttrs {
-  pub queries: Vec<(String,String,)>,
-}
+pub struct HttpsSnapshotIndexerSourceAttrs { pub queries: Vec<(String,String,)> }
 pub type ResponseType = Vec<Box<Sources>>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub enum SourceType {
-  #[serde(rename="evm")]
-  Evm,
-  #[serde(rename="https")]
-  Https,
-  #[serde(rename="chainsight")]
-  Chainsight,
-}
+pub enum SourceType { evm, https, chainsight }
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
 pub struct Sources {
   pub source: String,
