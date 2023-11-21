@@ -1,13 +1,32 @@
 use std::collections::HashMap;
 
-use ic_cdk::api::management_canister::http_request::{
-    self, http_request, CanisterHttpRequestArgument, HttpHeader,
+use ic_cdk::api::{
+    call::CallResult,
+    management_canister::http_request::{
+        self, http_request, CanisterHttpRequestArgument, HttpHeader, HttpResponse,
+    },
 };
 use serde::de::DeserializeOwned;
 
 use super::HTTPSResponseTransformProcessor;
 pub struct Web2HttpsSnapshotIndexer {
     pub url: String,
+    retry_strategy: RetryStrategy,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RetryStrategy {
+    max_retries: usize,
+    // delay: u64,
+}
+
+impl Default for RetryStrategy {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            //            delay: 1000,
+        }
+    }
 }
 
 pub struct HttpsSnapshotParam {
@@ -15,9 +34,36 @@ pub struct HttpsSnapshotParam {
     pub headers: HashMap<String, String>,
 }
 
+async fn retry<Fut, F: FnMut() -> Fut>(
+    strategy: RetryStrategy,
+    mut f: F,
+) -> CallResult<(HttpResponse,)>
+where
+    Fut: std::future::Future<Output = CallResult<(HttpResponse,)>>,
+{
+    let mut count = 0;
+    loop {
+        let res = f().await;
+        match res {
+            Ok(res) => return Ok(res),
+            Err(err) => {
+                count += 1;
+                if count > strategy.max_retries {
+                    return Err(err);
+                }
+                //let back_off = strategy.delay * count as u64; //TODO: add backoff
+                //std::thread::sleep(std::time::Duration::from_secs(back_off));
+            }
+        }
+    }
+}
+
 impl Web2HttpsSnapshotIndexer {
     pub fn new(url: String) -> Self {
-        Self { url }
+        Self {
+            url,
+            retry_strategy: RetryStrategy::default(),
+        }
     }
 
     pub async fn get<T, V>(&self, param: HttpsSnapshotParam) -> anyhow::Result<V>
@@ -42,7 +88,7 @@ impl Web2HttpsSnapshotIndexer {
             body: None,
         };
         let cycles = http_request_required_cycles(&arg);
-        let result = http_request(arg, cycles)
+        let result = retry(self.retry_strategy, || http_request(arg.clone(), cycles))
             .await
             .expect("http_request failed");
         let res: V = serde_json::from_slice(&result.0.body)?;
