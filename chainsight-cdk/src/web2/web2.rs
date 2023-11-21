@@ -1,13 +1,56 @@
 use std::collections::HashMap;
 
-use ic_cdk::api::management_canister::http_request::{
-    self, http_request, CanisterHttpRequestArgument, HttpHeader,
+use ic_cdk::api::{
+    call::CallResult,
+    management_canister::http_request::{
+        self, http_request, CanisterHttpRequestArgument, HttpHeader, HttpResponse,
+    },
 };
 use serde::de::DeserializeOwned;
 
 use super::HTTPSResponseTransformProcessor;
 pub struct Web2HttpsSnapshotIndexer {
     pub url: String,
+    retry_strategy: RetryStrategy,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RetryStrategy {
+    max_retries: usize,
+    // delay: u64,
+}
+
+impl Default for RetryStrategy {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            //            delay: 1000,
+        }
+    }
+}
+
+async fn retry<Fut, F: FnMut() -> Fut>(
+    strategy: RetryStrategy,
+    mut f: F,
+) -> CallResult<(HttpResponse,)>
+where
+    Fut: std::future::Future<Output = CallResult<(HttpResponse,)>>,
+{
+    let mut count = 0;
+    loop {
+        let res = f().await;
+        match res {
+            Ok(res) => return Ok(res),
+            Err(err) => {
+                count += 1;
+                if count > strategy.max_retries {
+                    return Err(err);
+                }
+                //let back_off = strategy.delay * count as u64; //TODO: add backoff
+                //std::thread::sleep(std::time::Duration::from_secs(back_off));
+            }
+        }
+    }
 }
 
 pub struct HttpsSnapshotParam {
@@ -17,7 +60,10 @@ pub struct HttpsSnapshotParam {
 
 impl Web2HttpsSnapshotIndexer {
     pub fn new(url: String) -> Self {
-        Self { url }
+        Self {
+            url,
+            retry_strategy: RetryStrategy::default(),
+        }
     }
 
     pub async fn get<T, V>(&self, param: HttpsSnapshotParam) -> anyhow::Result<V>
@@ -33,16 +79,17 @@ impl Web2HttpsSnapshotIndexer {
                 value: v.to_string(),
             })
             .collect();
-        let result = http_request(CanisterHttpRequestArgument {
+        let args = CanisterHttpRequestArgument {
             url: build_url(self.url.clone().as_str(), param.queries),
             method: http_request::HttpMethod::GET,
             headers,
             max_response_bytes: None,
             transform: Some(HTTPSResponseTransformProcessor::<V>::new().context()),
             body: None,
-        })
-        .await
-        .expect("http_request failed");
+        };
+        let result = retry(self.retry_strategy, || http_request(args.clone()))
+            .await
+            .expect("http_request failed");
         let res: V = serde_json::from_slice(&result.0.body)?;
         Ok(res)
     }
