@@ -33,7 +33,7 @@ pub struct Snapshot {
     pub value: SnapshotValue,
     pub timestamp: u64,
 }
-type SnapshotValue = (String);
+type SnapshotValue = (::std::string::String);
 fn _get_last_snapshot_value() -> SnapshotValue {
     get_last_snapshot().value
 }
@@ -110,7 +110,7 @@ async fn index() {
     .await
     .expect("Failed to call contract");
     let datum = Snapshot {
-        value: (res.to_string()),
+        value: res.to_string(),
         timestamp: current_ts_sec,
     };
     let _ = add_snapshot(datum.clone());
