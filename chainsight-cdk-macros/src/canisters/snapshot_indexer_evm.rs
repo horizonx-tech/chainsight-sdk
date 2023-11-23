@@ -101,7 +101,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         })
         .unwrap();
 
-    let method_ident_str = camel_to_snake(&name);
+    let method_ident_str = camel_to_snake(name);
     let method_ident = format_ident!("{}", method_ident_str);
 
     let contract_struct_ident =
@@ -111,7 +111,12 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     assert!(function.inputs.len() == method_args.len(), "datatource.method is not valid: The number of params in 'identifier' and 'args' must be the same");
 
     let request_arg_tokens = serde_to_token_streams(
-        &function.inputs.iter().map(|p| p.kind.clone()).collect(),
+        function
+            .inputs
+            .iter()
+            .map(|p| p.kind.clone())
+            .collect::<Vec<_>>()
+            .as_slice(),
         &method_args,
     )
     .map_err(|e| anyhow::anyhow!("Failed to parse args: {}", e))
@@ -172,8 +177,8 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 }
 
 pub fn serde_to_token_streams(
-    inputs: &Vec<ParamType>,
-    method_args: &Vec<serde_json::Value>,
+    inputs: &[ParamType],
+    method_args: &[serde_json::Value],
 ) -> Result<Vec<proc_macro2::TokenStream>, Error> {
     let mut tokens = vec![];
     for (i, input) in inputs.iter().enumerate() {
@@ -241,14 +246,20 @@ pub fn serde_to_token_streams(
             }
             ParamType::FixedArray(param_type, _) => {
                 let args = value.as_array().unwrap();
-                let param_types = &args.iter().map(|_| param_type.as_ref().clone()).collect();
-                let types = serde_to_token_streams(param_types, args)?;
+                let param_types = args
+                    .iter()
+                    .map(|_| param_type.as_ref().clone())
+                    .collect::<Vec<_>>();
+                let types = serde_to_token_streams(param_types.as_slice(), args)?;
                 quote! { vec![#(#types),*] }
             }
             ParamType::Array(param_type) => {
                 let args = value.as_array().unwrap();
-                let param_types = &args.iter().map(|_| param_type.as_ref().clone()).collect();
-                let types = serde_to_token_streams(param_types, args)?;
+                let param_types = args
+                    .iter()
+                    .map(|_| param_type.as_ref().clone())
+                    .collect::<Vec<_>>();
+                let types = serde_to_token_streams(param_types.as_slice(), args)?;
                 quote! { vec![#(#types),*] }
             }
             ParamType::FixedBytes(_) => {
@@ -348,10 +359,7 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
         ParamType::Tuple(members) => match members.len() {
             0 => (quote! { ::ic_solidity_bindgen::internal::Empty }, 1),
             _ => {
-                let members: Vec<_> = members
-                    .into_iter()
-                    .map(|member| to_candid_type(member))
-                    .collect();
+                let members: Vec<_> = members.iter().map(to_candid_type).collect();
                 // Unwrap is ok because in this branch there must be at least 1 item.
                 let nesting = 1 + members.iter().map(|(_, n)| *n).max().unwrap();
                 let types = members.iter().map(|(ty, _)| ty);
@@ -419,7 +427,7 @@ fn to_candid_value(
                 let mut values = vec![];
                 for (i, kind) in members.iter().enumerate() {
                     let idx_lit = proc_macro2::Literal::usize_unsuffixed(i);
-                    values.push(to_candid_value(&kind, quote! {#accessor.#idx_lit}));
+                    values.push(to_candid_value(kind, quote! {#accessor.#idx_lit}));
                 }
                 quote! { (#(#values,)*) }
             }
