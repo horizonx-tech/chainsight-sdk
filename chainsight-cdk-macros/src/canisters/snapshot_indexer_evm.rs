@@ -1,10 +1,12 @@
-use anyhow::bail;
-use chainsight_cdk::{
-    config::components::{CommonConfig, SnapshotIndexerEVMConfig},
-    convert::evm::{ContractMethodIdentifier, ADDRESS_TYPE, U256_TYPE},
-};
+use std::{borrow::Borrow, str::FromStr as _};
+
+use anyhow::Error;
+use chainsight_cdk::config::components::{CommonConfig, SnapshotIndexerEVMConfig};
+use darling::FromMeta;
+use ic_web3_rs::ethabi::{Param, ParamType};
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use proc_macro2::{Ident, Span};
+use quote::{format_ident, quote, ToTokens as _};
 use syn::parse_macro_input;
 
 use crate::canisters::utils::{
@@ -64,53 +66,69 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         ..
     } = config;
 
-    let method_identifier = ContractMethodIdentifier::parse_from_str(&method_identifier)
-        .expect("Failed to parse method identifier");
-    let method_ident_str = camel_to_snake(&method_identifier.identifier);
+    let abi_bytes = std::fs::read(&abi_file_path)
+        .map_err(|e| anyhow::anyhow!("Failed to load abi: {}", e))
+        .unwrap();
+    let contract = ic_web3_rs::ethabi::Contract::load(&abi_bytes[..])
+        .map_err(|e| anyhow::anyhow!("Failed to parse abi: {}", e))
+        .unwrap();
+
+    let signature: String = method_identifier
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    let name = signature
+        .split('(')
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("Invalid function indetifier: {}", signature))
+        .unwrap();
+    let functions = contract
+        .functions_by_name(name)
+        .unwrap_or_else(|_| panic!("function not found. name: {}", name));
+    let function = functions
+        .iter()
+        .find(|f| f.signature() == signature)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "function not found. indetifier: {}, available: {}",
+                signature,
+                functions
+                    .iter()
+                    .map(|f| f.signature())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+        .unwrap();
+
+    let method_ident_str = camel_to_snake(name);
     let method_ident = format_ident!("{}", method_ident_str);
 
     let contract_struct_ident =
         format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
 
     // for request values
-    assert!(method_identifier.params.len() == method_args.len(), "datatource.method is not valid: The number of params in 'identifier' and 'args' must be the same");
+    assert!(function.inputs.len() == method_args.len(), "datatource.method is not valid: The number of params in 'identifier' and 'args' must be the same");
 
-    let method_args = method_args
+    let request_arg_tokens = serde_to_token_streams(
+        function
+            .inputs
+            .iter()
+            .map(|p| p.kind.clone())
+            .collect::<Vec<_>>()
+            .as_slice(),
+        &method_args,
+    )
+    .map_err(|e| anyhow::anyhow!("Failed to parse args: {}", e))
+    .unwrap();
+
+    let response_types: Vec<proc_macro2::TokenStream> = function
+        .outputs
         .iter()
-        .enumerate()
-        .map(|(idx, arg)| (method_identifier.params[idx].clone(), arg.clone()))
+        .map(|p| to_candid_type(&p.kind).0)
         .collect();
-    let (request_val_idents, _) = generate_request_arg_idents(&method_args);
 
-    // for response types & response values
-    let mut response_type_idents: Vec<syn::Ident> = vec![];
-    let mut response_val_idents: Vec<proc_macro2::TokenStream> = vec![];
-    let response_types = method_identifier.return_value;
-    match response_types.len() {
-        0 => panic!("datatource.method.identifier is not valid: Response required"),
-        1 => {
-            // If it's a single type, we process it like we did before
-            let ty =
-                syn::parse_str::<syn::Type>(&response_types[0]).expect("Failed to syn::parse_str");
-            let (response_type_ident, response_val_ident) =
-                match_primitive_type(&ty, None).expect("Failed to match primitive type");
-            response_type_idents.push(response_type_ident);
-            response_val_idents.push(response_val_ident);
-        }
-        _ => {
-            // If it's not a single type, it must be a tuple
-            // In this case, we process it like we did before
-            for (idx, elem) in response_types.iter().enumerate() {
-                let ty = syn::parse_str::<syn::Type>(elem).expect("Failed to syn::parse_str");
-                let idx_lit = proc_macro2::Literal::usize_unsuffixed(idx);
-                let (response_type_ident, response_val_ident) =
-                    match_primitive_type(&ty, Some(idx_lit))
-                        .expect("Failed to match primitive type");
-                response_type_idents.push(response_type_ident);
-                response_val_idents.push(response_val_ident);
-            }
-        }
-    };
+    let response_values = to_candid_values(&function.outputs, quote! { res });
 
     // consider whether to add timestamp information to the snapshot
     let (snapshot_idents, queries_expect_timestamp) = (
@@ -121,7 +139,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
                 pub value: SnapshotValue,
                 pub timestamp: u64,
             }
-            type SnapshotValue = (#(#response_type_idents),*);
+            type SnapshotValue = (#(#response_types),*);
         },
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
@@ -145,12 +163,10 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             let res = #contract_struct_ident::new(
                 Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
                 &web3_ctx().expect("Failed to get web3_ctx"),
-            ).#method_ident(#(#request_val_idents,)*None).await.expect("Failed to call contract");
+            ).#method_ident(#(#request_arg_tokens,)*None).await.expect("Failed to call contract");
 
             let datum = Snapshot {
-                value: (
-                    #(#response_val_idents),*
-                ),
+                value: #response_values,
                 timestamp: current_ts_sec,
             };
             let _ = add_snapshot(datum.clone());
@@ -160,97 +176,285 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn match_primitive_type(
-    ty: &syn::Type,
-    idx: Option<proc_macro2::Literal>,
-) -> anyhow::Result<(proc_macro2::Ident, proc_macro2::TokenStream)> {
-    let res = match ty {
-        syn::Type::Path(type_path) => {
-            let mut type_string = quote! { #type_path }.to_string();
-            type_string.retain(|c| !c.is_whitespace());
-
-            match type_string.as_str() {
-                U256_TYPE => (
-                    format_ident!("String"),
-                    match idx {
-                        Some(idx_lit) => quote! { res.#idx_lit.to_string() },
-                        None => quote! { res.to_string() },
-                    },
-                ),
-                ADDRESS_TYPE => (
-                    format_ident!("String"),
-                    match idx {
-                        Some(idx_lit) => quote! { hex::encode(res.#idx_lit) },
-                        None => quote! { hex::encode(res) },
-                    },
-                ),
-                _ => (
-                    format_ident!("{}", type_string),
-                    match idx {
-                        Some(idx_lit) => quote! { res.#idx_lit },
-                        None => quote! { res },
-                    },
-                ),
+pub fn serde_to_token_streams(
+    inputs: &[ParamType],
+    method_args: &[serde_json::Value],
+) -> Result<Vec<proc_macro2::TokenStream>, Error> {
+    let mut tokens = vec![];
+    for (i, input) in inputs.iter().enumerate() {
+        let value = method_args[i].clone();
+        let t = match input {
+            ParamType::Bool => {
+                let val = value.as_bool().unwrap();
+                let lit = proc_macro2::Literal::from_bool(val).unwrap();
+                quote! { #lit }
             }
-        }
-        _ => bail!("Unsupported type"),
-    };
-    Ok(res)
+            ParamType::Uint(size) => match size {
+                1..=128 => {
+                    let val = if value.is_string() {
+                        u128::from_str(value.as_str().unwrap()).unwrap()
+                    } else {
+                        value.as_u64().unwrap() as u128
+                    };
+                    let lit = proc_macro2::Literal::u128_unsuffixed(val);
+                    quote! { #lit }
+                }
+                129..=256 => {
+                    let val = value.as_str().unwrap().to_string();
+                    quote! { ic_web3_rs::types::U256::from_dec_str(#val).unwrap() }
+                }
+                _ => {
+                    let val = if value.is_string() {
+                        value.as_str().unwrap().to_string()
+                    } else {
+                        value.as_u64().unwrap().to_string()
+                    };
+                    quote! { ic_web3_rs::types::U256::from_dec_str(#val.to_string()).unwrap() }
+                }
+            },
+            ParamType::Int(size) => match size {
+                1..=128 => {
+                    let val = if value.is_string() {
+                        i128::from_str(value.as_str().unwrap()).unwrap()
+                    } else {
+                        value.as_u64().unwrap() as i128
+                    };
+                    let lit = proc_macro2::Literal::i128_unsuffixed(val);
+                    quote! { #lit }
+                }
+                129..=256 => {
+                    let val = value.as_str().unwrap().to_string();
+                    quote! { ic_web3_rs::types::U256::from_dec_str(#val).unwrap() }
+                }
+                _ => {
+                    let val = if value.is_string() {
+                        value.as_str().unwrap().to_string()
+                    } else {
+                        value.as_u64().unwrap().to_string()
+                    };
+                    quote! { ic_web3_rs::types::U256::from_dec_str(#val.to_string()).unwrap() }
+                }
+            },
+            ParamType::Address => {
+                let val = value.as_str().unwrap();
+                quote! { Address::from_str(#val).unwrap() }
+            }
+            ParamType::Tuple(param_types) => {
+                let args = value.as_array().unwrap();
+                let types = serde_to_token_streams(param_types, args)?;
+                quote! { (#(#types),*) }
+            }
+            ParamType::FixedArray(param_type, _) => {
+                let args = value.as_array().unwrap();
+                let param_types = args
+                    .iter()
+                    .map(|_| param_type.as_ref().clone())
+                    .collect::<Vec<_>>();
+                let types = serde_to_token_streams(param_types.as_slice(), args)?;
+                quote! { vec![#(#types),*] }
+            }
+            ParamType::Array(param_type) => {
+                let args = value.as_array().unwrap();
+                let param_types = args
+                    .iter()
+                    .map(|_| param_type.as_ref().clone())
+                    .collect::<Vec<_>>();
+                let types = serde_to_token_streams(param_types.as_slice(), args)?;
+                quote! { vec![#(#types),*] }
+            }
+            ParamType::FixedBytes(_) => {
+                if value.is_string() {
+                    let bytes = value.as_str().unwrap();
+                    quote! { b #bytes.to_vec() }
+                } else if value.is_array() {
+                    let vals = value.as_array().unwrap();
+                    let bytes_vec = vals
+                        .iter()
+                        .map(|v| v.as_u64().unwrap() as u8)
+                        .collect::<Vec<_>>();
+                    let bytes = hex::encode(bytes_vec);
+                    quote! { b #bytes.to_vec() }
+                } else {
+                    panic!("Unexpected value for FixedBytes: {}", value)
+                }
+            }
+            ParamType::Bytes => {
+                if value.is_string() {
+                    let bytes = value.as_str().unwrap();
+                    quote! { b #bytes.to_vec() }
+                } else if value.is_array() {
+                    let vals = value.as_array().unwrap();
+                    let bytes_vec = vals
+                        .iter()
+                        .map(|v| v.as_u64().unwrap() as u8)
+                        .collect::<Vec<_>>();
+                    let bytes = hex::encode(bytes_vec);
+                    quote! { b #bytes.to_vec() }
+                } else {
+                    panic!("Unexpected value for FixedBytes: {}", value)
+                }
+            }
+            ParamType::String => {
+                let val = value.as_str().unwrap();
+                quote! { #val }
+            }
+        };
+        tokens.push(t);
+    }
+    Ok(tokens)
 }
 
-// Generate the part of data of the argument that calls the function of datasource contract/canister
-pub fn generate_request_arg_idents(
-    method_args: &Vec<(String, serde_json::Value)>,
-) -> (Vec<proc_macro2::TokenStream>, Vec<proc_macro2::Ident>) {
-    let mut value_idents = vec![];
-    let mut type_idents = vec![];
-    for method_arg in method_args {
-        let (type_, value) = method_arg;
-        // temp
-        let request_arg_value = match type_.clone().as_str() {
-            U256_TYPE => match value {
-                serde_json::Value::String(val) => {
-                    quote! { ic_web3_rs::types::U256::from_dec_str(#val).expect("Failed to parse to ic_web3_rs::types::U256") }
-                }
-                serde_json::Value::Number(val) => match val.as_u64() {
-                    Some(val) => quote! { #val.into() },
-                    None => quote! {},
-                },
-                _ => quote! {},
-            },
-            ADDRESS_TYPE => match value {
-                serde_json::Value::String(val) => {
-                    quote! { ic_web3_rs::types::Address::from_str(#val).expect("Failed to parse to ic_web3_rs::types::Address") }
-                }
-                _ => quote! {},
-            },
-            _ => match value {
-                serde_json::Value::String(val) => {
-                    quote! { #val, }
-                }
-                serde_json::Value::Number(val) => match val.as_u64() {
-                    Some(val) => {
-                        let type_ident = format_ident!("{}", type_);
-                        quote! { #val as #type_ident }
-                    }
-                    None => {
-                        quote! {}
-                    }
-                },
-                _ => {
-                    quote! {}
-                }
-            },
-        };
-        value_idents.push(request_arg_value);
-        if type_ == U256_TYPE || type_ == ADDRESS_TYPE {
-            // In the case of contract, other than the primitive type (ic_web3_rs::types::U256 etc.) may be set, in which case type_idents is not used.
-            type_idents.push(format_ident!("String")); // temp: thread 'main' panicked at '"ic_web3_rs::types::U256" is not a valid Ident'
-        } else {
-            type_idents.push(format_ident!("{}", type_));
+fn ident<S: Borrow<str>>(name: S) -> Ident {
+    Ident::new(name.borrow(), Span::call_site())
+}
+
+fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
+    match kind {
+        ParamType::Address => (quote! { ::std::string::String }, 0),
+        ParamType::Bytes => (quote! { ::std::vec::Vec<u8> }, 0),
+        ParamType::Int(size) => match size {
+            129..=256 => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
+            65..=128 => (ident("i128").to_token_stream(), 0),
+            33..=64 => (ident("i64").to_token_stream(), 0),
+            17..=32 => (ident("i32").to_token_stream(), 0),
+            9..=16 => (ident("i16").to_token_stream(), 0),
+            1..=8 => (ident("i8").to_token_stream(), 0),
+            _ => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
+        },
+        ParamType::Uint(size) => match size {
+            129..=256 => (quote! {  ::std::string::String }, 0),
+            65..=128 => {
+                let name = ident("u128");
+                (quote! { #name }, 0)
+            }
+            33..=64 => {
+                let name = ident("u64");
+                (quote! { #name }, 0)
+            }
+            17..=32 => {
+                let name = ident("u32");
+                (quote! { #name }, 0)
+            }
+            1..=16 => {
+                let name = ident("u16");
+                (quote! { #name }, 0)
+            }
+            _ => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
+        },
+        ParamType::Bool => (quote! { bool }, 0),
+        ParamType::String => (quote! { ::std::string::String }, 0),
+        ParamType::Array(inner) => {
+            let (inner, nesting) = to_candid_type(inner);
+            if nesting > 0 {
+                (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0)
+            } else {
+                (quote! { ::std::vec::Vec<#inner> }, nesting)
+            }
         }
+        ParamType::FixedBytes(len) => (quote! { [ u8; #len ] }, 0),
+        ParamType::FixedArray(inner, len) => {
+            let (inner, nesting) = to_candid_type(inner);
+            (quote! { [#inner; #len] }, nesting)
+        }
+        ParamType::Tuple(members) => match members.len() {
+            0 => (quote! { ::ic_solidity_bindgen::internal::Empty }, 1),
+            _ => {
+                let members: Vec<_> = members.iter().map(to_candid_type).collect();
+                // Unwrap is ok because in this branch there must be at least 1 item.
+                let nesting = 1 + members.iter().map(|(_, n)| *n).max().unwrap();
+                let types = members.iter().map(|(ty, _)| ty);
+                (quote! { (#(#types,)*) }, nesting)
+            }
+        },
     }
-    (value_idents, type_idents)
+}
+
+fn to_candid_values(
+    outputs: &Vec<Param>,
+    accessor: proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    if outputs.len() == 1 {
+        let value = to_candid_value(&outputs[0].kind, quote! { #accessor });
+        return quote! { #value };
+    }
+    let mut values = vec![];
+    for (i, output) in outputs.iter().enumerate() {
+        let idx_lit = proc_macro2::Literal::usize_unsuffixed(i);
+        values.push(to_candid_value(&output.kind, quote! { #accessor.#idx_lit }));
+    }
+    quote! { (#(#values,)*) }
+}
+
+fn to_candid_value(
+    kind: &ParamType,
+    accessor: proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    match kind {
+        ParamType::Address => quote! {  #accessor.to_string() },
+        ParamType::Bytes => quote! { #accessor },
+        ParamType::Int(size) => match size {
+            1..=128 => quote! { #accessor },
+            129..=256 => quote! {  #accessor.to_string() },
+            _ => quote! { #accessor.to_string()},
+        },
+        ParamType::Uint(size) => match size {
+            1..=128 => quote! { #accessor },
+            129..=256 => quote! { #accessor.to_string() },
+            _ => quote! {  #accessor.to_string() },
+        },
+        ParamType::Bool => quote! { #accessor },
+        ParamType::String => quote! { #accessor },
+        ParamType::Array(param_type) => {
+            if should_convert(param_type.as_ref()) {
+                let inner = to_candid_value(param_type.as_ref(), quote! { e });
+                quote! { #accessor.iter().map(|e| #inner).collect() }
+            } else {
+                quote! { #accessor }
+            }
+        }
+        ParamType::FixedBytes(_) => quote! { #accessor },
+        ParamType::FixedArray(param_type, _) => {
+            if should_convert(param_type.as_ref()) {
+                let inner = to_candid_value(param_type.as_ref(), quote! { e });
+                quote! { #accessor.iter().map(|e| #inner).collect() }
+            } else {
+                quote! { #accessor }
+            }
+        }
+        ParamType::Tuple(members) => match members.len() {
+            0 => quote! { ::ic_solidity_bindgen::internal::Empty },
+            _ => {
+                let mut values = vec![];
+                for (i, kind) in members.iter().enumerate() {
+                    let idx_lit = proc_macro2::Literal::usize_unsuffixed(i);
+                    values.push(to_candid_value(kind, quote! {#accessor.#idx_lit}));
+                }
+                quote! { (#(#values,)*) }
+            }
+        },
+    }
+}
+fn should_convert(kind: &ParamType) -> bool {
+    match kind {
+        ParamType::Address => true,
+        ParamType::Bytes => false,
+        ParamType::Int(size) => match size {
+            1..=128 => false,
+            129..=256 => true,
+            _ => true,
+        },
+        ParamType::Uint(size) => match size {
+            1..=128 => false,
+            129..=256 => true,
+            _ => true,
+        },
+        ParamType::Bool => false,
+        ParamType::String => false,
+        ParamType::Array(_) => true,
+        ParamType::FixedBytes(_) => false,
+        ParamType::FixedArray(_, _) => true,
+        ParamType::Tuple(_) => true,
+    }
 }
 
 #[cfg(test)]
