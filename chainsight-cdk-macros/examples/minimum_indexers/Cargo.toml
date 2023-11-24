@@ -16,6 +16,7 @@ members = [
 
 [workspace.dependencies]
 candid = "0.8"
+ciborium = "0.2.1"
 ic-cdk = "0.8"
 ic-cdk-macros = "0.6.10"
 ic-cdk-timers = "0.1"
