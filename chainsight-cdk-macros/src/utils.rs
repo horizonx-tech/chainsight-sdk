@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse_macro_input;
+use syn::{parse_macro_input, DeriveInput};
 
 pub fn chainsight_common() -> TokenStream {
     chainsight_common_internal().into()
@@ -39,6 +39,27 @@ fn did_export_internal(args: syn::LitStr) -> proc_macro2::TokenStream {
     }
 }
 
+pub fn derive_cbor_serde(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    derive_cbor_serde_internal(&input.ident).into()
+}
+fn derive_cbor_serde_internal(struct_name: &proc_macro2::Ident) -> proc_macro2::TokenStream {
+    quote! {
+        impl #struct_name {
+            pub fn to_cbor(&self) -> Vec<u8> {
+                let mut state_bytes = vec![];
+                ciborium::ser::into_writer(self, &mut state_bytes).expect("Failed to serialize state");
+                state_bytes
+            }
+
+            pub fn from_cbor(bytes: &[u8]) -> Self {
+                ciborium::de::from_reader(bytes).expect("Failed to deserialize state")
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
@@ -64,5 +85,16 @@ mod tests {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__did_export", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_derive_cbor_serde() {
+        let input = quote! {struct SampleComponent {}};
+        let args: syn::Result<DeriveInput> = syn::parse2(input);
+        let generated = derive_cbor_serde_internal(&args.unwrap().ident);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__derive_cbor_serde", formatted);
     }
 }

@@ -82,6 +82,11 @@ pub fn stable_memory_for_scalar(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_scalar(input)
 }
 
+#[proc_macro_derive(CborSerde)]
+pub fn derive_cbor_serde(input: TokenStream) -> TokenStream {
+    utils::derive_cbor_serde(input)
+}
+
 #[proc_macro]
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     canisters::algorithm_indexer::def_algorithm_indexer_canister(input)
