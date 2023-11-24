@@ -2,7 +2,13 @@
 source: chainsight-cdk-macros/src/storages.rs
 expression: formatted
 ---
-type Memory =
+use ic_stable_structures::Memory;
+type MemoryType =
     ic_stable_structures::memory_manager::VirtualMemory<ic_stable_structures::DefaultMemoryImpl>;
+const MEMORY_ID_FOR_UPGRADE: ic_stable_structures::memory_manager::MemoryId =
+    ic_stable_structures::memory_manager::MemoryId::new(0);
 thread_local! { static MEMORY_MANAGER : std :: cell :: RefCell < ic_stable_structures :: memory_manager :: MemoryManager < ic_stable_structures :: DefaultMemoryImpl >> = std :: cell :: RefCell :: new (ic_stable_structures :: memory_manager :: MemoryManager :: init (ic_stable_structures :: DefaultMemoryImpl :: default ())) ; }
+fn get_upgrades_memory() -> MemoryType {
+    MEMORY_MANAGER.with(|m| m.borrow().get(MEMORY_ID_FOR_UPGRADE))
+}
 
