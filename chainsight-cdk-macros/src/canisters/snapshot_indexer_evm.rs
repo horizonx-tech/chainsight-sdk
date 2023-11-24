@@ -11,6 +11,7 @@ use syn::parse_macro_input;
 
 use crate::canisters::utils::{
     camel_to_snake, extract_contract_name_from_path, generate_queries_without_timestamp,
+    update_funcs_to_upgrade,
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
@@ -35,7 +36,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_indexer_web3_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::Address;
 
@@ -144,78 +145,45 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let upgradable_quote = quote! {
-        #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize)]
-        pub struct UpgradeStableState {
-            pub proxy: candid::Principal,
-            pub initialized: bool,
-            pub env: chainsight_cdk::core::Env,
-            pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
-            pub target_addr: String,
-            pub indexing_interval: u32,
-        }
-        impl UpgradeStableState {
-            pub fn to_cbor(&self) -> Vec<u8> {
-                let mut state_bytes = vec![];
-                ciborium::ser::into_writer(self, &mut state_bytes).expect("Failed to serialize state");
-                state_bytes
+    let quote_to_upgradable = {
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+                pub target_addr: String,
+                pub indexing_interval: u32,
             }
+        };
 
-            pub fn from_cbor(bytes: &[u8]) -> Self {
-                ciborium::de::from_reader(bytes).expect("Failed to deserialize state")
-            }
-        }
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: get_proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    web3_ctx_param: get_web3_ctx_param(),
+                    target_addr: get_target_addr(),
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                setup(
+                    state.target_addr,
+                    state.web3_ctx_param,
+                ).expect("Failed to `setup` in post_upgrade");
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
 
-        #[ic_cdk::pre_upgrade]
-        fn pre_upgrade() {
-            ic_cdk::println!("start: pre_upgrade");
-
-            let state = UpgradeStableState {
-                proxy: get_proxy(),
-                initialized: is_initialized(),
-                env: get_env(),
-                web3_ctx_param: get_web3_ctx_param(),
-                target_addr: get_target_addr(),
-                indexing_interval: get_indexing_interval(),
-            };
-            let state_bytes = state.to_cbor();
-
-            let len = state_bytes.len() as u32;
-            let mut memory = get_upgrades_memory();
-            let mut writer = Writer::new(&mut memory, 0);
-            writer.write(&len.to_le_bytes()).unwrap();
-            writer.write(&state_bytes).unwrap();
-
-            ic_cdk::println!("finish: pre_upgrade");
-        }
-
-        #[ic_cdk::post_upgrade]
-        fn post_upgrade() {
-            ic_cdk::println!("start: post_upgrade");
-
-            let memory = get_upgrades_memory();
-
-            // Read the length of the state bytes.
-            let mut state_len_bytes = [0; 4];
-            memory.read(0, &mut state_len_bytes);
-            let state_len = u32::from_le_bytes(state_len_bytes) as usize;
-
-            // Read the bytes
-            let mut state_bytes = vec![0; state_len];
-            memory.read(4, &mut state_bytes);
-
-            // Restore
-            let state = UpgradeStableState::from_cbor(&state_bytes);
-            set_initialized(state.initialized);
-            set_proxy(state.proxy);
-            set_env(state.env);
-            setup(
-                state.target_addr,
-                state.web3_ctx_param,
-            ).expect("Failed to `setup` in post_upgrade");
-            set_indexing_interval(state.indexing_interval);
-
-            ic_cdk::println!("finish: post_upgrade");
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
         }
     };
 
@@ -249,7 +217,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("ts={}, snapshot={:?}", datum.timestamp, datum.value);
         }
 
-        #upgradable_quote
+        #quote_to_upgradable
     }
 }
 
