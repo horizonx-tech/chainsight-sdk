@@ -2,7 +2,6 @@ use std::{borrow::Borrow, str::FromStr as _};
 
 use anyhow::Error;
 use chainsight_cdk::config::components::{CommonConfig, SnapshotIndexerEVMConfig};
-use darling::FromMeta;
 use ic_web3_rs::ethabi::{Param, ParamType};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
@@ -186,22 +185,21 @@ pub fn serde_to_token_streams(
         let t = match input {
             ParamType::Bool => {
                 let val = value.as_bool().unwrap();
-                let lit = proc_macro2::Literal::from_bool(val).unwrap();
-                quote! { #lit }
+                format_ident!("{}", val).to_token_stream()
             }
             ParamType::Uint(size) => match size {
                 1..=128 => {
                     let val = if value.is_string() {
-                        u128::from_str(value.as_str().unwrap()).unwrap()
+                        let value_str = value.as_str().unwrap();
+                        if value_str.starts_with("0x") {
+                            u128::from_str_radix(&value_str[2..], 16).unwrap()
+                        } else {
+                            u128::from_str(value_str).unwrap()
+                        }
                     } else {
                         value.as_u64().unwrap() as u128
                     };
-                    let lit = proc_macro2::Literal::u128_unsuffixed(val);
-                    quote! { #lit }
-                }
-                129..=256 => {
-                    let val = value.as_str().unwrap().to_string();
-                    quote! { ic_web3_rs::types::U256::from_dec_str(#val).unwrap() }
+                    proc_macro2::Literal::u128_unsuffixed(val).to_token_stream()
                 }
                 _ => {
                     let val = if value.is_string() {
@@ -209,30 +207,32 @@ pub fn serde_to_token_streams(
                     } else {
                         value.as_u64().unwrap().to_string()
                     };
-                    quote! { ic_web3_rs::types::U256::from_dec_str(#val.to_string()).unwrap() }
+                    let radix_lit = if val.starts_with("0x") {
+                        proc_macro2::Literal::u8_unsuffixed(16)
+                    } else {
+                        proc_macro2::Literal::u8_unsuffixed(10)
+                    };
+                    quote! { ic_web3_rs::types::U256::from_str_radix(#val, #radix_lit).unwrap() }
                 }
             },
             ParamType::Int(size) => match size {
                 1..=128 => {
                     let val = if value.is_string() {
-                        i128::from_str(value.as_str().unwrap()).unwrap()
+                        let value_str = value.as_str().unwrap();
+                        if value_str.contains("0x") {
+                            i128::from_str_radix(&value_str.replace("0x", ""), 16).unwrap()
+                        } else {
+                            i128::from_str(value_str).unwrap()
+                        }
                     } else {
-                        value.as_u64().unwrap() as i128
+                        value.as_i64().unwrap() as i128
                     };
-                    let lit = proc_macro2::Literal::i128_unsuffixed(val);
-                    quote! { #lit }
-                }
-                129..=256 => {
-                    let val = value.as_str().unwrap().to_string();
-                    quote! { ic_web3_rs::types::U256::from_dec_str(#val).unwrap() }
+                    proc_macro2::Literal::i128_unsuffixed(val).to_token_stream()
                 }
                 _ => {
-                    let val = if value.is_string() {
-                        value.as_str().unwrap().to_string()
-                    } else {
-                        value.as_u64().unwrap().to_string()
-                    };
-                    quote! { ic_web3_rs::types::U256::from_dec_str(#val.to_string()).unwrap() }
+                    return Err(anyhow::anyhow!(
+                        "Sorry, not supported: Int more than 128bits"
+                    ));
                 }
             },
             ParamType::Address => {
@@ -251,7 +251,7 @@ pub fn serde_to_token_streams(
                     .map(|_| param_type.as_ref().clone())
                     .collect::<Vec<_>>();
                 let types = serde_to_token_streams(param_types.as_slice(), args)?;
-                quote! { vec![#(#types),*] }
+                quote! { [#(#types),*] }
             }
             ParamType::Array(param_type) => {
                 let args = value.as_array().unwrap();
@@ -263,41 +263,50 @@ pub fn serde_to_token_streams(
                 quote! { vec![#(#types),*] }
             }
             ParamType::FixedBytes(_) => {
-                if value.is_string() {
-                    let bytes = value.as_str().unwrap();
-                    quote! { b #bytes.to_vec() }
+                let bytes = if value.is_string() {
+                    let value_str = value.as_str().unwrap();
+                    if value_str.starts_with("0x") {
+                        hex::decode(&value_str[2..]).unwrap()
+                    } else {
+                        value_str.as_bytes().to_vec()
+                    }
                 } else if value.is_array() {
                     let vals = value.as_array().unwrap();
-                    let bytes_vec = vals
-                        .iter()
+                    vals.iter()
                         .map(|v| v.as_u64().unwrap() as u8)
-                        .collect::<Vec<_>>();
-                    let bytes = hex::encode(bytes_vec);
-                    quote! { b #bytes.to_vec() }
+                        .collect::<Vec<_>>()
                 } else {
                     panic!("Unexpected value for FixedBytes: {}", value)
-                }
+                };
+                let bytes = bytes
+                    .iter()
+                    .map(|b| proc_macro2::Literal::u8_unsuffixed(*b).to_token_stream())
+                    .collect::<Vec<_>>();
+                quote! { [#(#bytes),*] }
             }
             ParamType::Bytes => {
-                if value.is_string() {
-                    let bytes = value.as_str().unwrap();
-                    quote! { b #bytes.to_vec() }
+                let bytes = if value.is_string() {
+                    let value_str = value.as_str().unwrap();
+                    if value_str.starts_with("0x") {
+                        hex::decode(&value_str[2..]).unwrap()
+                    } else {
+                        value_str.as_bytes().to_vec()
+                    }
                 } else if value.is_array() {
                     let vals = value.as_array().unwrap();
-                    let bytes_vec = vals
-                        .iter()
+                    vals.iter()
                         .map(|v| v.as_u64().unwrap() as u8)
-                        .collect::<Vec<_>>();
-                    let bytes = hex::encode(bytes_vec);
-                    quote! { b #bytes.to_vec() }
+                        .collect::<Vec<_>>()
                 } else {
                     panic!("Unexpected value for FixedBytes: {}", value)
-                }
+                };
+                let bytes = bytes
+                    .iter()
+                    .map(|b| proc_macro2::Literal::u8_unsuffixed(*b).to_token_stream())
+                    .collect::<Vec<_>>();
+                quote! { vec![#(#bytes),*] }
             }
-            ParamType::String => {
-                let val = value.as_str().unwrap();
-                quote! { #val }
-            }
+            ParamType::String => value.as_str().unwrap().to_token_stream(),
         };
         tokens.push(t);
     }
@@ -462,6 +471,7 @@ mod test {
     use chainsight_cdk::config::components::CommonConfig;
     use insta::assert_display_snapshot;
     use rust_format::{Formatter, RustFmt};
+    use serde_json::json;
 
     use super::*;
 
@@ -481,5 +491,282 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_display_snapshot!("snapshot__snapshot_indexer_evm", formatted);
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_bool() {
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::Bool], &[json!(true)],).unwrap()[0].to_string(),
+            "true"
+        );
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::Bool], &[json!(false)],).unwrap()[0].to_string(),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_uint() {
+        let inputs = vec![
+            ParamType::Uint(1),
+            ParamType::Uint(64),
+            ParamType::Uint(64),
+            ParamType::Uint(64),
+            ParamType::Uint(72),
+            ParamType::Uint(128),
+            ParamType::Uint(136),
+            ParamType::Uint(256),
+            ParamType::Uint(256),
+        ];
+        let method_args = vec![
+            json!(0x0u8),
+            json!(0xffffffffffffffffu64),                 // 64bit
+            json!(0xffffffffffffffffu64.to_string()),     // decimal
+            json!("0xffffffffffffffff"),                  // hexadecimal
+            json!("0x10000000000000000"),                 // 64bit + 1
+            json!("0xffffffffffffffffffffffffffffffff"),  // 128bit
+            json!("0x100000000000000000000000000000000"), // 128bit + 1
+            json!("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), // 256bit
+            json!("115792089237316195423570985008687907853269984665640564039457584007913129639935"), // 256bit
+        ];
+        let tokens = serde_to_token_streams(&inputs, &method_args).unwrap();
+
+        let expected = [
+            "0",
+            "18446744073709551615",
+            "18446744073709551615",
+            "18446744073709551615",
+            "18446744073709551616",
+            "340282366920938463463374607431768211455",
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("0x100000000000000000000000000000000" , 16) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" , 16) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("115792089237316195423570985008687907853269984665640564039457584007913129639935" , 10) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("0" , 10) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("18446744073709551615" , 10) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("0xffffffffffffffff" , 16) . unwrap ()"#,
+            r#"ic_web3_rs :: types :: U256 :: from_str_radix ("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" , 16) . unwrap ()"#,
+        ];
+
+        assert_eq!(tokens.len(), expected.len());
+        for (i, token) in tokens.iter().enumerate() {
+            assert_eq!(token.to_string(), expected[i].to_string());
+        }
+        assert_eq!(
+            ic_web3_rs::types::U256::from_str_radix(
+                "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+                10
+            )
+            .unwrap(),
+            ic_web3_rs::types::U256::MAX
+        );
+        assert_eq!(
+            ic_web3_rs::types::U256::from_str_radix(
+                "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                16
+            )
+            .unwrap(),
+            ic_web3_rs::types::U256::MAX
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_int() {
+        let inputs = vec![
+            ParamType::Int(1),
+            ParamType::Int(64),
+            ParamType::Int(64),
+            ParamType::Int(64),
+            ParamType::Int(64),
+            ParamType::Int(72),
+            ParamType::Int(72),
+            ParamType::Int(128),
+            ParamType::Int(128),
+        ];
+        let method_args = vec![
+            json!(0x0u8),
+            json!(0x7fffffffffffffffi64),                 // 64bit hex
+            json!(0x7fffffffffffffffi64.to_string()),     // decimal
+            json!(-0x8000000000000000i64),                // negative hex
+            json!((-0x8000000000000000i64).to_string()),  // negative decimal
+            json!("0x8000000000000000"),                  // 64bit + 1
+            json!("-0x8000000000000001"),                 // 64bit - 1
+            json!("0x7fffffffffffffffffffffffffffffff"),  // 128bit
+            json!("-0x80000000000000000000000000000000"), // 128bit
+        ];
+        let tokens = serde_to_token_streams(&inputs, &method_args).unwrap();
+
+        let expected = [
+            "0",
+            "9223372036854775807",
+            "9223372036854775807",
+            "- 9223372036854775808",
+            "- 9223372036854775808",
+            "9223372036854775808",
+            "- 9223372036854775809",
+            "170141183460469231731687303715884105727",
+            "- 170141183460469231731687303715884105728",
+        ];
+
+        assert_eq!(tokens.len(), expected.len());
+        for (i, token) in tokens.iter().enumerate() {
+            assert_eq!(token.to_string(), expected[i].to_string());
+        }
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_address() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::Address],
+                &[json!("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE")],
+            )
+            .unwrap()[0]
+                .to_string(),
+            r#"Address :: from_str ("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") . unwrap ()"#
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_tuple() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::Tuple(vec![ParamType::Address, ParamType::Bool])],
+                &[json!(["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", false])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            r#"(Address :: from_str ("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") . unwrap () , false)"#
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_tuple_nested() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::Tuple(vec![
+                    ParamType::Address,
+                    ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Bool])
+                ])],
+                &[json!([
+                    "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+                    [255, false]
+                ])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            r#"(Address :: from_str ("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") . unwrap () , (255 , false))"#
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_fixed_array() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::FixedArray(Box::new(ParamType::Uint(8)), 2)],
+                &[json!([0, 255])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            "[0 , 255]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_fixed_array_nested() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::FixedArray(
+                    Box::new(ParamType::FixedArray(
+                        Box::new(ParamType::Tuple(vec![ParamType::Bool, ParamType::Bool])),
+                        2
+                    )),
+                    2
+                )],
+                &[json!([
+                    [(true, true), (false, false)],
+                    [(true, false), (false, true)]
+                ])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            "[[(true , true) , (false , false)] , [(true , false) , (false , true)]]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_array() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::Array(Box::new(ParamType::Bool))],
+                &[json!([true, true, false, false, false])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            "vec ! [true , true , false , false , false]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_array_nested() {
+        assert_eq!(
+            serde_to_token_streams(
+                &[ParamType::Array(Box::new(ParamType::FixedArray(
+                    Box::new(ParamType::Tuple(vec![ParamType::Array(Box::new(
+                        ParamType::Bool
+                    ))])),
+                    2
+                )))],
+                &[json!([[[[true, true]], [[false, false, false]]]])],
+            )
+            .unwrap()[0]
+                .to_string(),
+            "vec ! [[(vec ! [true , true]) , (vec ! [false , false , false])]]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_fixed_bytes() {
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::FixedBytes(2)], &[json!("0xffff")],).unwrap()[0]
+                .to_string(),
+            "[255 , 255]"
+        );
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::FixedBytes(2)], &[json!([255, 255])],).unwrap()[0]
+                .to_string(),
+            "[255 , 255]"
+        );
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::FixedBytes(2)], &[json!(" ~")],).unwrap()[0]
+                .to_string(),
+            "[32 , 126]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_bytes() {
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::Bytes], &[json!("0xffff")],).unwrap()[0]
+                .to_string(),
+            "vec ! [255 , 255]"
+        );
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::Bytes], &[json!([255, 255])],).unwrap()[0]
+                .to_string(),
+            "vec ! [255 , 255]"
+        );
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::Bytes], &[json!(" ~")],).unwrap()[0].to_string(),
+            "vec ! [32 , 126]"
+        );
+    }
+
+    #[test]
+    fn test_serde_to_token_streams_string() {
+        assert_eq!(
+            serde_to_token_streams(&[ParamType::String], &[json!("0xffff")],).unwrap()[0]
+                .to_string(),
+            r#""0xffff""#,
+        );
     }
 }
