@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, cmp::max};
 
 use anyhow::Ok;
 use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
@@ -12,17 +12,20 @@ pub struct CanisterMethodIdentifier {
 impl CanisterMethodIdentifier {
     pub const REQUEST_ARGS_TYPE_NAME: &'static str = "RequestArgsType";
     pub const RESPONSE_TYPE_NAME: &'static str = "ResponseType";
+    pub const SUFFIX_IN_DID: &'static str = "InDid";
 
     pub fn new(s: &str) -> anyhow::Result<Self> {
         Self::new_internal(s, None)
     }
 
     pub fn new_with_did(s: &str, dependended_did: String) -> anyhow::Result<Self> {
-        Self::new_internal(s, Some(dependended_did))
+        // NOTE: If the reserved Type specified in the .did to import is used, a Compile error will occur due to duplication.
+        let (s, dependended_did) = avoid_using_reserved_types(s, &dependended_did);
+        Self::new_internal(&s, Some(dependended_did))
     }
 
     fn new_internal(s: &str, dependended_did: Option<String>) -> anyhow::Result<Self> {
-        let (identifier, args_ty, response_ty) = extract_elements(s)?;
+        let (identifier, args_ty, response_ty) = extract_elements(&s)?;
         let did: String = Self::generate_did(&args_ty, &response_ty);
 
         let ast: IDLProg = if let Some(base_did) = dependended_did {
@@ -160,6 +163,54 @@ fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
     ))
 }
 
+fn avoid_using_reserved_types(s: &str, did: &str) -> (String, String) {
+    let req_ty = CanisterMethodIdentifier::REQUEST_ARGS_TYPE_NAME;
+    let res_ty = CanisterMethodIdentifier::RESPONSE_TYPE_NAME;
+    let base_suffix = CanisterMethodIdentifier::SUFFIX_IN_DID;
+
+    // Check maximum value of suffix for reserved type
+    let pattern = format!(r"(?P<name>({}|{}))_{}_(?P<suffix_num>\d+)", req_ty, res_ty, base_suffix);
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let mut max_number = 0;
+    for line in did.lines() {
+        for cap in re.captures_iter(line) {
+            let suffix_num = cap.name("suffix_num").unwrap().as_str();
+            if let core::result::Result::Ok(number) = suffix_num.parse::<u32>() {
+                max_number = max(max_number, number);
+            }
+        }
+    }
+    max_number += 1;
+
+    // Replace reserved type (did)
+    let pattern = format!(r" (?P<name>({}|{}))(?P<last_char>(;|,| ))", req_ty, res_ty);
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let replace_reserved_type = |s: &str| {
+        let replaced_s = re.replace_all(s, |caps: &regex::Captures| {
+            let name = caps.name("name").unwrap().as_str();
+            let last_char = caps.name("last_char").unwrap().as_str();
+            format!(" {}_{}_{}{}", name, base_suffix, max_number, last_char)
+        });
+        replaced_s.to_string()
+    };
+    let replaced_did_lines = did.lines().map(replace_reserved_type).collect::<Vec<_>>();
+
+    // Replace reserved type (identifier)
+    let pattern = format!(r"(?P<first_char>(\(| ))(?P<name>({}|{}))(?P<last_char>(\)|;|,| ))", req_ty, res_ty);
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let replaced_s = re.replace_all(s, |caps: &regex::Captures| {
+        let first_char = caps.name("first_char").unwrap().as_str();
+        let name = caps.name("name").unwrap().as_str();
+        let last_char = caps.name("last_char").unwrap().as_str();
+        format!("{}{}_{}_{}{}", first_char, name, base_suffix, max_number, last_char)
+    });
+
+    (
+        replaced_s.to_string(),
+        replaced_did_lines.join("\n"),
+    )
+}
+
 // expose all structure fields (for bindings)
 fn make_struct_fields_accessible(codes: String) -> String {
     let re = Regex::new(r"[^{](?:pub )*(\w+): ").unwrap();
@@ -204,7 +255,7 @@ mod tests {
         ),
     ];
 
-    const TEST_IDENTS_WITH_DID: &'static [(&'static str, &'static str, &'static str); 4] = &[
+    const TEST_IDENTS_WITH_DID: &'static [(&'static str, &'static str, &'static str); 5] = &[
         (
             &"single",
             &"get_snapshot : (nat64) -> (Snapshot)",
@@ -244,6 +295,12 @@ type Sources = record {
   attributes : HttpsSnapshotIndexerSourceAttrs;
   source_type : SourceType;
 };"#,
+        ),
+        (
+            &"with_reserved_type",
+            &"get_snapshot : (RequestArgsType) -> (ResponseType)",
+            &r#"type RequestArgsType = nat64;
+type ResponseType = text;"#,
         ),
     ];
 
@@ -387,4 +444,53 @@ pub struct ResponseType {
 }"#;
         assert_eq!(make_struct_fields_accessible(before.to_string()), after);
     }
+
+    #[test]
+    fn test_avoid_using_reserved_types() {
+        // Simple
+        let s = "get_snapshot : (RequestArgsType) -> (ResponseType)";
+        let did: &str = r#"
+type RequestArgsType = nat64;
+type ResponseType = text;"#;
+
+        let expected_s = "get_snapshot : (RequestArgsType_InDid_1) -> (ResponseType_InDid_1)";
+        let expected_did: &str = r#"
+type RequestArgsType_InDid_1 = nat64;
+type ResponseType_InDid_1 = text;"#;
+
+        let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
+        assert_eq!(actual_did, expected_did.to_string());
+        assert_eq!(actual_s, expected_s.to_string());
+        
+        // Multiple in identifier
+        let s = "get_snapshot : (RequestArgsType, RequestArgsType) -> (record { value1 : ResponseType; value_2 : ResponseType; value_3 : ResponseType })";
+        let expected_s = "get_snapshot : (RequestArgsType_InDid_1, RequestArgsType_InDid_1) -> (record { value1 : ResponseType_InDid_1; value_2 : ResponseType_InDid_1; value_3 : ResponseType_InDid_1 })";
+
+        let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
+        assert_eq!(actual_did, expected_did.to_string());
+        assert_eq!(actual_s, expected_s.to_string());
+
+        // Multiple/Nested in Did
+        let s = "get_snapshot : (RequestArgsType_InDid_2) -> (ResponseType_InDid_2)";
+        let did = r#"
+type RequestArgsType = record { value : text; timestamp : nat64 };
+type RequestArgsType_InDid_1 = record { value : RequestArgsType; value_2 : RequestArgsType };
+type RequestArgsType_InDid_2 = RequestArgsType_InDid_1;
+type ResponseType = record { value : text; timestamp : int64 };
+type ResponseType_InDid_1 = record { value : ResponseType; value_2 : ResponseType };
+type ResponseType_InDid_2 = ResponseType_InDid_1;"#;
+
+    let expected_did = r#"
+type RequestArgsType_InDid_3 = record { value : text; timestamp : nat64 };
+type RequestArgsType_InDid_1 = record { value : RequestArgsType_InDid_3; value_2 : RequestArgsType_InDid_3 };
+type RequestArgsType_InDid_2 = RequestArgsType_InDid_1;
+type ResponseType_InDid_3 = record { value : text; timestamp : int64 };
+type ResponseType_InDid_1 = record { value : ResponseType_InDid_3; value_2 : ResponseType_InDid_3 };
+type ResponseType_InDid_2 = ResponseType_InDid_1;"#;
+
+      let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
+      assert_eq!(actual_did, expected_did.to_string());
+      assert_eq!(actual_s, s.to_string());
+    }
 }
+
