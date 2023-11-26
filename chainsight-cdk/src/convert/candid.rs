@@ -1,4 +1,4 @@
-use std::{fs, path::Path, cmp::max};
+use std::{cmp::max, fs, path::Path};
 
 use anyhow::Ok;
 use candid::{bindings::rust::compile, check_prog, types::Type, IDLProg, TypeEnv};
@@ -25,7 +25,7 @@ impl CanisterMethodIdentifier {
     }
 
     fn new_internal(s: &str, dependended_did: Option<String>) -> anyhow::Result<Self> {
-        let (identifier, args_ty, response_ty) = extract_elements(&s)?;
+        let (identifier, args_ty, response_ty) = extract_elements(s)?;
         let did: String = Self::generate_did(&args_ty, &response_ty);
 
         let ast: IDLProg = if let Some(base_did) = dependended_did {
@@ -169,7 +169,10 @@ fn avoid_using_reserved_types(s: &str, did: &str) -> (String, String) {
     let base_suffix = CanisterMethodIdentifier::SUFFIX_IN_DID;
 
     // Check maximum value of suffix for reserved type
-    let pattern = format!(r"(?P<name>({}|{}))_{}_(?P<suffix_num>\d+)", req_ty, res_ty, base_suffix);
+    let pattern = format!(
+        r"(?P<name>({}|{}))_{}_(?P<suffix_num>\d+)",
+        req_ty, res_ty, base_suffix
+    );
     let re = Regex::new(&pattern).expect("Invalid regex pattern");
     let mut max_number = 0;
     for line in did.lines() {
@@ -196,19 +199,22 @@ fn avoid_using_reserved_types(s: &str, did: &str) -> (String, String) {
     let replaced_did_lines = did.lines().map(replace_reserved_type).collect::<Vec<_>>();
 
     // Replace reserved type (identifier)
-    let pattern = format!(r"(?P<first_char>(\(| ))(?P<name>({}|{}))(?P<last_char>(\)|;|,| ))", req_ty, res_ty);
+    let pattern = format!(
+        r"(?P<first_char>(\(| ))(?P<name>({}|{}))(?P<last_char>(\)|;|,| ))",
+        req_ty, res_ty
+    );
     let re = Regex::new(&pattern).expect("Invalid regex pattern");
     let replaced_s = re.replace_all(s, |caps: &regex::Captures| {
         let first_char = caps.name("first_char").unwrap().as_str();
         let name = caps.name("name").unwrap().as_str();
         let last_char = caps.name("last_char").unwrap().as_str();
-        format!("{}{}_{}_{}{}", first_char, name, base_suffix, max_number, last_char)
+        format!(
+            "{}{}_{}_{}{}",
+            first_char, name, base_suffix, max_number, last_char
+        )
     });
 
-    (
-        replaced_s.to_string(),
-        replaced_did_lines.join("\n"),
-    )
+    (replaced_s.to_string(), replaced_did_lines.join("\n"))
 }
 
 // expose all structure fields (for bindings)
@@ -461,7 +467,7 @@ type ResponseType_InDid_1 = text;"#;
         let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
         assert_eq!(actual_did, expected_did.to_string());
         assert_eq!(actual_s, expected_s.to_string());
-        
+
         // Multiple in identifier
         let s = "get_snapshot : (RequestArgsType, RequestArgsType) -> (record { value1 : ResponseType; value_2 : ResponseType; value_3 : ResponseType })";
         let expected_s = "get_snapshot : (RequestArgsType_InDid_1, RequestArgsType_InDid_1) -> (record { value1 : ResponseType_InDid_1; value_2 : ResponseType_InDid_1; value_3 : ResponseType_InDid_1 })";
@@ -480,7 +486,7 @@ type ResponseType = record { value : text; timestamp : int64 };
 type ResponseType_InDid_1 = record { value : ResponseType; value_2 : ResponseType };
 type ResponseType_InDid_2 = ResponseType_InDid_1;"#;
 
-    let expected_did = r#"
+        let expected_did = r#"
 type RequestArgsType_InDid_3 = record { value : text; timestamp : nat64 };
 type RequestArgsType_InDid_1 = record { value : RequestArgsType_InDid_3; value_2 : RequestArgsType_InDid_3 };
 type RequestArgsType_InDid_2 = RequestArgsType_InDid_1;
@@ -488,9 +494,8 @@ type ResponseType_InDid_3 = record { value : text; timestamp : int64 };
 type ResponseType_InDid_1 = record { value : ResponseType_InDid_3; value_2 : ResponseType_InDid_3 };
 type ResponseType_InDid_2 = ResponseType_InDid_1;"#;
 
-      let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
-      assert_eq!(actual_did, expected_did.to_string());
-      assert_eq!(actual_s, s.to_string());
+        let (actual_s, actual_did) = avoid_using_reserved_types(s, did);
+        assert_eq!(actual_did, expected_did.to_string());
+        assert_eq!(actual_s, s.to_string());
     }
 }
-
