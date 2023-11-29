@@ -319,10 +319,18 @@ fn ident<S: Borrow<str>>(name: S) -> Ident {
 
 fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
     match kind {
-        ParamType::Address => (quote! { ::std::string::String }, 0),
-        ParamType::Bytes => (quote! { ::std::vec::Vec<u8> }, 0),
+        ParamType::Bool => (quote! { bool }, 0),
+        ParamType::Uint(size) => match size {
+            129..=256 => (quote! {  ::std::string::String }, 0),
+            65..=128 => (ident("u128").to_token_stream(), 0),
+            33..=64 => (ident("u64").to_token_stream(), 0),
+            17..=32 => (ident("u32").to_token_stream(), 0),
+            9..=16 => (ident("u16").to_token_stream(), 0),
+            1..=8 => (ident("u8").to_token_stream(), 0),
+            _ => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
+        },
         ParamType::Int(size) => match size {
-            129..=256 => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
+            129..=256 => (quote! {  ::std::string::String }, 0),
             65..=128 => (ident("i128").to_token_stream(), 0),
             33..=64 => (ident("i64").to_token_stream(), 0),
             17..=32 => (ident("i32").to_token_stream(), 0),
@@ -330,41 +338,7 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
             1..=8 => (ident("i8").to_token_stream(), 0),
             _ => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
         },
-        ParamType::Uint(size) => match size {
-            129..=256 => (quote! {  ::std::string::String }, 0),
-            65..=128 => {
-                let name = ident("u128");
-                (quote! { #name }, 0)
-            }
-            33..=64 => {
-                let name = ident("u64");
-                (quote! { #name }, 0)
-            }
-            17..=32 => {
-                let name = ident("u32");
-                (quote! { #name }, 0)
-            }
-            1..=16 => {
-                let name = ident("u16");
-                (quote! { #name }, 0)
-            }
-            _ => (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0),
-        },
-        ParamType::Bool => (quote! { bool }, 0),
-        ParamType::String => (quote! { ::std::string::String }, 0),
-        ParamType::Array(inner) => {
-            let (inner, nesting) = to_candid_type(inner);
-            if nesting > 0 {
-                (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0)
-            } else {
-                (quote! { ::std::vec::Vec<#inner> }, nesting)
-            }
-        }
-        ParamType::FixedBytes(len) => (quote! { [ u8; #len ] }, 0),
-        ParamType::FixedArray(inner, len) => {
-            let (inner, nesting) = to_candid_type(inner);
-            (quote! { [#inner; #len] }, nesting)
-        }
+        ParamType::Address => (quote! { ::std::string::String }, 0),
         ParamType::Tuple(members) => match members.len() {
             0 => (quote! { ::ic_solidity_bindgen::internal::Empty }, 1),
             _ => {
@@ -375,6 +349,21 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
                 (quote! { (#(#types,)*) }, nesting)
             }
         },
+        ParamType::FixedBytes(len) => (quote! { [ u8; #len ] }, 0),
+        ParamType::Bytes => (quote! { ::std::vec::Vec<u8> }, 0),
+        ParamType::FixedArray(inner, len) => {
+            let (inner, nesting) = to_candid_type(inner);
+            (quote! { [#inner; #len] }, nesting)
+        }
+        ParamType::Array(inner) => {
+            let (inner, nesting) = to_candid_type(inner);
+            if nesting > 0 {
+                (quote! { ::ic_solidity_bindgen::internal::Unimplemented }, 0)
+            } else {
+                (quote! { ::std::vec::Vec<#inner> }, nesting)
+            }
+        }
+        ParamType::String => (quote! { ::std::string::String }, 0),
     }
 }
 
@@ -767,6 +756,102 @@ mod test {
             serde_to_token_streams(&[ParamType::String], &[json!("0xffff")],).unwrap()[0]
                 .to_string(),
             r#""0xffff""#,
+        );
+    }
+
+    #[test]
+    fn test_to_candid_type() {
+        assert_eq!(to_candid_type(&ParamType::Bool).0.to_string(), "bool");
+        assert_eq!(to_candid_type(&ParamType::Uint(8)).0.to_string(), "u8");
+        assert_eq!(to_candid_type(&ParamType::Uint(16)).0.to_string(), "u16");
+        assert_eq!(to_candid_type(&ParamType::Uint(32)).0.to_string(), "u32");
+        assert_eq!(to_candid_type(&ParamType::Uint(64)).0.to_string(), "u64");
+        assert_eq!(to_candid_type(&ParamType::Uint(128)).0.to_string(), "u128");
+        assert_eq!(
+            to_candid_type(&ParamType::Uint(136)).0.to_string(),
+            ":: std :: string :: String"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Uint(256)).0.to_string(),
+            ":: std :: string :: String"
+        );
+        assert_eq!(to_candid_type(&ParamType::Int(8)).0.to_string(), "i8");
+        assert_eq!(to_candid_type(&ParamType::Int(16)).0.to_string(), "i16");
+        assert_eq!(to_candid_type(&ParamType::Int(32)).0.to_string(), "i32");
+        assert_eq!(to_candid_type(&ParamType::Int(64)).0.to_string(), "i64");
+        assert_eq!(to_candid_type(&ParamType::Int(128)).0.to_string(), "i128");
+        assert_eq!(
+            to_candid_type(&ParamType::Int(136)).0.to_string(),
+            ":: std :: string :: String"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Int(256)).0.to_string(),
+            ":: std :: string :: String"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Address).0.to_string(),
+            ":: std :: string :: String"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Tuple(vec![])).0.to_string(),
+            ":: ic_solidity_bindgen :: internal :: Empty"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Bool]))
+                .0
+                .to_string(),
+            "(u8 , bool ,)"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Tuple(vec![
+                ParamType::Bool,
+                ParamType::Tuple(vec![ParamType::Bool])
+            ]))
+            .0
+            .to_string(),
+            "(bool , (bool ,) ,)"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::FixedBytes(8)).0.to_string(),
+            "[u8 ; 8usize]"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::FixedBytes(256)).0.to_string(),
+            "[u8 ; 256usize]"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Bytes).0.to_string(),
+            ":: std :: vec :: Vec < u8 >"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::FixedArray(Box::new(ParamType::Uint(8)), 2))
+                .0
+                .to_string(),
+            "[u8 ; 2usize]"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Array(Box::new(ParamType::Uint(256))))
+                .0
+                .to_string(),
+            ":: std :: vec :: Vec < :: std :: string :: String >"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::Array(Box::new(ParamType::FixedArray(
+                Box::new(ParamType::Uint(8)),
+                2
+            ))))
+            .0
+            .to_string(),
+            ":: std :: vec :: Vec < [u8 ; 2usize] >"
+        );
+        assert_eq!(
+            to_candid_type(&ParamType::FixedArray(
+                Box::new(ParamType::Array(Box::new(ParamType::Uint(8)))),
+                2
+            ))
+            .0
+            .to_string(),
+            "[:: std :: vec :: Vec < u8 > ; 2usize]"
         );
     }
 }
