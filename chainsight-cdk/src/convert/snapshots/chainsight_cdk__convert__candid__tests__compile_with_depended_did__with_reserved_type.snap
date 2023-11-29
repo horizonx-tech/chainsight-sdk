@@ -1,0 +1,12 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: compiled
+---
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
+pub type RequestArgsType = Box<RequestArgsType_InDid_1>;
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+pub struct RequestArgsType_InDid_1(u64);
+pub type ResponseType = Box<ResponseType_InDid_1>;
+#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
+pub struct ResponseType_InDid_1(String);
