@@ -198,8 +198,8 @@ pub fn serde_to_token_streams(
                 1..=128 => {
                     let val = if value.is_string() {
                         let value_str = value.as_str().unwrap();
-                        if value_str.starts_with("0x") {
-                            u128::from_str_radix(&value_str[2..], 16).unwrap()
+                        if let Some(stripped) = value_str.strip_prefix("0x") {
+                            u128::from_str_radix(stripped, 16).unwrap()
                         } else {
                             u128::from_str(value_str).unwrap()
                         }
@@ -272,8 +272,8 @@ pub fn serde_to_token_streams(
             ParamType::FixedBytes(_) => {
                 let bytes = if value.is_string() {
                     let value_str = value.as_str().unwrap();
-                    if value_str.starts_with("0x") {
-                        hex::decode(&value_str[2..]).unwrap()
+                    if let Some(stripped) = value_str.strip_prefix("0x") {
+                        hex::decode(stripped).unwrap()
                     } else {
                         value_str.as_bytes().to_vec()
                     }
@@ -294,8 +294,8 @@ pub fn serde_to_token_streams(
             ParamType::Bytes => {
                 let bytes = if value.is_string() {
                     let value_str = value.as_str().unwrap();
-                    if value_str.starts_with("0x") {
-                        hex::decode(&value_str[2..]).unwrap()
+                    if let Some(stripped) = value_str.strip_prefix("0x") {
+                        hex::decode(stripped).unwrap()
                     } else {
                         value_str.as_bytes().to_vec()
                     }
@@ -385,7 +385,7 @@ fn to_candid_values(
     let mut values = vec![];
     for (i, output) in outputs.iter().enumerate() {
         let idx_lit = proc_macro2::Literal::usize_unsuffixed(i);
-        values.push(to_candid_value(&output, quote! { #accessor.#idx_lit }));
+        values.push(to_candid_value(output, quote! { #accessor.#idx_lit }));
     }
     quote! { (#(#values,)*) }
 }
