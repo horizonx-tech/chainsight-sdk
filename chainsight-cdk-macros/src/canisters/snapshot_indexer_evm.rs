@@ -2,7 +2,7 @@ use std::{borrow::Borrow, str::FromStr as _};
 
 use anyhow::Error;
 use chainsight_cdk::config::components::{CommonConfig, SnapshotIndexerEVMConfig};
-use ic_web3_rs::ethabi::{Param, ParamType};
+use ic_web3_rs::ethabi::ParamType;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::{format_ident, quote, ToTokens as _};
@@ -127,7 +127,14 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         .map(|p| to_candid_type(&p.kind).0)
         .collect();
 
-    let response_values = to_candid_values(&function.outputs, quote! { res });
+    let response_values = to_candid_values(
+        &function
+            .outputs
+            .iter()
+            .map(|e| e.kind.clone())
+            .collect::<Vec<_>>(),
+        quote! { res },
+    );
 
     // consider whether to add timestamp information to the snapshot
     let (snapshot_idents, queries_expect_timestamp) = (
@@ -351,9 +358,9 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
         },
         ParamType::FixedBytes(len) => (quote! { [ u8; #len ] }, 0),
         ParamType::Bytes => (quote! { ::std::vec::Vec<u8> }, 0),
-        ParamType::FixedArray(inner, len) => {
+        ParamType::FixedArray(inner, _) => {
             let (inner, nesting) = to_candid_type(inner);
-            (quote! { [#inner; #len] }, nesting)
+            (quote! { ::std::vec::Vec<#inner> }, nesting)
         }
         ParamType::Array(inner) => {
             let (inner, nesting) = to_candid_type(inner);
@@ -368,17 +375,17 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
 }
 
 fn to_candid_values(
-    outputs: &Vec<Param>,
+    outputs: &Vec<ParamType>,
     accessor: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     if outputs.len() == 1 {
-        let value = to_candid_value(&outputs[0].kind, quote! { #accessor });
+        let value = to_candid_value(&outputs[0], quote! { #accessor });
         return quote! { #value };
     }
     let mut values = vec![];
     for (i, output) in outputs.iter().enumerate() {
         let idx_lit = proc_macro2::Literal::usize_unsuffixed(i);
-        values.push(to_candid_value(&output.kind, quote! { #accessor.#idx_lit }));
+        values.push(to_candid_value(&output, quote! { #accessor.#idx_lit }));
     }
     quote! { (#(#values,)*) }
 }
@@ -388,37 +395,18 @@ fn to_candid_value(
     accessor: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     match kind {
-        ParamType::Address => quote! {  #accessor.to_string() },
-        ParamType::Bytes => quote! { #accessor },
-        ParamType::Int(size) => match size {
-            1..=128 => quote! { #accessor },
-            129..=256 => quote! {  #accessor.to_string() },
-            _ => quote! { #accessor.to_string()},
-        },
+        ParamType::Bool => quote! { #accessor },
         ParamType::Uint(size) => match size {
             1..=128 => quote! { #accessor },
             129..=256 => quote! { #accessor.to_string() },
             _ => quote! {  #accessor.to_string() },
         },
-        ParamType::Bool => quote! { #accessor },
-        ParamType::String => quote! { #accessor },
-        ParamType::Array(param_type) => {
-            if should_convert(param_type.as_ref()) {
-                let inner = to_candid_value(param_type.as_ref(), quote! { e });
-                quote! { #accessor.iter().map(|e| #inner).collect() }
-            } else {
-                quote! { #accessor }
-            }
-        }
-        ParamType::FixedBytes(_) => quote! { #accessor },
-        ParamType::FixedArray(param_type, _) => {
-            if should_convert(param_type.as_ref()) {
-                let inner = to_candid_value(param_type.as_ref(), quote! { e });
-                quote! { #accessor.iter().map(|e| #inner).collect() }
-            } else {
-                quote! { #accessor }
-            }
-        }
+        ParamType::Int(size) => match size {
+            1..=128 => quote! { #accessor },
+            129..=256 => quote! {  #accessor.to_string() },
+            _ => quote! { #accessor.to_string()},
+        },
+        ParamType::Address => quote! {  #accessor.to_string() },
         ParamType::Tuple(members) => match members.len() {
             0 => quote! { ::ic_solidity_bindgen::internal::Empty },
             _ => {
@@ -430,6 +418,25 @@ fn to_candid_value(
                 quote! { (#(#values,)*) }
             }
         },
+        ParamType::FixedBytes(_) => quote! { #accessor },
+        ParamType::Bytes => quote! { #accessor },
+        ParamType::FixedArray(param_type, _) => {
+            if should_convert(param_type.as_ref()) {
+                let inner = to_candid_value(param_type.as_ref(), quote! { e });
+                quote! { #accessor.iter().map(|e| #inner).collect::<Vec<_>>() }
+            } else {
+                quote! { #accessor }
+            }
+        }
+        ParamType::Array(param_type) => {
+            if should_convert(param_type.as_ref()) {
+                let inner = to_candid_value(param_type.as_ref(), quote! { e });
+                quote! { #accessor.iter().map(|e| #inner).collect::<Vec<_>>() }
+            } else {
+                quote! { #accessor }
+            }
+        }
+        ParamType::String => quote! { #accessor },
     }
 }
 fn should_convert(kind: &ParamType) -> bool {
@@ -824,10 +831,10 @@ mod test {
             ":: std :: vec :: Vec < u8 >"
         );
         assert_eq!(
-            to_candid_type(&ParamType::FixedArray(Box::new(ParamType::Uint(8)), 2))
+            to_candid_type(&ParamType::FixedArray(Box::new(ParamType::Uint(64)), 2))
                 .0
                 .to_string(),
-            "[u8 ; 2usize]"
+            ":: std :: vec :: Vec < u64 >"
         );
         assert_eq!(
             to_candid_type(&ParamType::Array(Box::new(ParamType::Uint(256))))
@@ -837,21 +844,130 @@ mod test {
         );
         assert_eq!(
             to_candid_type(&ParamType::Array(Box::new(ParamType::FixedArray(
-                Box::new(ParamType::Uint(8)),
+                Box::new(ParamType::Uint(64)),
                 2
             ))))
             .0
             .to_string(),
-            ":: std :: vec :: Vec < [u8 ; 2usize] >"
+            ":: std :: vec :: Vec < :: std :: vec :: Vec < u64 > >"
         );
         assert_eq!(
             to_candid_type(&ParamType::FixedArray(
-                Box::new(ParamType::Array(Box::new(ParamType::Uint(8)))),
+                Box::new(ParamType::Array(Box::new(ParamType::Uint(64)))),
                 2
             ))
             .0
             .to_string(),
-            "[:: std :: vec :: Vec < u8 > ; 2usize]"
+            ":: std :: vec :: Vec < :: std :: vec :: Vec < u64 > >"
+        );
+    }
+
+    #[test]
+    fn test_to_candid_value() {
+        let accessor = quote! { res.0 };
+        assert_eq!(
+            to_candid_value(&ParamType::Bool, accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Uint(128), accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Uint(256), accessor.clone()).to_string(),
+            quote! { res.0.to_string() }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Int(128), accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Int(256), accessor.clone()).to_string(),
+            quote! { res.0.to_string() }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Address, accessor.clone()).to_string(),
+            quote! { res.0.to_string() }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Tuple(vec![]), accessor.clone()).to_string(),
+            quote! { ::ic_solidity_bindgen::internal::Empty }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(
+                &ParamType::Tuple(vec![
+                    ParamType::Bool,
+                    ParamType::Tuple(vec![ParamType::Uint(256)])
+                ]),
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { (res.0 . 0, (res.0 . 1 . 0.to_string(),),) }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::FixedBytes(8), accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::Bytes, accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(
+                &ParamType::FixedArray(Box::new(ParamType::Bool), 2),
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(
+                &ParamType::FixedArray(Box::new(ParamType::Uint(256)), 2),
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { res.0.iter().map(|e| e.to_string()).collect::<Vec<_>>() }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(
+                &ParamType::Array(Box::new(ParamType::Bool)),
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(
+                &ParamType::Array(Box::new(ParamType::Uint(256))),
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { res.0.iter().map(|e| e.to_string()).collect::<Vec<_>>() }.to_string()
+        );
+        assert_eq!(
+            to_candid_value(&ParamType::String, accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+    }
+
+    #[test]
+    fn test_to_candid_values() {
+        let accessor = quote! { res.0 };
+        assert_eq!(
+            to_candid_values(&vec![ParamType::Bool,], accessor.clone()).to_string(),
+            quote! { res.0 }.to_string()
+        );
+        assert_eq!(
+            to_candid_values(
+                &vec![
+                    ParamType::Bool,
+                    ParamType::Array(Box::new(ParamType::Uint(256)))
+                ],
+                accessor.clone()
+            )
+            .to_string(),
+            quote! { (res.0.0, res.0.1.iter().map(|e| e.to_string()).collect::<Vec<_>>(),) }
+                .to_string()
         );
     }
 }
