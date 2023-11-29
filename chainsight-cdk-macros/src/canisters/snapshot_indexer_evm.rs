@@ -513,6 +513,10 @@ mod test {
             ParamType::Uint(136),
             ParamType::Uint(256),
             ParamType::Uint(256),
+            ParamType::Uint(256),
+            ParamType::Uint(256),
+            ParamType::Uint(256),
+            ParamType::Uint(256),
         ];
         let method_args = vec![
             json!(0x0u8),
@@ -524,6 +528,10 @@ mod test {
             json!("0x100000000000000000000000000000000"), // 128bit + 1
             json!("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), // 256bit
             json!("115792089237316195423570985008687907853269984665640564039457584007913129639935"), // 256bit
+            json!("0"),                    // 256bit
+            json!("18446744073709551615"), // 256bit
+            json!("0xffffffffffffffff"),   // 256bit
+            json!("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"), // 256bit
         ];
         let tokens = serde_to_token_streams(&inputs, &method_args).unwrap();
 
@@ -966,7 +974,7 @@ mod test {
                 accessor.clone()
             )
             .to_string(),
-            quote! { (res.0.0, res.0.1.iter().map(|e| e.to_string()).collect::<Vec<_>>(),) }
+            quote! { (res.0 . 0, res.0 . 1.iter().map(|e| e.to_string()).collect::<Vec<_>>(),) }
                 .to_string()
         );
     }
