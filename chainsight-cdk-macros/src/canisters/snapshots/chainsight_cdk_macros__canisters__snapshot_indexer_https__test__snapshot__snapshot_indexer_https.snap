@@ -76,6 +76,11 @@ async fn index() {
         timestamp: ic_cdk::api::time() / 1000000,
     };
     let _ = add_snapshot(snapshot.clone());
+    ic_cdk::println!(
+        "timestamp={}, value={:?}",
+        snapshot.timestamp,
+        snapshot.value
+    );
 }
 fn _get_last_snapshot_value() -> SnapshotValue {
     get_last_snapshot().value
