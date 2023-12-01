@@ -171,7 +171,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             };
             let _ = add_snapshot(datum.clone());
 
-            ic_cdk::println!("ts={}, snapshot={:?}", datum.timestamp, datum.value);
+            ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
     }
 }
