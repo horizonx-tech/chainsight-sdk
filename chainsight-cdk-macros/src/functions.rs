@@ -16,25 +16,6 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
         async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
             assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
 
-            let canister_id = ic_cdk::api::id();
-            let (status,) = ic_cdk::api::management_canister::main::canister_status(CanisterIdRecord {
-                canister_id,
-            })
-            .await
-            .unwrap();
-            let mut controllers = status.settings.controllers.clone();
-            controllers.push(env.initializer());
-            update_settings(UpdateSettingsArgument {
-                canister_id,
-                settings: CanisterSettings {
-                    controllers: Some(controllers),
-                    compute_allocation: None,
-                    freezing_threshold: None,
-                    memory_allocation: None,
-                },
-            })
-            .await.unwrap();
-
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
                 chainsight_cdk::initializer::InitConfig { env: env.clone() },
             );

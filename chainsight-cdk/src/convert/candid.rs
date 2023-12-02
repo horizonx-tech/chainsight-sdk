@@ -1,4 +1,4 @@
-use std::{fs, ops::Deref, path::Path};
+use std::{cmp::max, fs, ops::Deref, path::Path};
 
 use anyhow::Ok;
 use candid::{
@@ -7,6 +7,7 @@ use candid::{
     types::{Type, TypeInner},
     IDLProg, TypeEnv,
 };
+use regex::Regex;
 
 #[derive(Debug, Clone)]
 pub struct CanisterMethodIdentifier {
@@ -16,13 +17,16 @@ pub struct CanisterMethodIdentifier {
 impl CanisterMethodIdentifier {
     pub const REQUEST_ARGS_TYPE_NAME: &'static str = "RequestArgsType";
     pub const RESPONSE_TYPE_NAME: &'static str = "ResponseType";
+    pub const SUFFIX_IN_DID: &'static str = "InDid";
 
     pub fn new(s: &str) -> anyhow::Result<Self> {
         Self::new_internal(s, None)
     }
 
     pub fn new_with_did(s: &str, dependended_did: String) -> anyhow::Result<Self> {
-        Self::new_internal(s, Some(dependended_did))
+        // NOTE: If the reserved Type specified in the .did to import is used, a Compile error will occur due to duplication.
+        let (s, dependended_did) = avoid_using_reserved_types(s, &dependended_did);
+        Self::new_internal(&s, Some(dependended_did))
     }
 
     fn new_internal(s: &str, dependended_did: Option<String>) -> anyhow::Result<Self> {
@@ -152,6 +156,60 @@ fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
     ))
 }
 
+fn avoid_using_reserved_types(s: &str, did: &str) -> (String, String) {
+    let req_ty = CanisterMethodIdentifier::REQUEST_ARGS_TYPE_NAME;
+    let res_ty = CanisterMethodIdentifier::RESPONSE_TYPE_NAME;
+    let base_suffix = CanisterMethodIdentifier::SUFFIX_IN_DID;
+
+    // Check maximum value of suffix for reserved type
+    let pattern = format!(
+        r"(?P<name>({}|{}))_{}_(?P<suffix_num>\d+)",
+        req_ty, res_ty, base_suffix
+    );
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let mut max_number = 0;
+    for line in did.lines() {
+        for cap in re.captures_iter(line) {
+            let suffix_num = cap.name("suffix_num").unwrap().as_str();
+            if let core::result::Result::Ok(number) = suffix_num.parse::<u32>() {
+                max_number = max(max_number, number);
+            }
+        }
+    }
+    max_number += 1;
+
+    // Replace reserved type (did)
+    let pattern = format!(r" (?P<name>({}|{}))(?P<last_char>(;|,| ))", req_ty, res_ty);
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let replace_reserved_type = |s: &str| {
+        let replaced_s = re.replace_all(s, |caps: &regex::Captures| {
+            let name = caps.name("name").unwrap().as_str();
+            let last_char = caps.name("last_char").unwrap().as_str();
+            format!(" {}_{}_{}{}", name, base_suffix, max_number, last_char)
+        });
+        replaced_s.to_string()
+    };
+    let replaced_did_lines = did.lines().map(replace_reserved_type).collect::<Vec<_>>();
+
+    // Replace reserved type (identifier)
+    let pattern = format!(
+        r"(?P<first_char>(\(| ))(?P<name>({}|{}))(?P<last_char>(\)|;|,| ))",
+        req_ty, res_ty
+    );
+    let re = Regex::new(&pattern).expect("Invalid regex pattern");
+    let replaced_s = re.replace_all(s, |caps: &regex::Captures| {
+        let first_char = caps.name("first_char").unwrap().as_str();
+        let name = caps.name("name").unwrap().as_str();
+        let last_char = caps.name("last_char").unwrap().as_str();
+        format!(
+            "{}{}_{}_{}{}",
+            first_char, name, base_suffix, max_number, last_char
+        )
+    });
+
+    (replaced_s.to_string(), replaced_did_lines.join("\n"))
+}
+
 // Read .did and remove 'service' section
 pub fn read_did_to_string_without_service<P: AsRef<Path>>(path: P) -> anyhow::Result<String> {
     let mut data = fs::read_to_string(path)?;
@@ -187,7 +245,7 @@ mod tests {
         ),
     ];
 
-    const TEST_IDENTS_WITH_DID: &'static [(&'static str, &'static str, &'static str); 4] = &[
+    const TEST_IDENTS_WITH_DID: &'static [(&'static str, &'static str, &'static str); 5] = &[
         (
             &"single",
             &"get_snapshot : (nat64) -> (Snapshot)",
@@ -227,6 +285,12 @@ type Sources = record {
   attributes : HttpsSnapshotIndexerSourceAttrs;
   source_type : SourceType;
 };"#,
+        ),
+        (
+            &"with_reserved_type",
+            &"get_snapshot : (RequestArgsType) -> (ResponseType)",
+            &r#"type RequestArgsType = nat64;
+type ResponseType = text;"#,
         ),
     ];
 
