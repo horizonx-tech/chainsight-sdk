@@ -44,6 +44,7 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
+  call_args : () -> (vec text) query;
   get_ethereum_address : () -> (text);
   get_proxy : () -> (principal);
   get_sources : () -> (vec Sources) query;

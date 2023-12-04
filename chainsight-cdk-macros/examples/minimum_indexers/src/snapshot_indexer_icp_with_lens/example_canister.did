@@ -11,7 +11,10 @@ type CycleManagements = record {
   indexer : CycleManagement;
 };
 type Env = variant { Production; Test; LocalDevelopment };
-type ICSnapshotIndexerSourceAttrs = record { function_name : text };
+type ICSnapshotIndexerSourceAttrs = record {
+  function_name : text;
+  sources : vec text;
+};
 type InitError = variant {
   InvalidDestination : text;
   InvalidPrincipal : principal;
@@ -30,6 +33,7 @@ type Sources = record {
   source_type : SourceType;
 };
 service : {
+  call_args : () -> (vec text) query;
   get_last_snapshot : () -> (Snapshot) query;
   get_last_snapshot_value : () -> (ResponseType) query;
   get_proxy : () -> (principal);
