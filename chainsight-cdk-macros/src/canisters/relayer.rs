@@ -52,6 +52,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
             quote! {
                type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
+               #[ic_cdk::query]
+               #[candid::candid_method(query)]
                pub fn call_args() -> CallCanisterArgs {
                    #canister_name_ident::#lens_args_ident {
                        targets: get_lens_targets(),
@@ -62,6 +64,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         } else {
             quote! {
                type CallCanisterArgs = Vec<String>;
+               #[ic_cdk::query]
+               #[candid::candid_method(query)]
                pub fn call_args() -> CallCanisterArgs {
                    get_lens_targets()
                }

@@ -92,6 +92,8 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
 snapshot_indexer_icp_source!("proxy_get_last_snapshot", "get_lens_targets");
 manage_single_state!("lens_targets", Vec<String>, false);
 type CallCanisterArgs = Vec<String>;
+#[ic_cdk::query]
+#[candid::candid_method(query)]
 pub fn call_args() -> CallCanisterArgs {
     get_lens_targets()
 }
