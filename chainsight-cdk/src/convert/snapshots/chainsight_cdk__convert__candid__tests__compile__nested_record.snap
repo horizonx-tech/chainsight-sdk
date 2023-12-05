@@ -5,6 +5,6 @@ expression: compiled
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct ResponseType { pub dai: Box<ResponseType_dai> }
+pub struct ResponseType { pub dai: Box<ResponseTypeDai> }
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct ResponseType_dai { pub usd: f64 }
+pub struct ResponseTypeDai { pub usd: f64 }
