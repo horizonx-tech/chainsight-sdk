@@ -88,6 +88,20 @@ impl Encoder<i8> for EthAbiEncoder {
         ethabi::encode(&[token])
     }
 }
+impl Encoder<f64> for EthAbiEncoder {
+    fn encode(&self, val: f64) -> Bytes {
+        let rounded = val.round() as i128; // NOTE: Assume that the value has already been scaled to integer.
+        let token = Token::Int(rounded.into());
+        ethabi::encode(&[token])
+    }
+}
+impl Encoder<f32> for EthAbiEncoder {
+    fn encode(&self, val: f32) -> Bytes {
+        let rounded = val.round() as i64; // NOTE: Assume that the value has already been scaled to integer.
+        let token = Token::Int(rounded.into());
+        ethabi::encode(&[token])
+    }
+}
 impl Encoder<String> for EthAbiEncoder {
     fn encode(&self, val: String) -> Bytes {
         let token = Token::String(val);
