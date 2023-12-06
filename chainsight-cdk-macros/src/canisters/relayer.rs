@@ -1,9 +1,12 @@
-use std::ops::Deref;
+use std::{ops::Deref, str::FromStr};
 
-use candid::types::{internal::is_primitive, Type, TypeInner};
+use candid::{
+    parser::types::IDLType,
+    types::{internal::is_primitive, Type, TypeInner},
+};
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
-    convert::candid::CanisterMethodIdentifier,
+    convert::candid::{extract_elements, CanisterMethodIdentifier},
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -38,6 +41,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
     dbg!(&method_identifier);
+    let (_, _, res) = extract_elements(&method_identifier).expect("Failed to extract_elements");
+    dbg!(&res);
+    dbg!(IDLType::from_str(&res));
     let canister_method = CanisterMethodIdentifier::new(&method_identifier)
         .expect("Failed to parse method_identifer");
     let method_name = canister_method.identifier.as_str();

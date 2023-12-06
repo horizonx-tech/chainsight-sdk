@@ -32,6 +32,7 @@ impl CanisterMethodIdentifier {
     fn new_internal(s: &str, dependended_did: Option<String>) -> anyhow::Result<Self> {
         let (identifier, args_ty, response_ty) = extract_elements(s)?;
         let did: String = Self::generate_did(&args_ty, &response_ty);
+        dbg!(did.clone());
 
         let ast: IDLProg = if let Some(base_did) = dependended_did {
             format!("{}\n\n{}", base_did, did)
@@ -122,7 +123,7 @@ impl CanisterMethodIdentifier {
         } else {
             generate_did_type(Self::RESPONSE_TYPE_NAME, response_ty)
         };
-        format!("{}\n{}", args_ty_did, response_ty_did)
+        format!("{}\n\n{}", response_ty_did, args_ty_did)
     }
 
     fn find_type(&self, key: &str) -> Option<&Type> {
@@ -135,7 +136,7 @@ fn generate_did_type(key: &str, value: &str) -> String {
     format!("type {} = {};", key, value)
 }
 
-fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
+pub fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
     let (identifier, remains) = s
         .split_once(':')
         .expect("Invalid canister method identifier");
@@ -414,5 +415,24 @@ type byte = nat8;".to_string()"#;
 }"#;
 
         assert_eq!(exclude_service_from_did_string(&mut actual), expected);
+    }
+
+    #[test]
+    fn test_get_types() {
+        let s = "get_snapshot : (nat) -> (nat)";
+        let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+        dbg!(ident.get_types());
+
+        let s = "get_snapshot : (nat) -> (Snapshot)";
+        let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+        dbg!(ident.get_types());
+
+        let s = "get_result : (nat) -> (LensArgs)";
+        let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+        dbg!(ident.get_types());
+
+        let s = "get_result : (LensArgs) -> (nat)";
+        let ident = CanisterMethodIdentifier::new(s).expect("Failed to parse");
+        dbg!(ident.get_types());
     }
 }
