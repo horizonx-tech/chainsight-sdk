@@ -123,7 +123,7 @@ impl CanisterMethodIdentifier {
         } else {
             generate_did_type(Self::RESPONSE_TYPE_NAME, response_ty)
         };
-        format!("{}\n\n{}", response_ty_did, args_ty_did)
+        format!("{}\n{}", args_ty_did, response_ty_did)
     }
 
     fn find_type(&self, key: &str) -> Option<&Type> {
