@@ -4,6 +4,7 @@ use anyhow::Ok;
 use candid::{
     bindings::rust::{compile, Target},
     check_prog,
+    parser::types::IDLType,
     types::{Type, TypeInner},
     IDLProg, TypeEnv,
 };
@@ -135,7 +136,7 @@ fn generate_did_type(key: &str, value: &str) -> String {
     format!("type {} = {};", key, value)
 }
 
-fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
+pub fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
     let (identifier, remains) = s
         .split_once(':')
         .expect("Invalid canister method identifier");
@@ -222,6 +223,14 @@ fn exclude_service_from_did_string(data: &mut String) -> String {
     }
 
     data.trim().to_owned()
+}
+
+// Generate candid's Type from str
+pub fn get_candid_type_from_str(s: &str) -> anyhow::Result<Type> {
+    let env = TypeEnv::new();
+    let ast = s.parse::<IDLType>()?;
+    let res = env.ast_to_type(&ast)?;
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -414,5 +423,29 @@ type byte = nat8;".to_string()"#;
 }"#;
 
         assert_eq!(exclude_service_from_did_string(&mut actual), expected);
+    }
+
+    #[test]
+    fn test_get_candid_type_from_str() {
+        assert_eq!(
+            get_candid_type_from_str("nat").unwrap(),
+            TypeInner::Nat.into()
+        );
+        assert_eq!(
+            get_candid_type_from_str("text").unwrap(),
+            TypeInner::Text.into()
+        );
+        assert_eq!(
+            get_candid_type_from_str("Snapshot")
+                .unwrap_err()
+                .to_string(),
+            "Unbound type identifier Snapshot".to_string()
+        );
+        assert_eq!(
+            get_candid_type_from_str("LensValue")
+                .unwrap_err()
+                .to_string(),
+            "Unbound type identifier LensValue".to_string()
+        );
     }
 }
