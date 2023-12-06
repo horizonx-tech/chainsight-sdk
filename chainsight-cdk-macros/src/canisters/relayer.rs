@@ -119,7 +119,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
 
             ic_cdk::println!("response from canister = {:?}", datum.clone());
-            ic_cdk::println!("ethabi::Token::Uint = {:?}", ethabi::Token::Uint(datum.clone().into()));
+            let token = ethabi::Token::Uint(datum.clone().into());
+            ic_cdk::println!("ethabi::Token::Uint = {:?}", token.clone());
+            ic_cdk::println!("ethabi::encode = {:?}", ethabi::encode(&[token]));
 
             if !filter(&datum) {
                 return;
