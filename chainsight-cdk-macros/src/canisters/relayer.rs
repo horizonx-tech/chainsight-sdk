@@ -3,6 +3,7 @@ use std::{ops::Deref, str::FromStr};
 use candid::{
     parser::types::IDLType,
     types::{internal::is_primitive, Type, TypeInner},
+    TypeEnv,
 };
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
@@ -41,20 +42,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
     dbg!(&method_identifier);
-    let (_, _, res) = extract_elements(&method_identifier).expect("Failed to extract_elements");
-    dbg!(&res);
-    dbg!(IDLType::from_str(&res));
-    let canister_method = CanisterMethodIdentifier::new(&method_identifier)
-        .expect("Failed to parse method_identifer");
-    let method_name = canister_method.identifier.as_str();
-    dbg!(method_name);
-    let canister_response_type = {
-        dbg!(canister_method.get_types());
-        let (_, response_type) = canister_method.get_types();
-        response_type.expect("Failed to get canister_response_type")
-    };
-    dbg!(canister_response_type);
-    let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
+    let (method_name, _, canister_response_type) =
+        extract_elements(&method_identifier).expect("Failed to extract_elements");
+    let sync_data_ident = generate_ident_sync_to_oracle(&canister_response_type);
     let cloned_sync_data_ident = sync_data_ident.clone();
     dbg!(quote! { #cloned_sync_data_ident }.to_string());
 
@@ -103,7 +93,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
-    let proxy_method_name = "proxy_".to_string() + method_name;
+    let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -196,8 +186,17 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
-    if is_ethabi_encodable_type(canister_response_type) {
+fn generate_ident_sync_to_oracle(response_type_str: &str) -> proc_macro2::TokenStream {
+    // Generate candid's Type from str
+    let env = TypeEnv::new();
+    let ast = response_type_str
+        .parse::<IDLType>()
+        .expect("Failed to parse canister_response_type to IDLType");
+    let response_type = env
+        .ast_to_type(&ast)
+        .expect("Failed to convert ast to type");
+
+    if is_ethabi_encodable_type(&response_type) {
         let arg_ident = format_ident!("datum");
         quote! {
             chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
