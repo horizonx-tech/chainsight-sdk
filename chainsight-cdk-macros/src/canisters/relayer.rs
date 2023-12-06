@@ -44,6 +44,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         let (_, response_type) = canister_method.get_types();
         response_type.expect("Failed to get canister_response_type")
     };
+    dbg!(canister_response_type);
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
     let cloned_sync_data_ident = sync_data_ident.clone();
     dbg!(quote! { #cloned_sync_data_ident }.to_string());
