@@ -37,10 +37,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
+    dbg!(&method_identifier);
     let canister_method = CanisterMethodIdentifier::new(&method_identifier)
         .expect("Failed to parse method_identifer");
     let method_name = canister_method.identifier.as_str();
+    dbg!(method_name);
     let canister_response_type = {
+        dbg!(canister_method.get_types());
         let (_, response_type) = canister_method.get_types();
         response_type.expect("Failed to get canister_response_type")
     };
