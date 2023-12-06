@@ -45,6 +45,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         response_type.expect("Failed to get canister_response_type")
     };
     let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
+    dbg!(sync_data_ident.clone());
 
     let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
     {
