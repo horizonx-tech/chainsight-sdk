@@ -41,6 +41,8 @@ impl CanisterMethodIdentifier {
         }
         .parse()?;
         let mut type_env = TypeEnv::new();
+        // TODO: handle result, determine if .did is legitimate
+        //   https://github.com/dfinity/candid/issues/501#issuecomment-1843970420
         let _ = check_prog(&mut type_env, &ast);
 
         Ok(Self {
