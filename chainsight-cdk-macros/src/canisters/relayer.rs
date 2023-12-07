@@ -3,7 +3,7 @@ use std::ops::Deref;
 use candid::types::{internal::is_primitive, Type, TypeInner};
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
-    convert::candid::CanisterMethodIdentifier,
+    convert::candid::{extract_elements, get_candid_type_from_str},
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -37,14 +37,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
-    let canister_method = CanisterMethodIdentifier::new(&method_identifier)
-        .expect("Failed to parse method_identifer");
-    let method_name = canister_method.identifier.as_str();
-    let canister_response_type = {
-        let (_, response_type) = canister_method.get_types();
-        response_type.expect("Failed to get canister_response_type")
-    };
-    let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
+    let (method_name, _, canister_response_type) =
+        extract_elements(&method_identifier).expect("Failed to extract_elements");
+    let sync_data_ident = generate_ident_sync_to_oracle(&canister_response_type);
 
     let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
     {
@@ -91,7 +86,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
-    let proxy_method_name = "proxy_".to_string() + method_name;
+    let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -181,8 +176,9 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
-    if is_ethabi_encodable_type(canister_response_type) {
+fn generate_ident_sync_to_oracle(response_type_str: &str) -> proc_macro2::TokenStream {
+    let response_type = get_candid_type_from_str(response_type_str);
+    if response_type.is_ok() && is_ethabi_encodable_type(&response_type.unwrap()) {
         let arg_ident = format_ident!("datum");
         quote! {
             chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
