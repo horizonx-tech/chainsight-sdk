@@ -79,7 +79,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     let name = signature
         .split('(')
         .next()
-        .ok_or_else(|| anyhow::anyhow!("Invalid function indetifier: {}", signature))
+        .ok_or_else(|| anyhow::anyhow!("Invalid function identifier: {}", signature))
         .unwrap();
     let functions = contract
         .functions_by_name(name)
@@ -89,7 +89,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         .find(|f| f.signature() == signature)
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "function not found. indetifier: {}, available: {}",
+                "function not found. identifier: {}, available: {}",
                 signature,
                 functions
                     .iter()
