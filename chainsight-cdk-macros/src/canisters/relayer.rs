@@ -6,6 +6,7 @@ use chainsight_cdk::{
     convert::candid::{extract_elements, get_candid_type_from_str},
 };
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
@@ -33,11 +34,12 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         method_identifier,
         abi_file_path,
         lens_parameter,
+        method_name,
         ..
     } = config;
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
-    let (method_name, _, canister_response_type) =
+    let (source_method_name, _, canister_response_type) =
         extract_elements(&method_identifier).expect("Failed to extract_elements");
     let sync_data_ident = generate_ident_sync_to_oracle(&canister_response_type);
 
@@ -71,7 +73,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 manage_single_state!("lens_targets", Vec<String>, false);
                 #call_args_ident
             },
-            quote! { relayer_source!(#method_name, "get_lens_targets"); },
+            quote! { relayer_source!(#source_method_name, "get_lens_targets"); },
         )
     } else {
         (
@@ -81,12 +83,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                     #canister_name_ident::call_args()
                 }
             },
-            quote! { relayer_source!(#method_name); },
+            quote! { relayer_source!(#source_method_name); },
         )
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
-    let proxy_method_name = "proxy_".to_string() + &method_name;
+    let proxy_method_name = "proxy_".to_string() + &source_method_name;
+    let method_name_ident = relay_method_name_ident(method_name);
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -130,13 +133,20 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             let result = #oracle_ident::new(
                 Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
                 &web3_ctx().expect("Failed to get web3_ctx")
-            ).update_state(#sync_data_ident, call_option).await.expect("Failed to call update_state for oracle");
+            ).#method_name_ident(#sync_data_ident, call_option).await.expect("Failed to call update_state for oracle");
 
             ic_cdk::println!("value_to_sync={:?}", result);
         }
 
     };
     generated
+}
+
+fn relay_method_name_ident(method_name: Option<String>) -> Ident {
+    match method_name {
+        Some(name) => format_ident!("{}", name),
+        None => format_ident!("{}", "update_state".to_string()),
+    }
 }
 
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
@@ -231,6 +241,7 @@ mod test {
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             lens_parameter: None,
+            method_name: None,
         }
     }
 
