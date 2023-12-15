@@ -138,7 +138,7 @@ pub struct RelayerConfig {
     pub oracle_type: String,
     pub method_identifier: String,
     pub abi_file_path: String,
-    pub method_name: Option<String>,
+    pub method_name: String,
     pub lens_parameter: Option<LensParameter>,
 }
 

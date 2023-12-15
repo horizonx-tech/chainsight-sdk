@@ -6,7 +6,6 @@ use chainsight_cdk::{
     convert::candid::{extract_elements, get_candid_type_from_str},
 };
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
@@ -89,7 +88,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
-    let method_name_ident = relay_method_name_ident(method_name);
+    let method_name_ident = format_ident!("{}", method_name);
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -141,14 +140,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     generated
 }
-
-fn relay_method_name_ident(method_name: Option<String>) -> Ident {
-    match method_name {
-        Some(name) => format_ident!("{}", name),
-        None => format_ident!("{}", "update_state".to_string()),
-    }
-}
-
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -241,7 +232,7 @@ mod test {
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             lens_parameter: None,
-            method_name: None,
+            method_name: "update_state".to_string(),
         }
     }
 
