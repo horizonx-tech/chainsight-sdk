@@ -34,10 +34,9 @@ timer_task_func!("set_task", "index");
 const URL: &str = "https://api.coingecko.com/api/v3/simple/price";
 fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
     HttpsSnapshotIndexerSourceAttrs {
-        queries: HashMap::from([
-            ("ids".to_string(), "dai".to_string()),
-            ("vs_currencies".to_string(), "usd".to_string()),
-        ]),
+        queries: get_queries()
+            .into_iter()
+            .collect::<HashMap<String, String>>(),
     }
 }
 #[ic_cdk::query]
@@ -62,10 +61,9 @@ async fn index() {
             headers: vec![("content-type".to_string(), "application/json".to_string())]
                 .into_iter()
                 .collect(),
-            queries: HashMap::from([
-                ("ids".to_string(), "dai".to_string()),
-                ("vs_currencies".to_string(), "usd".to_string()),
-            ]),
+            queries: get_queries()
+                .into_iter()
+                .collect::<HashMap<String, String>>(),
         })
         .await
         .expect("Failed to get by indexer");
