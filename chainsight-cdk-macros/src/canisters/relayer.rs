@@ -228,7 +228,6 @@ mod test {
                 canister_name: "relayer".to_string(),
             },
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
-            oracle_type: "".to_string(), // NOTE: unused
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             lens_parameter: None,
