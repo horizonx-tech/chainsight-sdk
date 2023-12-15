@@ -41,6 +41,11 @@
       "package": "snapshot_indexer_https",
       "candid": "src/snapshot_indexer_https/snapshot_indexer_https.did"
     },
+    "snapshot_indexer_https_with_query_func": {
+      "type": "rust",
+      "package": "snapshot_indexer_https",
+      "candid": "src/snapshot_indexer_https_with_query_func/snapshot_indexer_https_with_query_func.did"
+    },
     "snapshot_indexer_icp": {
       "type": "rust",
       "package": "snapshot_indexer_icp",
