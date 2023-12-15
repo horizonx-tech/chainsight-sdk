@@ -11,8 +11,10 @@ def_snapshot_indexer_https_canister!(
             \"content-type\": \"application/json\"
         },
         \"queries\":{
-            \"ids\": \"dai\",
-            \"vs_currencies\": \"usd\"
+            \"Const\": {
+                \"ids\": \"dai\",
+                \"vs_currencies\": \"usd\"
+            }
         }
     }"
 );

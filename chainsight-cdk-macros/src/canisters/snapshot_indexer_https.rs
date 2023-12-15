@@ -1,4 +1,6 @@
-use chainsight_cdk::config::components::SnapshotIndexerHTTPSConfig;
+use chainsight_cdk::config::components::{
+    SnapshotIndexerHTTPSConfig, SnapshotIndexerHTTPSConfigQueries,
+};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -49,8 +51,40 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     let id = &common.canister_name;
     let header_keys: Vec<String> = headers.keys().cloned().collect();
     let header_values: Vec<String> = headers.values().cloned().collect();
-    let query_keys: Vec<String> = queries.keys().cloned().collect();
-    let query_values: Vec<String> = queries.values().cloned().collect();
+    let (queries_hashmap, queries_vec) = match queries {
+        SnapshotIndexerHTTPSConfigQueries::Const(queries) => {
+            let query_keys: Vec<String> = queries.keys().cloned().collect();
+            let query_values: Vec<String> = queries.values().cloned().collect();
+            (
+                quote! {
+                    HashMap::from([
+                        #(
+                            (#query_keys.to_string(), #query_values.to_string()),
+                        )*
+                    ])
+                },
+                quote! {
+                    vec![
+                        #(
+                            (#query_keys.to_string(), #query_values.to_string()),
+                        )*
+                    ].into_iter().collect()
+                },
+            )
+        }
+        SnapshotIndexerHTTPSConfigQueries::Func(func) => (
+            quote! { get_attrs().queries },
+            quote! {
+                #[ic_cdk::query]
+                #[candid::candid_method(query)]
+                fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
+                    HttpsSnapshotIndexerSourceAttrs {
+                        queries: #func(),
+                    }
+                }
+            },
+        ),
+    };
     let queries = generate_queries_without_timestamp(format_ident!("SnapshotValue"));
 
     quote! {
@@ -72,11 +106,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         const URL : &str = #url;
         fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
             HttpsSnapshotIndexerSourceAttrs {
-                queries: HashMap::from([
-                    #(
-                        (#query_keys.to_string(), #query_values.to_string()),
-                    )*
-                ]),
+                queries: #queries_hashmap,
             }
         }
 
@@ -104,11 +134,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                             (#header_keys.to_string(), #header_values.to_string()),
                         )*
                     ].into_iter().collect(),
-                    queries: vec![
-                        #(
-                            (#query_keys.to_string(), #query_values.to_string()),
-                        )*
-                    ].into_iter().collect(),
+                    queries: #queries_vec,
                 }
             ).await.expect("Failed to get by indexer");
             let snapshot = Snapshot {
@@ -141,10 +167,10 @@ mod test {
             },
             url: "https://api.coingecko.com/api/v3/simple/price".to_string(),
             headers: BTreeMap::from([("content-type".to_string(), "application/json".to_string())]),
-            queries: BTreeMap::from([
+            queries: SnapshotIndexerHTTPSConfigQueries::Const(BTreeMap::from([
                 ("ids".to_string(), "dai".to_string()),
                 ("vs_currencies".to_string(), "usd".to_string()),
-            ]),
+            ])),
         };
         let generated = snapshot_indexer_https(config);
         let formatted = RustFmt::default()
