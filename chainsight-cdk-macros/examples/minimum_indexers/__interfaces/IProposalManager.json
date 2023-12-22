@@ -1,0 +1,9 @@
+[
+  "event Voted(uint256 indexed,uint256 indexed,address indexed,uint256,bool)",
+  "function createProposal(uint256,address,uint256,uint256)",
+  "function getProposal(uint256) view returns (address, uint256, uint256, uint256, uint256, uint256, bool)",
+  "function onProposalCreated(uint256,address,uint256,uint256,uint256)",
+  "function onVoted(uint256,uint256,address,uint256,bool)",
+  "function setProposalFactory(address)",
+  "function vote(uint256,bool)"
+]

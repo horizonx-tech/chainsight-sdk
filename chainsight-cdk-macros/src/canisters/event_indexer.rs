@@ -87,7 +87,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
         let reader = File::open(Path::new(&abi_file_path))
             .unwrap_or_else(|_| panic!("Couldn't open {}", &abi_file_path));
         let binding = ethabi::Contract::load(reader)
-            .unwrap_or_else(|_| panic!("Fail to load ABI from {}", &abi_file_path));
+            .unwrap_or_else(|e| panic!("Failed to load contract from abi file: {}", e));
         // NOTE: Can I use .event? https://docs.rs/ethabi/latest/ethabi/struct.Contract.html#method.event
         binding
             .events_by_name(&identifier)
