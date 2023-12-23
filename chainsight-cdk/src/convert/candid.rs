@@ -135,7 +135,6 @@ impl CanisterMethodIdentifier {
 }
 
 fn generate_did_type(key: &str, value: &str) -> String {
-    println!("generate_did_type: key={}, value={}", key, value);
     format!("type {} = {};", key, value)
 }
 
@@ -152,11 +151,24 @@ pub fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
         let removed_brackets = trimed.trim_matches(|c| c == '(' || c == ')');
         removed_brackets.trim().to_string()
     };
+    let convert_to_tuple = |s: &str| {
+        let trimmed = trim_type_str(s);
+        let elements = trimmed.split(',');
+        let mut result = "record {".to_string();
+        for (i, element) in elements.clone().enumerate() {
+            if i != 0 {
+                result += "; ";
+            }
+            result += element;
+        }
+        result += " }";
+        result
+    };
 
     Ok((
         identifier.trim().to_string(),
         match args_ty.contains(',') {
-            true => args_ty.to_string(),
+            true => convert_to_tuple(args_ty),
             false => trim_type_str(args_ty),
         },
         trim_type_str(response_ty),
@@ -245,7 +257,7 @@ mod tests {
 
     use insta::assert_snapshot;
 
-    const TEST_IDENTS: &'static [(&'static str, &'static str); 6] = &[
+    const TEST_IDENTS: &'static [(&'static str, &'static str); 7] = &[
         (&"normal", &"update_value : (nat64) -> (text)"),
         (&"normal_nat", &"use_nat : (nat32) -> (nat)"),
         (&"normal_int", &"use_nat : (int32) -> (int)"),
@@ -257,6 +269,10 @@ mod tests {
         (
             &"nested_record",
             &"get_last_snapshot : () -> (record { dai : record { usd : float64 } })",
+        ),
+        (
+            &"multiple_arguments",
+            &"sample_func : (nat64, nat64, nat64) -> (vec record { nat64; vec float64 })",
         ),
     ];
 

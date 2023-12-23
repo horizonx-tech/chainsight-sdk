@@ -1,0 +1,9 @@
+---
+source: chainsight-cdk/src/convert/candid.rs
+expression: "format!(\"{:#?}\", result)"
+---
+(
+    "sample_func",
+    "record {nat64;  nat64;  nat64 }",
+    "vec record { nat64; vec float64 }",
+)
