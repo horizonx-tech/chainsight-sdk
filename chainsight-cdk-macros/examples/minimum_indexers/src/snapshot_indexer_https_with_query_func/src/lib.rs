@@ -1,5 +1,6 @@
 use chainsight_cdk_macros::def_snapshot_indexer_https_canister;
 mod example_canister; // NOTE: logics / Originally intended for a different crate
+use example_canister::get_query_parameters;
 
 def_snapshot_indexer_https_canister!(
     "{
@@ -11,10 +12,7 @@ def_snapshot_indexer_https_canister!(
             \"content-type\": \"application/json\"
         },
         \"queries\":{
-            \"Const\": {
-                \"ids\": \"dai\",
-                \"vs_currencies\": \"usd\"
-            }
+            \"Func\": \"get_query_parameters\"
         }
     }"
 );

@@ -1,7 +1,9 @@
-use candid::types::{internal::is_primitive, Type};
+use std::ops::Deref;
+
+use candid::types::{internal::is_primitive, Type, TypeInner};
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
-    convert::candid::CanisterMethodIdentifier,
+    convert::candid::{extract_elements, get_candid_type_from_str},
 };
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
@@ -35,14 +37,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     } = config;
 
     let canister_name_ident = format_ident!("{}", common.canister_name);
-    let canister_method = CanisterMethodIdentifier::new(&method_identifier)
-        .expect("Failed to parse method_identifer");
-    let method_name = canister_method.identifier.as_str();
-    let canister_response_type = {
-        let (_, response_type) = canister_method.get_types();
-        response_type.expect("Failed to get canister_response_type")
-    };
-    let sync_data_ident = generate_ident_sync_to_oracle(canister_response_type);
+    let (method_name, _, canister_response_type) =
+        extract_elements(&method_identifier).expect("Failed to extract_elements");
+    let sync_data_ident = generate_ident_sync_to_oracle(&canister_response_type);
 
     let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
     {
@@ -50,6 +47,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
             quote! {
                type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
+               #[ic_cdk::query]
+               #[candid::candid_method(query)]
                pub fn call_args() -> CallCanisterArgs {
                    #canister_name_ident::#lens_args_ident {
                        targets: get_lens_targets(),
@@ -60,6 +59,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         } else {
             quote! {
                type CallCanisterArgs = Vec<String>;
+               #[ic_cdk::query]
+               #[candid::candid_method(query)]
                pub fn call_args() -> CallCanisterArgs {
                    get_lens_targets()
                }
@@ -85,7 +86,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
-    let proxy_method_name = "proxy_".to_string() + method_name;
+    let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -175,8 +176,9 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_ident_sync_to_oracle(canister_response_type: &Type) -> proc_macro2::TokenStream {
-    if is_ethabi_encodable_type(canister_response_type) {
+fn generate_ident_sync_to_oracle(response_type_str: &str) -> proc_macro2::TokenStream {
+    let response_type = get_candid_type_from_str(response_type_str);
+    if response_type.is_ok() && is_ethabi_encodable_type(&response_type.unwrap()) {
         let arg_ident = format_ident!("datum");
         quote! {
             chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
@@ -192,8 +194,8 @@ fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
     // NOTE: Custom type is Unknown because it does not contain did definitions on which the custom type depends.
     //       Considering the possibility of panic with is_primitive if Unknown
     //       https://github.com/dfinity/candid/blob/2022-11-17/rust/candid/src/types/internal.rs#L353-L368
-    match canister_response_type {
-        Type::Unknown | Type::Var(_) => false,
+    match canister_response_type.deref() {
+        TypeInner::Unknown | TypeInner::Var(_) => false,
         _ => is_primitive(canister_response_type),
     }
 }
@@ -208,15 +210,15 @@ mod test {
 
     #[test]
     fn test_is_ethabi_encodable_type() {
-        assert!(is_ethabi_encodable_type(&Type::Text));
-        assert!(is_ethabi_encodable_type(&Type::Nat));
-        assert!(is_ethabi_encodable_type(&Type::Int64));
-        assert!(is_ethabi_encodable_type(&Type::Float32));
+        assert!(is_ethabi_encodable_type(&TypeInner::Text.into()));
+        assert!(is_ethabi_encodable_type(&TypeInner::Nat.into()));
+        assert!(is_ethabi_encodable_type(&TypeInner::Int64.into()));
+        assert!(is_ethabi_encodable_type(&TypeInner::Float32.into()));
         // check no panic
-        assert!(!is_ethabi_encodable_type(&Type::Unknown));
-        assert!(!is_ethabi_encodable_type(&Type::Var(
-            "Snapshot".to_string()
-        )));
+        assert!(!is_ethabi_encodable_type(&TypeInner::Unknown.into()));
+        assert!(!is_ethabi_encodable_type(
+            &TypeInner::Var("Snapshot".to_string()).into()
+        ));
     }
 
     fn config() -> RelayerConfig {

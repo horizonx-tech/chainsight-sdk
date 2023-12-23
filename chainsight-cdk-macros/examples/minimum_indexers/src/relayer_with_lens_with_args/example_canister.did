@@ -1,3 +1,4 @@
+type CalculateArgs = record { target : text; index : nat64 };
 type CycleManagement = record {
   refueling_amount : nat;
   initial_supply : nat;
@@ -23,6 +24,7 @@ type InitError = variant {
   InvalidContent : text;
   InvalidRequest : text;
 };
+type LensArgs = record { args : CalculateArgs; targets : vec text };
 type RelayerWithLensSourceAttrs = record {
   function_name : text;
   sources : vec text;
@@ -44,6 +46,7 @@ type Web3CtxParam = record {
   chain_id : nat64;
 };
 service : {
+  call_args : () -> (LensArgs) query;
   get_ethereum_address : () -> (text);
   get_proxy : () -> (principal);
   get_sources : () -> (vec Sources) query;

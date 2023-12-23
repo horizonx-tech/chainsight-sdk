@@ -1,4 +1,6 @@
-use chainsight_cdk::config::components::SnapshotIndexerHTTPSConfig;
+use chainsight_cdk::config::components::{
+    SnapshotIndexerHTTPSConfig, SnapshotIndexerHTTPSConfigQueries,
+};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -49,8 +51,26 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     let id = &common.canister_name;
     let header_keys: Vec<String> = headers.keys().cloned().collect();
     let header_values: Vec<String> = headers.values().cloned().collect();
-    let query_keys: Vec<String> = queries.keys().cloned().collect();
-    let query_values: Vec<String> = queries.values().cloned().collect();
+    let queries_hashmap = match queries {
+        SnapshotIndexerHTTPSConfigQueries::Const(queries) => {
+            let query_keys: Vec<String> = queries.keys().cloned().collect();
+            let query_values: Vec<String> = queries.values().cloned().collect();
+
+            quote! {
+                HashMap::from([
+                    #(
+                        (#query_keys.to_string(), #query_values.to_string()),
+                    )*
+                ])
+            }
+        }
+        SnapshotIndexerHTTPSConfigQueries::Func(func_name) => {
+            let queries_func_ident = format_ident!("{}", func_name);
+            let queries_func = quote! { #queries_func_ident() };
+
+            quote! { #queries_func.into_iter().collect::<HashMap<String, String>>() }
+        }
+    };
     let queries = generate_queries_without_timestamp(format_ident!("SnapshotValue"));
 
     quote! {
@@ -72,11 +92,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         const URL : &str = #url;
         fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
             HttpsSnapshotIndexerSourceAttrs {
-                queries: HashMap::from([
-                    #(
-                        (#query_keys.to_string(), #query_values.to_string()),
-                    )*
-                ]),
+                queries: #queries_hashmap,
             }
         }
 
@@ -104,11 +120,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                             (#header_keys.to_string(), #header_values.to_string()),
                         )*
                     ].into_iter().collect(),
-                    queries: vec![
-                        #(
-                            (#query_keys.to_string(), #query_values.to_string()),
-                        )*
-                    ].into_iter().collect(),
+                    queries: #queries_hashmap,
                 }
             ).await.expect("Failed to get by indexer");
             let snapshot = Snapshot {
@@ -116,6 +128,8 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                 timestamp: ic_cdk::api::time() / 1000000,
             };
             let _ = add_snapshot(snapshot.clone());
+
+            ic_cdk::println!("timestamp={}, value={:?}", snapshot.timestamp, snapshot.value);
         }
         #queries
     }
@@ -139,15 +153,32 @@ mod test {
             },
             url: "https://api.coingecko.com/api/v3/simple/price".to_string(),
             headers: BTreeMap::from([("content-type".to_string(), "application/json".to_string())]),
-            queries: BTreeMap::from([
+            queries: SnapshotIndexerHTTPSConfigQueries::Const(BTreeMap::from([
                 ("ids".to_string(), "dai".to_string()),
                 ("vs_currencies".to_string(), "usd".to_string()),
-            ]),
+            ])),
         };
         let generated = snapshot_indexer_https(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_display_snapshot!("snapshot__snapshot_indexer_https", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_custom_query() {
+        let config = SnapshotIndexerHTTPSConfig {
+            common: CommonConfig {
+                canister_name: "sample_snapshot_indexer_https".to_string(),
+            },
+            url: "https://api.coingecko.com/api/v3/simple/price".to_string(),
+            headers: BTreeMap::from([("content-type".to_string(), "application/json".to_string())]),
+            queries: SnapshotIndexerHTTPSConfigQueries::Func("get_queries".to_string()),
+        };
+        let generated = snapshot_indexer_https(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_display_snapshot!("snapshot__snapshot_indexer_https__custom_query", formatted);
     }
 }

@@ -108,6 +108,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         } else {
             quote! {
                 type CallCanisterArgs = Vec<String>;
+                #[ic_cdk::query]
+                #[candid::candid_method(query)]
                 pub fn call_args() -> CallCanisterArgs {
                     get_lens_targets()
                 }
@@ -124,6 +126,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         (
             quote! {
                 type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
+                #[ic_cdk::query]
+                #[candid::candid_method(query)]
                 pub fn call_args() -> CallCanisterArgs {
                     #canister_name_ident::call_args()
                 }
@@ -168,7 +172,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             };
             let _ = add_snapshot(datum.clone());
 
-            ic_cdk::println!("ts={}, value={:?}", datum.timestamp, datum.value);
+            ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
     }
 }

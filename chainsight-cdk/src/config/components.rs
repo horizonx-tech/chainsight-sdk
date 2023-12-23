@@ -111,7 +111,17 @@ pub struct SnapshotIndexerHTTPSConfig {
     pub common: CommonConfig,
     pub url: String,
     pub headers: BTreeMap<String, String>,
-    pub queries: BTreeMap<String, String>,
+    pub queries: SnapshotIndexerHTTPSConfigQueries,
+}
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub enum SnapshotIndexerHTTPSConfigQueries {
+    Const(BTreeMap<String, String>),
+    Func(String),
+}
+impl Default for SnapshotIndexerHTTPSConfigQueries {
+    fn default() -> Self {
+        Self::Const(BTreeMap::new())
+    }
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]

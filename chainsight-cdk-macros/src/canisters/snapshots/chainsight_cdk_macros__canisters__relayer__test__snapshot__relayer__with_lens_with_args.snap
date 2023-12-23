@@ -24,6 +24,8 @@ ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
 use relayer::{filter, CallCanisterResponse};
 manage_single_state!("lens_targets", Vec<String>, false);
 type CallCanisterArgs = relayer::LensArgs;
+#[ic_cdk::query]
+#[candid::candid_method(query)]
 pub fn call_args() -> CallCanisterArgs {
     relayer::LensArgs {
         targets: get_lens_targets(),

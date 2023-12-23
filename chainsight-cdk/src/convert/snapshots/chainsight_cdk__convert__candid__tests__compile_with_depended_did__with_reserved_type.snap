@@ -4,7 +4,9 @@ expression: compiled
 ---
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
+pub type RequestArgsType = Box<RequestArgsTypeInDid1>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct ResponseType { pub dai: Box<ResponseTypeDai> }
+pub struct RequestArgsTypeInDid1(u64);
+pub type ResponseType = Box<ResponseTypeInDid1>;
 #[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct ResponseTypeDai { pub usd: f64 }
+pub struct ResponseTypeInDid1(String);
