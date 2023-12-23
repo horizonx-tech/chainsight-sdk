@@ -154,7 +154,10 @@ pub fn extract_elements(s: &str) -> anyhow::Result<(String, String, String)> {
 
     Ok((
         identifier.trim().to_string(),
-        trim_type_str(args_ty),
+        match args_ty.contains(',') {
+            true => args_ty.to_string(),
+            false => trim_type_str(args_ty),
+        },
         trim_type_str(response_ty),
     ))
 }
