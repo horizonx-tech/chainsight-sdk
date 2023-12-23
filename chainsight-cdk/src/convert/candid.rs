@@ -135,6 +135,7 @@ impl CanisterMethodIdentifier {
 }
 
 fn generate_did_type(key: &str, value: &str) -> String {
+    println!("generate_did_type: key={}, value={}", key, value);
     format!("type {} = {};", key, value)
 }
 
