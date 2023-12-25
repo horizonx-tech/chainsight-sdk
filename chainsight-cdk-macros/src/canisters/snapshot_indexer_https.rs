@@ -5,7 +5,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::generate_queries_without_timestamp;
+use crate::canisters::utils::{generate_queries_without_timestamp, update_funcs_to_upgrade};
 
 pub fn def_snapshot_indexer_https(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -33,9 +33,10 @@ fn generate_use_idents(id: &str) -> proc_macro2::TokenStream {
         use chainsight_cdk::web2::{HttpsSnapshotParam, Web2HttpsSnapshotIndexer};
         use chainsight_cdk_macros::{
             chainsight_common, did_export, init_in, prepare_stable_structure, stable_memory_for_vec,
-            timer_task_func, snapshot_indexer_https_source, StableMemoryStorable,
+            timer_task_func, CborSerde, snapshot_indexer_https_source, StableMemoryStorable,
         };
         use candid::{Decode, Encode};
+        use ic_stable_structures::writer::Writer;
         use #id_ident::*;
     }
 }
@@ -73,6 +74,40 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     };
     let queries = generate_queries_without_timestamp(format_ident!("SnapshotValue"));
 
+    let quote_to_upgradable = {
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub indexing_interval: u32
+            }
+        };
+
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
+
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
+        }
+    };
+
     quote! {
         did_export!(#id); // NOTE: need to be declared before query, update
         init_in!();
@@ -86,7 +121,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
             pub timestamp: u64,
         }
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 0, true);
+        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index");
 
         const URL : &str = #url;
@@ -132,6 +167,8 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("timestamp={}, value={:?}", snapshot.timestamp, snapshot.value);
         }
         #queries
+
+        #quote_to_upgradable
     }
 }
 
