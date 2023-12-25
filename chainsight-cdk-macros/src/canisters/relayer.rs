@@ -9,6 +9,8 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
+use crate::canisters::utils::camel_to_snake;
+
 use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
@@ -88,7 +90,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
-    let method_name_ident = format_ident!("{}", method_name);
+    let method_name_ident = format_ident!("{}", camel_to_snake(&method_name));
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};

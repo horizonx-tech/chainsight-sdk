@@ -11,6 +11,7 @@ def_relayer_canister!(
         \"abi_file_path\":\"__interfaces/Uint256Oracle.json\",
         \"lens_parameter\":{
             \"with_args\":true
-        }
+        },
+        \"method_name\":\"update_state\"
     }"
 );
