@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::generate_queries_without_timestamp;
+use crate::canisters::utils::{generate_queries_without_timestamp, update_funcs_to_upgrade};
 
 pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -37,8 +37,9 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
     quote! {
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, snapshot_indexer_icp_source};
+        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, CborSerde, snapshot_indexer_icp_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
+        use ic_stable_structures::writer::Writer;
 
         mod types;
 
@@ -54,7 +55,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
         });
 
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 0, true);
+        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index");
     }
 }
@@ -136,6 +137,58 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         )
     };
 
+    let quote_to_upgradable = {
+        let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
+            if lens_parameter.is_some() {
+                (
+                    quote! { lens_targets: Vec<String>, },
+                    quote! { lens_targets: get_lens_targets(), },
+                    quote! { state.lens_targets },
+                )
+            } else {
+                (quote! {}, quote! {}, quote! {})
+            };
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub target_canister: String,
+                #lens_targets_quote
+                pub indexing_interval: u32
+            }
+        };
+
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    target_canister: get_target_canister(),
+                    #generate_lens_targets
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                setup(
+                    state.target_canister,
+                    #recover_lens_targets
+                ).expect("Failed to `setup` in post_upgrade");
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
+
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
+        }
+    };
+
     quote! {
         #snapshot_idents
 
@@ -174,6 +227,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
+
+        #quote_to_upgradable
     }
 }
 
