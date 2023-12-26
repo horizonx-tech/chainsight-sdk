@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::utils::extract_contract_name_from_path;
+use super::utils::{extract_contract_name_from_path, update_funcs_to_upgrade};
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -86,6 +86,65 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     let oracle_name = extract_contract_name_from_path(&abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
+
+    let quote_to_upgradable = {
+        let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
+            if lens_parameter.is_some() {
+                (
+                    quote! { lens_targets: Vec<String>, },
+                    quote! { lens_targets: get_lens_targets(), },
+                    quote! { state.lens_targets },
+                )
+            } else {
+                (quote! {}, quote! {}, quote! {})
+            };
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub target_addr: String,
+                pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+                pub target_canister: String,
+                #lens_targets_quote
+                pub indexing_interval: u32
+            }
+        };
+
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    target_addr: get_target_addr(),
+                    web3_ctx_param: get_web3_ctx_param(),
+                    target_canister: get_target_canister(),
+                    #generate_lens_targets
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                setup(
+                    state.target_addr,
+                    state.web3_ctx_param,
+                    state.target_canister,
+                    #recover_lens_targets
+                ).expect("Failed to `setup` in post_upgrade");
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
+
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
+        }
+    };
+
     let proxy_method_name = "proxy_".to_string() + &method_name;
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
@@ -135,6 +194,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("value_to_sync={:?}", result);
         }
 
+        #quote_to_upgradable
     };
     generated
 }
@@ -154,10 +214,11 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     };
     quote! {
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, relayer_source};
-        use ic_web3_rs::types::{Address, U256};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
+        use ic_stable_structures::writer::Writer;
+        use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
         define_web3_ctx!();
@@ -165,6 +226,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         manage_single_state!("target_addr", String, false);
         define_get_ethereum_address!();
         manage_single_state!("target_canister", String, false);
+        prepare_stable_structure!();
         timer_task_func!("set_task", "index");
         init_in!();
         setup_func!({

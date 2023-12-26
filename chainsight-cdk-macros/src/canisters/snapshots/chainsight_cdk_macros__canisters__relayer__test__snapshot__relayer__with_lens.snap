@@ -6,8 +6,10 @@ use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{
     chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
-    did_export, init_in, manage_single_state, relayer_source, setup_func, timer_task_func,
+    did_export, init_in, manage_single_state, prepare_stable_structure, relayer_source, setup_func,
+    timer_task_func, CborSerde, StableMemoryStorable,
 };
+use ic_stable_structures::writer::Writer;
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
 did_export!("relayer");
@@ -17,6 +19,7 @@ define_transform_for_web3!();
 manage_single_state!("target_addr", String, false);
 define_get_ethereum_address!();
 manage_single_state!("target_canister", String, false);
+prepare_stable_structure!();
 timer_task_func!("set_task", "index");
 init_in!();
 setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , lens_targets : Vec < String > });
@@ -78,5 +81,68 @@ async fn index() {
     .await
     .expect("Failed to call update_state for oracle");
     ic_cdk::println!("value_to_sync={:?}", result);
+}
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    candid :: CandidType,
+    serde :: Serialize,
+    serde :: Deserialize,
+    CborSerde,
+)]
+pub struct UpgradeStableState {
+    pub proxy: candid::Principal,
+    pub initialized: bool,
+    pub env: chainsight_cdk::core::Env,
+    pub target_addr: String,
+    pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+    pub target_canister: String,
+    lens_targets: Vec<String>,
+    pub indexing_interval: u32,
+}
+#[ic_cdk::pre_upgrade]
+fn pre_upgrade() {
+    ic_cdk::println!("start: pre_upgrade");
+    let state = UpgradeStableState {
+        proxy: proxy(),
+        initialized: is_initialized(),
+        env: get_env(),
+        target_addr: get_target_addr(),
+        web3_ctx_param: get_web3_ctx_param(),
+        target_canister: get_target_canister(),
+        lens_targets: get_lens_targets(),
+        indexing_interval: get_indexing_interval(),
+    };
+    let state_bytes = state.to_cbor();
+    let len = state_bytes.len() as u32;
+    let mut memory = get_upgrades_memory();
+    let mut writer = Writer::new(&mut memory, 0);
+    writer.write(&len.to_le_bytes()).unwrap();
+    writer.write(&state_bytes).unwrap();
+    ic_cdk::println!("finish: pre_upgrade");
+}
+#[ic_cdk::post_upgrade]
+fn post_upgrade() {
+    ic_cdk::println!("start: post_upgrade");
+    let memory = get_upgrades_memory();
+    let mut state_len_bytes = [0; 4];
+    memory.read(0, &mut state_len_bytes);
+    let state_len = u32::from_le_bytes(state_len_bytes) as usize;
+    let mut state_bytes = vec![0; state_len];
+    memory.read(4, &mut state_bytes);
+    let state = UpgradeStableState::from_cbor(&state_bytes);
+    set_initialized(state.initialized);
+    set_proxy(state.proxy);
+    set_env(state.env);
+    setup(
+        state.target_addr,
+        state.web3_ctx_param,
+        state.target_canister,
+        state.lens_targets,
+    )
+    .expect("Failed to `setup` in post_upgrade");
+    set_indexing_interval(state.indexing_interval);
+    ic_cdk::println!("finish: post_upgrade");
 }
 
