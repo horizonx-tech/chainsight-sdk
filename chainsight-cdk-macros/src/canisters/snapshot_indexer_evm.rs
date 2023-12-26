@@ -10,6 +10,7 @@ use syn::parse_macro_input;
 
 use crate::canisters::utils::{
     camel_to_snake, extract_contract_name_from_path, generate_queries_without_timestamp,
+    update_funcs_to_upgrade,
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
@@ -34,8 +35,8 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, snapshot_indexer_web3_source};
-
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
+        use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::Address;
 
         did_export!(#canister_name); // NOTE: need to be declared before query, update
@@ -52,7 +53,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         });
 
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 0, true);
+        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index");
     }
 }
@@ -150,6 +151,48 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
+    let quote_to_upgradable = {
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+                pub target_addr: String,
+                pub indexing_interval: u32,
+            }
+        };
+
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: get_proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    web3_ctx_param: get_web3_ctx_param(),
+                    target_addr: get_target_addr(),
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                setup(
+                    state.target_addr,
+                    state.web3_ctx_param,
+                ).expect("Failed to `setup` in post_upgrade");
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
+
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
+        }
+    };
+
     quote! {
         #snapshot_idents
 
@@ -179,6 +222,8 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
+
+        #quote_to_upgradable
     }
 }
 
