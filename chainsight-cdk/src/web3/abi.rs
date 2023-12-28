@@ -1,5 +1,5 @@
 use crate::core::U256 as ChainsightU256;
-use ethabi::{Bytes, Token};
+use ethabi::{Bytes, Param, Token};
 use primitive_types::U256;
 
 pub trait Encoder<T> {
@@ -12,6 +12,11 @@ pub struct EthAbiEncoder;
 pub struct ContractFunction {
     contract: ethabi::Contract,
     method_name: String,
+}
+pub const CALL_ARGS_STRUCT_NAME: &str = "ContractCallArgs";
+
+pub trait ContractEvent {
+    fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
 
 impl ContractFunction {
