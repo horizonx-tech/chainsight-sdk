@@ -1,11 +1,89 @@
-use proc_macro::TokenStream;
+use chainsight_cdk::web3::ContractFunction;
+use ethabi::{Param, ParamType};
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
+
+pub const CALL_ARGS_STRUCT_NAME: &str = "ContractCallArgs";
 
 pub trait ContractEvent {
     fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
 
-pub fn contract_event_derive(input: TokenStream) -> TokenStream {
+#[derive(Clone)]
+pub struct ContractCall {
+    contract_function: ContractFunction,
+}
+
+impl ContractCall {
+    pub fn new(contract_function: ContractFunction) -> Self {
+        Self { contract_function }
+    }
+
+    pub fn function(&self) -> &ContractFunction {
+        &self.contract_function
+    }
+
+    pub fn field_names(&self) -> Vec<String> {
+        self.call_args().into_iter().map(|arg| arg.name).collect()
+    }
+
+    pub fn call_args(&self) -> Vec<Param> {
+        self.contract_function.call_args()
+    }
+
+    pub fn call_args_struct(&self) -> TokenStream {
+        let names: Vec<String> = self
+            .call_args()
+            .clone()
+            .into_iter()
+            .map(|arg| arg.name)
+            .collect();
+        let types: Vec<TokenStream> = self
+            .call_args()
+            .clone()
+            .into_iter()
+            .map(|arg| Self::kind_to_ty(arg.kind))
+            .collect();
+        let visibly = "pub";
+        quote! {
+            #[derive(Clone, Debug)]
+            pub struct #CALL_ARGS_STRUCT_NAME {
+                #(#visibly #names: #types),*
+            }
+            impl #CALL_ARGS_STRUCT_NAME {
+                pub fn new(#(#names: #types),*) -> Self {
+                    Self {
+                        #(#names),*
+                    }
+                }
+            }
+        }
+        .into()
+    }
+
+    fn kind_to_ty(p: ParamType) -> TokenStream {
+        match p {
+            ParamType::Address => quote! { ethabi::Address },
+            ParamType::Bytes => quote! { Vec<u8> },
+            ParamType::FixedBytes(_) => quote! { Vec<u8> },
+            ParamType::Uint(_) => quote! { ic_web3_rs::types::U256 },
+            ParamType::Int(_) => quote! { ic_web3_rs::types::U256 },
+            ParamType::Bool => quote! { bool },
+            ParamType::String => quote! { String },
+            ParamType::Array(i) => {
+                let inner = Self::kind_to_ty(*i);
+                quote! { Vec<#inner> }
+            }
+            ParamType::FixedArray(i, _) => {
+                let inner = Self::kind_to_ty(*i);
+                quote! { Vec<#inner> }
+            }
+            ParamType::Tuple(_) => quote! { Vec<ethabi::Token> },
+        }
+    }
+}
+
+pub fn contract_event_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // get struct body
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     // get struct name

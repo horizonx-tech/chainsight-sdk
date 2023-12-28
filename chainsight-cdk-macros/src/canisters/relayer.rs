@@ -4,12 +4,14 @@ use candid::types::{internal::is_primitive, Type, TypeInner};
 use chainsight_cdk::{
     config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
     convert::candid::{extract_elements, get_candid_type_from_str},
+    web3::ContractFunction,
 };
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::camel_to_snake;
+use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
 
 use super::utils::extract_contract_name_from_path;
 
@@ -29,6 +31,19 @@ fn relayer_canister(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
+fn call_option() -> proc_macro2::TokenStream {
+    quote! {
+        let w3_ctx_param = get_web3_ctx_param();
+        let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
+            w3_ctx_param.url,
+            w3_ctx_param.chain_id,
+            w3_ctx_param.env.ecdsa_key_name(),
+        );
+        use chainsight_cdk::web3::TransactionOptionBuilder;
+        let call_option = call_option_builder.build().await.expect("Failed to build call_option");
+    }
+}
+
 fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -42,69 +57,33 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let (source_method_name, _, canister_response_type) =
         extract_elements(&method_identifier).expect("Failed to extract_elements");
-    let sync_data_ident = generate_ident_sync_to_oracle(&canister_response_type);
+    let call_option_ident = call_option();
 
-    let (call_args_ident, source_ident) = if let Some(LensParameter { with_args }) = lens_parameter
-    {
-        let call_args_ident = if with_args {
-            let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
-            quote! {
-               type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
-               #[ic_cdk::query]
-               #[candid::candid_method(query)]
-               pub fn call_args() -> CallCanisterArgs {
-                   #canister_name_ident::#lens_args_ident {
-                       targets: get_lens_targets(),
-                       args: #canister_name_ident::call_args(),
-                   }
-               }
-            }
-        } else {
-            quote! {
-               type CallCanisterArgs = Vec<String>;
-               #[ic_cdk::query]
-               #[candid::candid_method(query)]
-               pub fn call_args() -> CallCanisterArgs {
-                   get_lens_targets()
-               }
-            }
-        };
-        (
-            quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
-                #call_args_ident
-            },
-            quote! { relayer_source!(#source_method_name, "get_lens_targets"); },
-        )
-    } else {
-        (
-            quote! {
-                type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
-                pub fn call_args() -> CallCanisterArgs {
-                    #canister_name_ident::call_args()
-                }
-            },
-            quote! { relayer_source!(#source_method_name); },
-        )
-    };
-    let oracle_name = extract_contract_name_from_path(&abi_file_path);
-    let oracle_ident = format_ident!("{}", oracle_name);
+    let call_args_ident =
+        inter_canister_call_args_ident(canister_name_ident.clone(), lens_parameter.clone());
+    let source_ident = source_ident(source_method_name.clone(), lens_parameter);
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
-    let method_name_ident = format_ident!("{}", camel_to_snake(&method_name));
+    let contract_call = ContractCall::new(ContractFunction::new(
+        abi_file_path.clone(),
+        method_name.clone(),
+    ));
+    let method_call_ident = method_call(
+        contract_call.clone(),
+        &abi_file_path.clone(),
+        &canister_response_type,
+        canister_name_ident.clone(),
+    );
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
         #call_args_ident
-
         #source_ident
-
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
             if ic_cdk::caller() != proxy() {
                 panic!("Not permitted");
             }
-
             let target_canister = candid::Principal::from_text(get_target_canister()).expect("Failed to parse to candid::Principal");
             let call_result = CallProvider::new()
                 .call(
@@ -117,31 +96,145 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                 .await.expect("failed to call by CallProvider");
             let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
 
+
             ic_cdk::println!("response from canister = {:?}", datum.clone());
 
             if !filter(&datum) {
                 return;
             }
-
-            let w3_ctx_param = get_web3_ctx_param();
-            let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
-                w3_ctx_param.url,
-                w3_ctx_param.chain_id,
-                w3_ctx_param.env.ecdsa_key_name(),
-            );
-            use chainsight_cdk::web3::TransactionOptionBuilder;
-            let call_option = call_option_builder.build().await.expect("Failed to build call_option");
-            let result = #oracle_ident::new(
-                Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-                &web3_ctx().expect("Failed to get web3_ctx")
-            ).#method_name_ident(#sync_data_ident, call_option).await.expect("Failed to call update_state for oracle");
-
-            ic_cdk::println!("value_to_sync={:?}", result);
+            #call_option_ident
+            #method_call_ident
         }
 
     };
     generated
 }
+
+pub fn generate_contract_call_args_struct(call: ContractCall) -> proc_macro2::TokenStream {
+    match require_custom_converer(call.clone()) {
+        false => quote! {},
+        _ => call.call_args_struct(),
+    }
+}
+
+fn require_custom_converer(call: ContractCall) -> bool {
+    call.call_args().len() > 1
+}
+
+fn inter_canister_call_args_ident(
+    canister_name_ident: Ident,
+    lens_param: Option<LensParameter>,
+) -> proc_macro2::TokenStream {
+    match lens_param {
+        None => {
+            quote! {
+                type CallCanisterArgs = #canister_name_ident::CallCanisterArgs;
+                pub fn call_args() -> CallCanisterArgs {
+                    #canister_name_ident::call_args()
+                }
+            }
+        }
+        Some(p) => {
+            let call_args_ident = match p.with_args {
+                true => {
+                    let lens_args_ident = format_ident!("{}", LENS_FUNCTION_ARGS_TYPE);
+                    quote! {
+                       type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
+                       #[ic_cdk::query]
+                       #[candid::candid_method(query)]
+                       pub fn call_args() -> CallCanisterArgs {
+                           #canister_name_ident::#lens_args_ident {
+                               targets: get_lens_targets(),
+                               args: #canister_name_ident::call_args(),
+                           }
+                       }
+                    }
+                }
+                _ => {
+                    quote! {
+                       type CallCanisterArgs = Vec<String>;
+                       #[ic_cdk::query]
+                       #[candid::candid_method(query)]
+                       pub fn call_args() -> CallCanisterArgs {
+                           get_lens_targets()
+                       }
+                    }
+                }
+            };
+            quote! {
+                manage_single_state!("lens_targets", Vec<String>, false);
+                #call_args_ident
+            }
+        }
+    }
+}
+
+fn source_ident(
+    source_method_name: String,
+    lens_param: Option<LensParameter>,
+) -> proc_macro2::TokenStream {
+    match lens_param {
+        None => quote! {
+             relayer_source!(#source_method_name);
+        },
+        _ => {
+            quote! { relayer_source!(#source_method_name, "get_lens_targets"); }
+        }
+    }
+}
+
+fn method_call(
+    call: ContractCall,
+    abi_file_path: &String,
+    response_type_str: &str,
+    canister_name_ident: Ident,
+) -> proc_macro2::TokenStream {
+    let func = call.function().function();
+    let method_name_ident = format_ident!("{}", camel_to_snake(&func.name));
+    let oracle_name = extract_contract_name_from_path(abi_file_path);
+    let oracle_ident = format_ident!("{}", oracle_name);
+
+    match func.inputs.len() {
+        0 => quote! {
+            let result = #oracle_ident::new(
+                Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+                &web3_ctx().expect("Failed to get web3_ctx")
+            ).#method_name_ident(call_option).await.expect("Failed to call update_state for oracle");
+        },
+        1 => {
+            let response_type = get_candid_type_from_str(response_type_str);
+            let data = if response_type.is_ok() && is_ethabi_encodable_type(&response_type.unwrap())
+            {
+                quote! {
+                    chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone())
+                }
+            } else {
+                quote! { format!("{:?}", &datum).into_bytes() }
+            };
+            quote! {
+                let result = #oracle_ident::new(
+                    Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+                    &web3_ctx().expect("Failed to get web3_ctx")
+                ).#method_name_ident(#data, call_option).await.expect("Failed to call update_state for oracle");
+            }
+        }
+        _ => {
+            let args_ident: Vec<Ident> = call
+                .field_names()
+                .iter()
+                .map(|p| format_ident!("{}", p))
+                .collect();
+            quote! {
+                let value =  #canister_name_ident::convert(&datum.clone());
+                let result = #oracle_ident::new(
+                    Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+                    &web3_ctx().expect("Failed to get web3_ctx")
+                ).#method_name_ident(#(value.#args_ident),*, call_option).await.expect("Failed to call update_state for oracle");
+            }
+        }
+    }
+}
+
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -156,6 +249,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         quote! {}
     };
     quote! {
+        use ic_cdk::api::call::result;
         use std::str::FromStr;
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, relayer_source};
         use ic_web3_rs::types::{Address, U256};
@@ -176,19 +270,6 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             target_canister: String,
             #lens_targets_quote
         });
-    }
-}
-
-fn generate_ident_sync_to_oracle(response_type_str: &str) -> proc_macro2::TokenStream {
-    let response_type = get_candid_type_from_str(response_type_str);
-    if response_type.is_ok() && is_ethabi_encodable_type(&response_type.unwrap()) {
-        let arg_ident = format_ident!("datum");
-        quote! {
-            chainsight_cdk::web3::abi::EthAbiEncoder.encode(#arg_ident.clone())
-        }
-    } else {
-        // TODO: consider byte conversion for serialization
-        quote! { format!("{:?}", &datum).into_bytes() }
     }
 }
 
