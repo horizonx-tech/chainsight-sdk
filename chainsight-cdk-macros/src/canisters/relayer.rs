@@ -22,12 +22,6 @@ pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     relayer_canister(config).into()
 }
 
-pub fn contract_call_args_struct(input: TokenStream) -> TokenStream {
-    let contract_func: ContractFunction = syn::parse_macro_input!(input as syn::ItemStruct).into();
-    let contract_call = ContractCall::new(contract_func);
-    generate_contract_call_args_struct(contract_call).into()
-}
-
 fn relayer_canister(config: RelayerConfig) -> proc_macro2::TokenStream {
     let common = common_code(config.clone());
     let custom = custom_code(config);
@@ -114,17 +108,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
     };
     generated
-}
-
-fn generate_contract_call_args_struct(call: ContractCall) -> proc_macro2::TokenStream {
-    match require_custom_converer(call.clone()) {
-        false => quote! {},
-        _ => call.call_args_struct(),
-    }
-}
-
-fn require_custom_converer(call: ContractCall) -> bool {
-    call.call_args().len() > 1
 }
 
 fn inter_canister_call_args_ident(

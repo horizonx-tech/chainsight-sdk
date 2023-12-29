@@ -28,11 +28,6 @@ pub fn algorithm_indexer_with_args(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn contract_call_args_struct(input: TokenStream) -> TokenStream {
-    canisters::relayer::contract_call_args_struct(input)
-}
-
-#[proc_macro]
 pub fn algorithm_lens_finder(input: TokenStream) -> TokenStream {
     indexers::algorithm_lens_finder(input)
 }
