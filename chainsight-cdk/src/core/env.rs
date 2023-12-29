@@ -1,6 +1,6 @@
 use candid::{CandidType, Principal};
-use serde::Deserialize;
-#[derive(Clone, Debug, Default, PartialEq, CandidType, Deserialize)]
+use serde::{Deserialize, Serialize};
+#[derive(Clone, Debug, Default, PartialEq, CandidType, Serialize, Deserialize)]
 pub enum Env {
     #[default]
     LocalDevelopment,

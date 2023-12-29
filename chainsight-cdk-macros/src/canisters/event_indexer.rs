@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::camel_to_snake;
+use crate::canisters::utils::{camel_to_snake, update_funcs_to_upgrade};
 
 use super::utils::extract_contract_name_from_path;
 
@@ -43,10 +43,11 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         };
         use chainsight_cdk_macros::{
             define_get_ethereum_address, define_transform_for_web3, define_web3_ctx, did_export, init_in,
-            manage_single_state, chainsight_common, setup_func, web3_event_indexer,timer_task_func, web3_event_indexer_source,
-            ContractEvent, Persist,
+            manage_single_state, chainsight_common, setup_func, web3_event_indexer, timer_task_func, prepare_stable_structure, web3_event_indexer_source,
+            ContractEvent, Persist, StableMemoryStorable, CborSerde
         };
         use ic_solidity_bindgen::{types::EventLog};
+        use ic_stable_structures::writer::Writer;
         use ic_web3_rs::{
             ethabi::Address,
             futures::{future::BoxFuture, FutureExt},
@@ -59,6 +60,7 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         define_web3_ctx!();
         define_transform_for_web3!();
         define_get_ethereum_address!();
+        prepare_stable_structure!();
         timer_task_func!("set_task", "index");
         manage_single_state!("target_addr", String, false);
         setup_func!({
@@ -99,6 +101,52 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
 
     let call_func_ident = format_ident!("event_{}", camel_to_snake(&event.name));
     let (event_struct_ident, event_struct) = generate_event_struct(event);
+
+    let quote_to_upgradable = {
+        let state_struct = quote! {
+            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+            pub struct UpgradeStableState {
+                pub proxy: candid::Principal,
+                pub initialized: bool,
+                pub env: chainsight_cdk::core::Env,
+                pub target_addr: String,
+                pub web3_ctx_param: Web3CtxParam,
+                pub config: IndexingConfig,
+                pub indexing_interval: u32,
+            }
+        };
+
+        let update_funcs_to_upgrade = update_funcs_to_upgrade(
+            quote! {
+                UpgradeStableState {
+                    proxy: get_proxy(),
+                    initialized: is_initialized(),
+                    env: get_env(),
+                    web3_ctx_param: get_web3_ctx_param(),
+                    target_addr: get_target_addr(),
+                    config: get_config(),
+                    indexing_interval: get_indexing_interval(),
+                }
+            },
+            quote! {
+                set_initialized(state.initialized);
+                set_proxy(state.proxy);
+                set_env(state.env);
+                setup(
+                    state.target_addr,
+                    state.web3_ctx_param,
+                    state.config,
+                ).expect("Failed to `setup` in post_upgrade");
+                set_indexing_interval(state.indexing_interval);
+            },
+        );
+
+        quote! {
+            #state_struct
+            #update_funcs_to_upgrade
+        }
+    };
+
     quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         web3_event_indexer_source!(#event_struct_ident);
@@ -121,6 +169,8 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
                 }
             }.boxed()
         }
+
+        #quote_to_upgradable
     }
 }
 

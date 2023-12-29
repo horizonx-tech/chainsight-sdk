@@ -14,7 +14,7 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
-            assert!(!INITIALIZED.with(|f| *f.borrow()), "Already initialized");
+            assert!(!is_initialized(), "Already initialized");
 
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
                 chainsight_cdk::initializer::InitConfig { env: env.clone() },
@@ -22,9 +22,9 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
             let deployer = ic_cdk::caller();
             let init_result = initializer.initialize(&deployer, &cycles).await?;
             let proxy = init_result.proxy;
-            INITIALIZED.with(|f| *f.borrow_mut() = true);
-            PROXY.with(|f| *f.borrow_mut() = proxy);
-            ENV.with(|f| *f.borrow_mut() = env);
+            set_initialized(true);
+            set_proxy(proxy);
+            set_env(env);
 
             Ok(())
         }
@@ -34,11 +34,24 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
         fn get_env() -> chainsight_cdk::core::Env {
             ENV.with(|env| env.borrow().clone())
         }
+        fn is_initialized() -> bool {
+            INITIALIZED.with(|f| *f.borrow())
+        }
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         fn get_proxy() -> candid::Principal {
             proxy()
+        }
+
+        fn set_initialized(flag: bool) {
+            INITIALIZED.with(|f| *f.borrow_mut() = flag);
+        }
+        fn set_proxy(proxy: candid::Principal) {
+            PROXY.with(|f| *f.borrow_mut() = proxy);
+        }
+        fn set_env(env: chainsight_cdk::core::Env) {
+            ENV.with(|f| *f.borrow_mut() = env);
         }
 
         thread_local! {

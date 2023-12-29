@@ -13,7 +13,7 @@ use syn::parse_macro_input;
 
 use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
 
-use super::utils::extract_contract_name_from_path;
+use super::utils::{extract_contract_name_from_path, update_funcs_to_upgrade};
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -61,7 +61,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
     let call_args_ident =
         inter_canister_call_args_ident(canister_name_ident.clone(), lens_parameter.clone());
-    let source_ident = source_ident(source_method_name.clone(), lens_parameter);
+    let source_ident = source_ident(&source_method_name, lens_parameter.clone());
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
     let contract_call = ContractCall::new(ContractFunction::new(
         abi_file_path.clone(),
@@ -73,6 +73,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         &canister_response_type,
         canister_name_ident.clone(),
     );
+
+    let quote_to_upgradable = quote_to_upgradable(lens_parameter.clone());
+
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -106,8 +109,68 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             #method_call_ident
         }
 
+        #quote_to_upgradable
     };
+
     generated
+}
+
+fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::TokenStream {
+    let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
+        if lens_parameter.is_some() {
+            (
+                quote! { lens_targets: Vec<String>, },
+                quote! { lens_targets: get_lens_targets(), },
+                quote! { state.lens_targets },
+            )
+        } else {
+            (quote! {}, quote! {}, quote! {})
+        };
+    let state_struct = quote! {
+        #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
+        pub struct UpgradeStableState {
+            pub proxy: candid::Principal,
+            pub initialized: bool,
+            pub env: chainsight_cdk::core::Env,
+            pub target_addr: String,
+            pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
+            pub target_canister: String,
+            #lens_targets_quote
+            pub indexing_interval: u32
+        }
+    };
+
+    let update_funcs_to_upgrade = update_funcs_to_upgrade(
+        quote! {
+            UpgradeStableState {
+                proxy: proxy(),
+                initialized: is_initialized(),
+                env: get_env(),
+                target_addr: get_target_addr(),
+                web3_ctx_param: get_web3_ctx_param(),
+                target_canister: get_target_canister(),
+                #generate_lens_targets
+                indexing_interval: get_indexing_interval(),
+            }
+        },
+        quote! {
+            set_initialized(state.initialized);
+            set_proxy(state.proxy);
+            set_env(state.env);
+            setup(
+                state.target_addr,
+                state.web3_ctx_param,
+                state.target_canister,
+                #recover_lens_targets
+            ).expect("Failed to `setup` in post_upgrade");
+            set_indexing_interval(state.indexing_interval);
+        },
+    );
+
+    quote! {
+        #state_struct
+        #update_funcs_to_upgrade
+    }
 }
 
 fn inter_canister_call_args_ident(
@@ -159,16 +222,14 @@ fn inter_canister_call_args_ident(
 }
 
 fn source_ident(
-    source_method_name: String,
+    source_method_name: &String,
     lens_param: Option<LensParameter>,
 ) -> proc_macro2::TokenStream {
     match lens_param {
         None => quote! {
              relayer_source!(#source_method_name);
         },
-        _ => {
-            quote! { relayer_source!(#source_method_name, "get_lens_targets"); }
-        }
+        _ => quote! { relayer_source!(#source_method_name, "get_lens_targets"); },
     }
 }
 
@@ -179,17 +240,20 @@ fn method_call(
     canister_name_ident: Ident,
 ) -> proc_macro2::TokenStream {
     let func = call.function().function();
-    let method_name_ident = format_ident!("{}", camel_to_snake(&func.name));
     let oracle_name = extract_contract_name_from_path(abi_file_path);
     let oracle_ident = format_ident!("{}", oracle_name);
+    let oracle_func = camel_to_snake(&call.function().function().name.clone());
+    let oracle_func_ident = format_ident!("{}", oracle_func);
 
     match func.inputs.len() {
-        0 => quote! {
-            let result = #oracle_ident::new(
-                Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-                &web3_ctx().expect("Failed to get web3_ctx")
-            ).#method_name_ident(call_option).await.expect("Failed to call update_state for oracle");
-        },
+        0 => {
+            quote! {
+                let result = #oracle_ident::new(
+                    Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
+                    &web3_ctx().expect("Failed to get web3_ctx")
+                ).#oracle_func_ident(call_option).await.expect("Failed to call update_state for oracle");
+            }
+        }
         1 => {
             let response_type = get_candid_type_from_str(response_type_str);
             let data = if response_type.is_ok() && is_ethabi_encodable_type(&response_type.unwrap())
@@ -204,7 +268,8 @@ fn method_call(
                 let result = #oracle_ident::new(
                     Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
                     &web3_ctx().expect("Failed to get web3_ctx")
-                ).#method_name_ident(#data, call_option).await.expect("Failed to call update_state for oracle");
+                ).#oracle_func_ident(#data, call_option).await.expect("Failed to call update_state for oracle");
+                ic_cdk::println!("value_to_sync={:?}", result);
             }
         }
         _ => {
@@ -218,7 +283,7 @@ fn method_call(
                 let result = #oracle_ident::new(
                     Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
                     &web3_ctx().expect("Failed to get web3_ctx")
-                ).#method_name_ident(#(value.#args_ident),*, call_option).await.expect("Failed to call update_state for oracle");
+                ).#oracle_func_ident(#(value.#args_ident),*, call_option).await.expect("Failed to call update_state for oracle");
             }
         }
     }
@@ -240,10 +305,11 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     quote! {
         use ic_cdk::api::call::result;
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, relayer_source};
-        use ic_web3_rs::types::{Address, U256};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
+        use ic_stable_structures::writer::Writer;
+        use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
         define_web3_ctx!();
@@ -251,6 +317,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         manage_single_state!("target_addr", String, false);
         define_get_ethereum_address!();
         manage_single_state!("target_canister", String, false);
+        prepare_stable_structure!();
         timer_task_func!("set_task", "index");
         init_in!();
         setup_func!({

@@ -8,7 +8,11 @@ pub fn prepare_stable_structure() -> TokenStream {
 }
 fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {
     quote! {
-        type Memory = ic_stable_structures::memory_manager::VirtualMemory<ic_stable_structures::DefaultMemoryImpl>;
+        use ic_stable_structures::Memory;
+
+        type MemoryType = ic_stable_structures::memory_manager::VirtualMemory<ic_stable_structures::DefaultMemoryImpl>;
+
+        const MEMORY_ID_FOR_UPGRADE: ic_stable_structures::memory_manager::MemoryId = ic_stable_structures::memory_manager::MemoryId::new(0);
 
         thread_local! {
             static MEMORY_MANAGER: std::cell::RefCell<ic_stable_structures::memory_manager::MemoryManager<ic_stable_structures::DefaultMemoryImpl>> =
@@ -16,6 +20,10 @@ fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {
                     ic_stable_structures::memory_manager::MemoryManager::init(ic_stable_structures::DefaultMemoryImpl::default()
                 )
             );
+        }
+
+        fn get_upgrades_memory() -> MemoryType {
+            MEMORY_MANAGER.with(|m| m.borrow().get(MEMORY_ID_FOR_UPGRADE))
         }
     }
 }
@@ -130,7 +138,7 @@ fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_m
 
     quote! {
         thread_local! {
-            static #var_ident: std::cell::RefCell<ic_stable_structures::StableCell<#ty, Memory>> = std::cell::RefCell::new(
+            static #var_ident: std::cell::RefCell<ic_stable_structures::StableCell<#ty, MemoryType>> = std::cell::RefCell::new(
                 ic_stable_structures::StableCell::init(
                     MEMORY_MANAGER.with(|mm| mm.borrow().get(
                         ic_stable_structures::memory_manager::MemoryId::new(#memory_id)
@@ -491,7 +499,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
 
     quote! {
         thread_local! {
-            static #state_upper_name: std::cell::RefCell<ic_stable_structures::StableVec<#ty, Memory>> = std::cell::RefCell::new(
+            static #state_upper_name: std::cell::RefCell<ic_stable_structures::StableVec<#ty, MemoryType>> = std::cell::RefCell::new(
                 ic_stable_structures::StableVec::init(
                     MEMORY_MANAGER.with(|mm| mm.borrow().get(
                         ic_stable_structures::memory_manager::MemoryId::new(#memory_id)

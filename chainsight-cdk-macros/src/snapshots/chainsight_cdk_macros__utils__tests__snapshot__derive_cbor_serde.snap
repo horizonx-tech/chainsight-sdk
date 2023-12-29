@@ -1,0 +1,15 @@
+---
+source: chainsight-cdk-macros/src/utils.rs
+expression: formatted
+---
+impl SampleComponent {
+    pub fn to_cbor(&self) -> Vec<u8> {
+        let mut state_bytes = vec![];
+        ciborium::ser::into_writer(self, &mut state_bytes).expect("Failed to serialize state");
+        state_bytes
+    }
+    pub fn from_cbor(bytes: &[u8]) -> Self {
+        ciborium::de::from_reader(bytes).expect("Failed to deserialize state")
+    }
+}
+

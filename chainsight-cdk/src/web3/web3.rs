@@ -13,7 +13,7 @@ use ic_web3_rs::{
     futures::future::BoxFuture,
     transports::ic_http_client::{CallOptions, CallOptionsBuilder},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 pub struct Web3Indexer<E>
 where
     E: Event<EventLog>,
@@ -23,7 +23,7 @@ where
     storage: KeyValuesStore,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, CandidType, Serialize, Deserialize)]
 pub struct Web3CtxParam {
     pub url: String,
     pub from: Option<String>,

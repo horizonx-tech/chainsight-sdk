@@ -2,7 +2,7 @@
 source: chainsight-cdk-macros/src/storages.rs
 expression: formatted
 ---
-thread_local! { static TIMESTAMPS : std :: cell :: RefCell < ic_stable_structures :: StableVec < u64 , Memory >> = std :: cell :: RefCell :: new (ic_stable_structures :: StableVec :: init (MEMORY_MANAGER . with (| mm | mm . borrow () . get (ic_stable_structures :: memory_manager :: MemoryId :: new (0u8)))) . unwrap ()) ; }
+thread_local! { static TIMESTAMPS : std :: cell :: RefCell < ic_stable_structures :: StableVec < u64 , MemoryType >> = std :: cell :: RefCell :: new (ic_stable_structures :: StableVec :: init (MEMORY_MANAGER . with (| mm | mm . borrow () . get (ic_stable_structures :: memory_manager :: MemoryId :: new (0u8)))) . unwrap ()) ; }
 #[ic_cdk::query]
 #[candid::candid_method(query)]
 fn get_timestamps() -> Vec<u64> {
