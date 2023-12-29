@@ -1,7 +1,6 @@
 use crate::core::U256 as ChainsightU256;
-use ethabi::{Bytes, Param, Token};
+use ethabi::{Bytes, Token};
 use primitive_types::U256;
-use syn::{parse::ParseStream, ItemStruct};
 
 pub trait Encoder<T> {
     fn encode(&self, val: T) -> Bytes;
@@ -37,24 +36,6 @@ impl ContractFunction {
     }
     pub fn call_args(&self) -> Vec<ethabi::Param> {
         self.function().inputs.clone()
-    }
-}
-impl Into<ContractFunction> for ItemStruct {
-    fn into(self) -> ContractFunction {
-        let abi = self.attrs[0]
-            .parse_args_with(|p: ParseStream| {
-                let abi: syn::LitStr = p.parse()?;
-                Ok(abi.value())
-            })
-            .unwrap();
-        let method_name = self.attrs[1]
-            .parse_args_with(|p: ParseStream| {
-                let method_name: syn::LitStr = p.parse()?;
-                Ok(method_name.value())
-            })
-            .unwrap();
-
-        ContractFunction::new(abi, method_name)
     }
 }
 impl Encoder<U256> for EthAbiEncoder {
