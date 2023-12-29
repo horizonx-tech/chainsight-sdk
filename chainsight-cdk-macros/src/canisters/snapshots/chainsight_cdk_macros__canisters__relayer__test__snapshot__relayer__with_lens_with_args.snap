@@ -8,6 +8,7 @@ use chainsight_cdk_macros::{
     chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
     did_export, init_in, manage_single_state, relayer_source, setup_func, timer_task_func,
 };
+use ic_cdk::api::call::result;
 use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
 did_export!("relayer");
@@ -80,6 +81,5 @@ async fn index() {
     )
     .await
     .expect("Failed to call update_state for oracle");
-    ic_cdk::println!("value_to_sync={:?}", result);
 }
 
