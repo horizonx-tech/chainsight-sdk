@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use candid::CandidType;
 
@@ -28,24 +28,6 @@ impl From<primitive_types::U256> for U256 {
         Self {
             value: u256.to_string(),
         }
-    }
-}
-
-#[derive(
-    CandidType, Debug, Clone, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize, Default,
-)]
-pub struct Address {
-    inner: String,
-}
-
-impl Address {
-    pub fn new(address: ic_web3_rs::ethabi::Address) -> Self {
-        Self {
-            inner: address.to_string(),
-        }
-    }
-    pub fn value(&self) -> ic_web3_rs::ethabi::Address {
-        ic_web3_rs::ethabi::Address::from_str(&self.inner).unwrap()
     }
 }
 
