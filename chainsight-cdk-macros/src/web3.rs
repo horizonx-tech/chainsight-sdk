@@ -88,7 +88,7 @@ pub fn contract_event_derive(input: proc_macro::TokenStream) -> proc_macro::Toke
 }
 
 pub fn define_transform_for_web3() -> TokenStream {
-    define_transform_for_web3_internal().into()
+    define_transform_for_web3_internal()
 }
 fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
     quote! {
@@ -128,7 +128,7 @@ fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
 }
 
 pub fn define_web3_ctx() -> TokenStream {
-    define_web3_ctx_internal().into()
+    define_web3_ctx_internal()
 }
 fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
     quote! {
@@ -151,7 +151,7 @@ fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
 }
 
 pub fn define_get_ethereum_address() -> TokenStream {
-    define_get_ethereum_address_internal().into()
+    define_get_ethereum_address_internal()
 }
 fn define_get_ethereum_address_internal() -> proc_macro2::TokenStream {
     quote! {

@@ -235,7 +235,7 @@ fn source_ident(
 
 fn method_call(
     call: ContractCall,
-    abi_file_path: &String,
+    abi_file_path: &str,
     response_type_str: &str,
     canister_name_ident: Ident,
 ) -> proc_macro2::TokenStream {
