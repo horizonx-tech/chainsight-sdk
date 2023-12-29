@@ -260,6 +260,12 @@ impl Token {
             _ => None,
         }
     }
+    pub fn to_bool(&self) -> Option<bool> {
+        match self {
+            Token::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

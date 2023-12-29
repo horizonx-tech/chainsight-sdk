@@ -1,11 +1,36 @@
-use proc_macro::TokenStream;
+use chainsight_cdk::web3::ContractFunction;
+use ethabi::Param;
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 
 pub trait ContractEvent {
     fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
 
-pub fn contract_event_derive(input: TokenStream) -> TokenStream {
+#[derive(Clone)]
+pub struct ContractCall {
+    contract_function: ContractFunction,
+}
+
+impl ContractCall {
+    pub fn new(contract_function: ContractFunction) -> Self {
+        Self { contract_function }
+    }
+
+    pub fn function(&self) -> &ContractFunction {
+        &self.contract_function
+    }
+
+    pub fn field_names(&self) -> Vec<String> {
+        self.call_args().into_iter().map(|arg| arg.name).collect()
+    }
+
+    pub fn call_args(&self) -> Vec<Param> {
+        self.contract_function.call_args()
+    }
+}
+
+pub fn contract_event_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // get struct body
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     // get struct name
@@ -63,7 +88,7 @@ pub fn contract_event_derive(input: TokenStream) -> TokenStream {
 }
 
 pub fn define_transform_for_web3() -> TokenStream {
-    define_transform_for_web3_internal().into()
+    define_transform_for_web3_internal()
 }
 fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
     quote! {
@@ -103,7 +128,7 @@ fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
 }
 
 pub fn define_web3_ctx() -> TokenStream {
-    define_web3_ctx_internal().into()
+    define_web3_ctx_internal()
 }
 fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
     quote! {
@@ -126,7 +151,7 @@ fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
 }
 
 pub fn define_get_ethereum_address() -> TokenStream {
-    define_get_ethereum_address_internal().into()
+    define_get_ethereum_address_internal()
 }
 fn define_get_ethereum_address_internal() -> proc_macro2::TokenStream {
     quote! {

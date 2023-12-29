@@ -135,9 +135,9 @@ pub struct SnapshotIndexerICPConfig {
 pub struct RelayerConfig {
     pub common: CommonConfig,
     pub destination: String,
-    pub oracle_type: String,
     pub method_identifier: String,
     pub abi_file_path: String,
+    pub method_name: String,
     pub lens_parameter: Option<LensParameter>,
 }
 

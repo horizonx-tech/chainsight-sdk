@@ -124,17 +124,17 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn define_transform_for_web3(_input: TokenStream) -> TokenStream {
-    web3::define_transform_for_web3()
+    web3::define_transform_for_web3().into()
 }
 
 #[proc_macro]
 pub fn define_web3_ctx(_input: TokenStream) -> TokenStream {
-    web3::define_web3_ctx()
+    web3::define_web3_ctx().into()
 }
 
 #[proc_macro]
 pub fn define_get_ethereum_address(_input: TokenStream) -> TokenStream {
-    web3::define_get_ethereum_address()
+    web3::define_get_ethereum_address().into()
 }
 
 #[proc_macro_derive(ContractEvent)]

@@ -8,6 +8,36 @@ pub trait Encoder<T> {
 
 pub struct EthAbiEncoder;
 
+#[derive(Clone)]
+pub struct ContractFunction {
+    contract: ethabi::Contract,
+    method_name: String,
+}
+pub const CALL_ARGS_STRUCT_NAME: &str = "ContractCallArgs";
+
+pub trait ContractEvent {
+    fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
+}
+
+impl ContractFunction {
+    pub fn new(abi: String, method_name: String) -> Self {
+        let abi_bytes = std::fs::read(abi).expect("Failed to read abi file");
+        let contract =
+            ethabi::Contract::load(abi_bytes.as_slice()).expect("Failed to load abi file");
+        Self {
+            contract,
+            method_name,
+        }
+    }
+    pub fn function(&self) -> &ethabi::Function {
+        self.contract
+            .function(inflector::cases::camelcase::to_camel_case(&self.method_name).as_str())
+            .expect("Failed to get function")
+    }
+    pub fn call_args(&self) -> Vec<ethabi::Param> {
+        self.function().inputs.clone()
+    }
+}
 impl Encoder<U256> for EthAbiEncoder {
     fn encode(&self, val: U256) -> Bytes {
         let token = Token::Uint(val);
