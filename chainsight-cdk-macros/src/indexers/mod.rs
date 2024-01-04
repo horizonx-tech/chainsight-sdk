@@ -98,6 +98,18 @@ fn event_indexer_common(out_type: syn::Type) -> proc_macro2::TokenStream {
             _get_last_indexed()
         }
 
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        pub async fn proxy_get_last_indexed(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+            use chainsight_cdk::rpc::Receiver;
+            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(
+                proxy(),
+                _get_last_indexed.clone(),
+            )
+            .reply(input)
+            .await
+        }
+
         fn _get_last_indexed() -> u64 {
             indexer().get_last_indexed().unwrap()
         }
