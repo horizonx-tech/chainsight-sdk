@@ -10,8 +10,8 @@ pub fn events_from_to(from: u64, to: u64) -> HashMap<u64, Vec<Transfer>> {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-pub fn proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-    _proxy_events_from_to(input)
+pub async fn proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+    _proxy_events_from_to(input).await
 }
 async fn _proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
@@ -32,13 +32,14 @@ pub fn events_latest_n(n: u64) -> HashMap<u64, Vec<Transfer>> {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-pub fn proxy_events_latest_n(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+pub async fn proxy_events_latest_n(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProvider::<u64, HashMap<u64, Vec<Transfer>>>::new(
         proxy(),
         _events_latest_n.clone(),
     )
     .reply(input)
+    .await
 }
 fn _events_latest_n(n: u64) -> HashMap<u64, Vec<Transfer>> {
     let last_indexed = indexer().get_last_indexed().unwrap();
@@ -51,10 +52,11 @@ pub fn get_last_indexed() -> u64 {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-pub fn proxy_get_last_indexed(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
+pub async fn proxy_get_last_indexed(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProvider::<(), u64>::new(proxy(), _get_last_indexed.clone())
         .reply(input)
+        .await
 }
 fn _get_last_indexed() -> u64 {
     indexer().get_last_indexed().unwrap()
