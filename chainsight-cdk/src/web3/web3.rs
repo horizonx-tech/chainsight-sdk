@@ -128,3 +128,67 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::pin::Pin;
+
+    use futures::Future;
+
+    use crate::storage::{Data, Token};
+
+    use super::*;
+    #[derive(Default, Clone, Debug, PartialEq, CandidType, Serialize, Deserialize)]
+    struct SampleStruct {
+        value: String,
+    }
+    impl Event<EventLog> for SampleStruct {
+        fn tokenize(&self) -> Data {
+            Data::new(
+                vec![("value".to_string(), Token::from(self.value.clone()))]
+                    .into_iter()
+                    .collect(),
+            )
+        }
+        fn untokenize(data: Data) -> Self {
+            Self {
+                value: data.get("value").unwrap().to_string(),
+            }
+        }
+    }
+    impl From<EventLog> for SampleStruct {
+        fn from(_: EventLog) -> Self {
+            Self {
+                value: "dummy".to_string(),
+            }
+        }
+    }
+    impl Persist for SampleStruct {
+        fn tokenize(&self) -> crate::storage::Data {
+            Data::new(
+                vec![("value".to_string(), Token::from(self.value.clone()))]
+                    .into_iter()
+                    .collect(),
+            )
+        }
+        fn untokenize(data: Data) -> Self {
+            Self {
+                value: data.get("value").unwrap().to_string(),
+            }
+        }
+    }
+    #[test]
+    fn test_indexer_between_empty() {
+        let indexer = Web3Indexer::<SampleStruct>::new(
+            |_from, _to, _call_options| {
+                let result = HashMap::new();
+                Box::pin(async move { Ok(result) })
+                    as Pin<
+                        Box<dyn Future<Output = Result<HashMap<u64, Vec<EventLog>>, Error>> + Send>,
+                    >
+            },
+            Some(CallOptions::default()),
+        );
+        assert_eq!(indexer.between(0, 100).unwrap(), HashMap::new());
+    }
+}

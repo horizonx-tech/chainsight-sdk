@@ -359,3 +359,37 @@ impl KeyValueStore {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct SampleStruct {
+        pub name: String,
+        pub age: u32,
+    }
+
+    impl Persist for SampleStruct {
+        fn tokenize(&self) -> Data {
+            Data::new(
+                vec![
+                    ("name".to_string(), Token::from(self.name.clone())),
+                    ("age".to_string(), Token::from(self.age)),
+                ]
+                .into_iter()
+                .collect(),
+            )
+        }
+        fn untokenize(data: Data) -> Self {
+            let name = data.get("name").unwrap().to_string();
+            let age = data.get("age").unwrap().to_u32().unwrap();
+            Self { name, age }
+        }
+    }
+
+    #[test]
+    fn test_kvs_between_empty() {
+        let kvs = KeyValueStore::new(1);
+        _ = kvs.between::<SampleStruct>("", "");
+    }
+}
