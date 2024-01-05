@@ -67,15 +67,12 @@ where
         Args: serde::Serialize + Send,
         Resp: serde::de::DeserializeOwned,
     {
-        let call_provider = CallProvider::new();
-
-        let call_result = call_provider
+        let call_result = CallProvider::new()
             .call(
                 Message::new::<Args>(args, self.target.target, self.target.method.as_str())
                     .unwrap(),
             )
             .await;
-
         if let Err(err) = call_result {
             ic_cdk::println!("error: {:?}", err);
             return Err(Error::InvalidRequest(err.1));
