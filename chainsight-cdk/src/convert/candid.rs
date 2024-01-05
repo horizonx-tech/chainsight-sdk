@@ -91,7 +91,7 @@ impl CanisterMethodIdentifier {
 
     fn convert_tuple_struct_to_type(lines: String) -> String {
         let pattern = r"pub struct (?P<name>\w+) \((?P<fields>.+)\);";
-        let re = Regex::new(&pattern).expect("Invalid regex pattern");
+        let re = Regex::new(pattern).expect("Invalid regex pattern");
         let replaced_s = re.replace_all(&lines, |caps: &regex::Captures| {
             let name = caps.name("name").unwrap().as_str();
             let fields = caps.name("fields").unwrap().as_str();
