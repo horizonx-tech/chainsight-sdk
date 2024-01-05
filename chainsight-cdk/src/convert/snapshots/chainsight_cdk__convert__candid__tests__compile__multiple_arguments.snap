@@ -4,6 +4,5 @@ expression: compiled
 ---
 #![allow(dead_code, unused_imports)]
 use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
-#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]
-pub struct RequestArgsType (pub u64,pub u64,pub u64,);
+pub type RequestArgsType = (pub u64,pub u64,pub u64,);
 pub type ResponseType = Vec<(u64,Vec<f64>,)>;
