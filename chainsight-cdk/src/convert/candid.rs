@@ -86,7 +86,33 @@ impl CanisterMethodIdentifier {
             1,
             "use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};".to_string(),
         );
-        Ok(lines.join("\n"))
+        Ok(Self::convert_tuple_struct_to_type(lines.join("\n")))
+    }
+
+    fn convert_tuple_struct_to_type(lines: String) -> String {
+        let pattern = r"pub struct (?P<name>\w+) \((?P<fields>.+)\);";
+        let re = Regex::new(&pattern).expect("Invalid regex pattern");
+        let replaced_s = re.replace_all(&lines, |caps: &regex::Captures| {
+            let name = caps.name("name").unwrap().as_str();
+            let fields = caps.name("fields").unwrap().as_str();
+            format!("pub type {} = ({});", name, fields)
+        });
+        let replaced_lies = replaced_s.lines().collect::<Vec<_>>();
+        // trim derive attributes 1 line before the replaced struct
+        // NOTE: This is a workaround for the fact that the derive attribute is not removed by the candid compiler.
+        let mut new_modified_lines = Vec::new();
+        for (i, line) in replaced_lies.iter().enumerate() {
+            match line.contains("#[derive(") {
+                false => new_modified_lines.push(line.to_string()),
+                true => {
+                    let next = replaced_lies.get(i + 1).unwrap();
+                    if !next.contains("type") {
+                        new_modified_lines.push(line.to_string());
+                    }
+                }
+            }
+        }
+        new_modified_lines.join("\n")
     }
 
     pub fn get_types(&self) -> (Option<&Type>, Option<&Type>) {
