@@ -94,7 +94,7 @@ impl CanisterMethodIdentifier {
         let re = Regex::new(pattern).expect("Invalid regex pattern");
         let replaced_s = re.replace_all(&lines, |caps: &regex::Captures| {
             let name = caps.name("name").unwrap().as_str();
-            let fields = caps.name("fields").unwrap().as_str();
+            let fields = caps.name("fields").unwrap().as_str().replace("pub ", "");
             format!("pub type {} = ({});", name, fields)
         });
         let replaced_lies = replaced_s.lines().collect::<Vec<_>>();
