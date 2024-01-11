@@ -100,7 +100,7 @@ pub fn call_args() -> CallCanisterArgs {
 }
 type CallCanisterResponse = SnapshotValue;
 async fn call_target_method_to_target_canister(
-    target: Principal,
+    target: candid::Principal,
     call_args: CallCanisterArgs,
 ) -> SnapshotValue {
     let px = _get_target_proxy(target).await;

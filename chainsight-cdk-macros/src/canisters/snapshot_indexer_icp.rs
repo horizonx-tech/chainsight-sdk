@@ -64,6 +64,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerICPConfig {
         common: CommonConfig { canister_name },
         method_identifier: method_identifier_str,
+        is_target_component,
         lens_parameter,
     } = config;
 
@@ -137,10 +138,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         )
     };
 
-    let quote_to_call_target = generate_quote_to_call_target(
-        true, // TODO: set by config (target is component or not)
-        method_ident.clone(),
-    );
+    let quote_to_call_target =
+        generate_quote_to_call_target(is_target_component, method_ident.clone());
 
     let quote_to_upgradable = {
         let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
@@ -262,7 +261,7 @@ fn generate_quote_to_call_target(
     };
 
     quote! {
-        async fn call_target_method_to_target_canister(target: Principal, call_args: CallCanisterArgs) -> SnapshotValue {
+        async fn call_target_method_to_target_canister(target: candid::Principal, call_args: CallCanisterArgs) -> SnapshotValue {
             #logic
         }
     }
@@ -283,6 +282,7 @@ mod test {
             },
             method_identifier:
                 "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })".to_string(),
+            is_target_component: true,
             lens_parameter: None,
         }
     }
