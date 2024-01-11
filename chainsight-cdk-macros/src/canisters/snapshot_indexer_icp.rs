@@ -251,7 +251,7 @@ fn generate_quote_to_call_target(
         }
     } else {
         quote! {
-            let out: CallResult<(SnapshotValue,)> = ic_cdk::api::call::call(
+            let out: ic_cdk::api::call::CallResult<(SnapshotValue,)> = ic_cdk::api::call::call(
                 target,
                 #method_identifier,
                 call_args

@@ -102,7 +102,7 @@ async fn call_target_method_to_target_canister(
     target: candid::Principal,
     call_args: CallCanisterArgs,
 ) -> SnapshotValue {
-    let out: CallResult<(SnapshotValue,)> =
+    let out: ic_cdk::api::call::CallResult<(SnapshotValue,)> =
         ic_cdk::api::call::call(target, "icrc1_total_supply", call_args).await;
     out.expect("failed to call").0
 }
