@@ -322,4 +322,25 @@ mod test {
             formatted
         );
     }
+
+    #[test]
+    fn test_snapshot_target_is_not_component() {
+        let config = SnapshotIndexerICPConfig {
+            common: CommonConfig {
+                canister_name: "sample_snapshot_indexer_icp".to_string(),
+            },
+            method_identifier: "icrc1_total_supply : () -> (nat)".to_string(),
+            is_target_component: false,
+            lens_parameter: None,
+        };
+
+        let generated = snapshot_indexer_icp(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_display_snapshot!(
+            "snapshot__snapshot_indexer_icp__target_is_not_component",
+            formatted
+        );
+    }
 }
