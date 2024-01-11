@@ -90,7 +90,7 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .reply(input)
         .await
 }
-snapshot_indexer_icp_source!("proxy_get_last_snapshot", "get_lens_targets");
+snapshot_indexer_icp_source!("get_last_snapshot", "get_lens_targets");
 manage_single_state!("lens_targets", Vec<String>, false);
 type CallCanisterArgs = sample_snapshot_indexer_icp::LensArgs;
 pub fn call_args() -> CallCanisterArgs {
@@ -100,6 +100,22 @@ pub fn call_args() -> CallCanisterArgs {
     }
 }
 type CallCanisterResponse = SnapshotValue;
+async fn call_target_method_to_target_canister(
+    target: Principal,
+    call_args: CallCanisterArgs,
+) -> SnapshotValue {
+    let px = _get_target_proxy(target).await;
+    let call_result = CallProvider::new()
+        .call(
+            Message::new::<CallCanisterArgs>(call_args, px.clone(), "proxy_get_last_snapshot")
+                .expect("failed to create message"),
+        )
+        .await
+        .expect("failed to call");
+    call_result
+        .reply::<CallCanisterResponse>()
+        .expect("failed to get reply")
+}
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
@@ -109,17 +125,7 @@ async fn index() {
     let current_ts_sec = ic_cdk::api::time() / 1000000;
     let target_canister =
         candid::Principal::from_text(get_target_canister()).expect("invalid principal");
-    let px = _get_target_proxy(target_canister).await;
-    let call_result = CallProvider::new()
-        .call(
-            Message::new::<CallCanisterArgs>(call_args(), px.clone(), "proxy_get_last_snapshot")
-                .expect("failed to create message"),
-        )
-        .await
-        .expect("failed to call");
-    let value = call_result
-        .reply::<CallCanisterResponse>()
-        .expect("failed to get reply");
+    let value = call_target_method_to_target_canister(target_canister, call_args()).await;
     let datum = Snapshot {
         value: value.clone(),
         timestamp: current_ts_sec,
