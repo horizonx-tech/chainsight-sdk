@@ -15,7 +15,7 @@ did_export!("sample_snapshot_indexer_icp");
 init_in!();
 chainsight_common!();
 manage_single_state!("target_canister", String, false);
-setup_func ! ({ target_canister : String , lens_targets : Vec < String > });
+setup_func ! ({ target_canister : String , });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 1, true);
 timer_task_func!("set_task", "index");
@@ -90,31 +90,21 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .reply(input)
         .await
 }
-snapshot_indexer_icp_source!("get_last_snapshot", "get_lens_targets");
-manage_single_state!("lens_targets", Vec<String>, false);
-type CallCanisterArgs = sample_snapshot_indexer_icp::LensArgs;
+snapshot_indexer_icp_source!("icrc1_total_supply");
+type CallCanisterArgs = sample_snapshot_indexer_icp::CallCanisterArgs;
+#[ic_cdk::query]
+#[candid::candid_method(query)]
 pub fn call_args() -> CallCanisterArgs {
-    sample_snapshot_indexer_icp::LensArgs {
-        targets: get_lens_targets(),
-        args: sample_snapshot_indexer_icp::call_args(),
-    }
+    sample_snapshot_indexer_icp::call_args()
 }
 type CallCanisterResponse = SnapshotValue;
 async fn call_target_method_to_target_canister(
     target: candid::Principal,
     call_args: CallCanisterArgs,
 ) -> SnapshotValue {
-    let px = _get_target_proxy(target).await;
-    let call_result = CallProvider::new()
-        .call(
-            Message::new::<CallCanisterArgs>(call_args, px.clone(), "proxy_get_last_snapshot")
-                .expect("failed to create message"),
-        )
-        .await
-        .expect("failed to call");
-    call_result
-        .reply::<CallCanisterResponse>()
-        .expect("failed to get reply")
+    let out: ic_cdk::api::call::CallResult<(SnapshotValue,)> =
+        ic_cdk::api::call::call(target, "icrc1_total_supply", call_args).await;
+    out.expect("failed to call").0
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
@@ -147,7 +137,6 @@ pub struct UpgradeStableState {
     pub initialized: bool,
     pub env: chainsight_cdk::core::Env,
     pub target_canister: String,
-    lens_targets: Vec<String>,
     pub indexing_interval: u32,
 }
 #[ic_cdk::pre_upgrade]
@@ -158,7 +147,6 @@ fn pre_upgrade() {
         initialized: is_initialized(),
         env: get_env(),
         target_canister: get_target_canister(),
-        lens_targets: get_lens_targets(),
         indexing_interval: get_indexing_interval(),
     };
     let state_bytes = state.to_cbor();
@@ -182,7 +170,7 @@ fn post_upgrade() {
     set_initialized(state.initialized);
     set_proxy(state.proxy);
     set_env(state.env);
-    setup(state.target_canister, state.lens_targets).expect("Failed to `setup` in post_upgrade");
+    setup(state.target_canister).expect("Failed to `setup` in post_upgrade");
     set_indexing_interval(state.indexing_interval);
     ic_cdk::println!("finish: post_upgrade");
 }

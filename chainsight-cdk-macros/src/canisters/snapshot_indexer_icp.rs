@@ -64,6 +64,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let SnapshotIndexerICPConfig {
         common: CommonConfig { canister_name },
         method_identifier: method_identifier_str,
+        is_target_component,
         lens_parameter,
     } = config;
 
@@ -71,7 +72,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
     let method_identifier =
         CanisterMethodIdentifier::new(&method_identifier_str).expect("invalid method identifier");
-    let method_ident = "proxy_".to_string() + &method_identifier.identifier;
+    let method_ident = method_identifier.identifier.to_string();
 
     let response_ty_def_ident = {
         let types_mod_ident = format_ident!("types");
@@ -137,6 +138,9 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         )
     };
 
+    let quote_to_call_target =
+        generate_quote_to_call_target(is_target_component, method_ident.clone());
+
     let quote_to_upgradable = {
         let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
             if lens_parameter.is_some() {
@@ -199,6 +203,8 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         #call_args_ident
         type CallCanisterResponse = SnapshotValue;
 
+        #quote_to_call_target
+
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         async fn index() {
@@ -208,17 +214,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
             let current_ts_sec = ic_cdk::api::time() / 1000000;
             let target_canister = candid::Principal::from_text(get_target_canister()).expect("invalid principal");
-            let px = _get_target_proxy(target_canister).await;
-            let call_result = CallProvider::new()
-                .call(
-                    Message::new::<CallCanisterArgs>(
-                        call_args(),
-                        px.clone(),
-                        #method_ident
-                    ).expect("failed to create message"),
-                ).await.expect("failed to call");
-
-            let value = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
+            let value = call_target_method_to_target_canister(target_canister, call_args()).await;
             let datum = Snapshot {
                 value: value.clone(),
                 timestamp: current_ts_sec,
@@ -229,6 +225,45 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         }
 
         #quote_to_upgradable
+    }
+}
+
+// Generate token stream for `call_target_method_to_target_canister`
+fn generate_quote_to_call_target(
+    is_target_component: bool,
+    method_identifier: String,
+) -> proc_macro2::TokenStream {
+    let logic = if is_target_component {
+        // NOTE: Call via `proxy_` function when target is in Chainsight
+        let proxy_method_identifier = "proxy_".to_string() + &method_identifier;
+        quote! {
+            let px = _get_target_proxy(target).await;
+            let call_result = CallProvider::new()
+                .call(
+                    Message::new::<CallCanisterArgs>(
+                        call_args,
+                        px.clone(),
+                        #proxy_method_identifier
+                    ).expect("failed to create message"),
+                ).await.expect("failed to call");
+
+            call_result.reply::<CallCanisterResponse>().expect("failed to get reply")
+        }
+    } else {
+        quote! {
+            let out: ic_cdk::api::call::CallResult<(SnapshotValue,)> = ic_cdk::api::call::call(
+                target,
+                #method_identifier,
+                call_args
+            ).await;
+            out.expect("failed to call").0
+        }
+    };
+
+    quote! {
+        async fn call_target_method_to_target_canister(target: candid::Principal, call_args: CallCanisterArgs) -> SnapshotValue {
+            #logic
+        }
     }
 }
 
@@ -247,6 +282,7 @@ mod test {
             },
             method_identifier:
                 "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })".to_string(),
+            is_target_component: true,
             lens_parameter: None,
         }
     }
@@ -283,6 +319,27 @@ mod test {
             .expect("rustfmt failed");
         assert_display_snapshot!(
             "snapshot__snapshot_indexer_icp__with_lens_with_args",
+            formatted
+        );
+    }
+
+    #[test]
+    fn test_snapshot_target_is_not_component() {
+        let config = SnapshotIndexerICPConfig {
+            common: CommonConfig {
+                canister_name: "sample_snapshot_indexer_icp".to_string(),
+            },
+            method_identifier: "icrc1_total_supply : () -> (nat)".to_string(),
+            is_target_component: false,
+            lens_parameter: None,
+        };
+
+        let generated = snapshot_indexer_icp(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_display_snapshot!(
+            "snapshot__snapshot_indexer_icp__target_is_not_component",
             formatted
         );
     }

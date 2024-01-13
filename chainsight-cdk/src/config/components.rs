@@ -128,6 +128,7 @@ impl Default for SnapshotIndexerHTTPSConfigQueries {
 pub struct SnapshotIndexerICPConfig {
     pub common: CommonConfig,
     pub method_identifier: String,
+    pub is_target_component: bool,
     pub lens_parameter: Option<LensParameter>,
 }
 
