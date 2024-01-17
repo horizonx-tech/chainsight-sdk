@@ -448,7 +448,7 @@ fn to_candid_value(
         },
         ParamType::Int(size) => match size {
             1..=128 => quote! { #accessor },
-            129..=256 => quote! {  #accessor.to_string() },
+            129..=256 => quote! {  #accessor.0.to_string() }, // NOTE: Support for I256 in ic-web3-rs
             _ => quote! { #accessor.to_string()},
         },
         ParamType::Address => quote! {  #accessor.to_string() },
@@ -936,7 +936,7 @@ mod test {
         );
         assert_eq!(
             to_candid_value(&ParamType::Int(256), accessor.clone()).to_string(),
-            quote! { res.0.to_string() }.to_string()
+            quote! { res.0 . 0 .to_string() }.to_string()
         );
         assert_eq!(
             to_candid_value(&ParamType::Address, accessor.clone()).to_string(),
