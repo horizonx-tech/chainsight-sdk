@@ -14,6 +14,7 @@ hex.workspace = true
 ic-cdk.workspace = true
 ic-web3-rs.workspace = true
 ic-solidity-bindgen.workspace = true
+regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 syn.workspace = true
@@ -25,7 +26,6 @@ ic-stable-memory = "0.4.4"
 ic-stable-structures = "0.5.5"
 lazy_static = "1.4.0"
 primitive-types = "0.12.1"
-regex = "1.8.4"
 Inflector = "0.11.4"
 
 [dev-dependencies]

@@ -9,6 +9,7 @@ use chainsight_cdk::{
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
+use regex::Regex;
 use syn::parse_macro_input;
 
 use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
@@ -304,10 +305,30 @@ fn method_call(
 }
 
 fn convert_chaining_str_to_token(base: &str) -> proc_macro2::TokenStream {
+    let re_one_item_in_vec = Regex::new(r"^([^\[]+)\[(\d+)\]$").unwrap();
+
     let field_tokens = base
         .split(".")
-        .map(|p| format_ident!("{}", p))
-        .collect::<Vec<Ident>>();
+        .map(|p| {
+            let res: Box<dyn quote::ToTokens> = if p.parse::<i64>().is_ok() {
+                // only number
+                Box::new(proc_macro2::Literal::i64_unsuffixed(
+                    p.parse::<i64>().unwrap(),
+                ))
+            } else if let Some(captures) = re_one_item_in_vec.captures(p) {
+                // one item in vec
+                let field = format_ident!("{}", captures.get(1).unwrap().as_str());
+                let index = proc_macro2::Literal::u64_unsuffixed(
+                    captures.get(2).unwrap().as_str().parse::<u64>().unwrap(),
+                );
+                Box::new(quote! { #field[#index] })
+                // only words
+            } else {
+                Box::new(format_ident!("{}", p))
+            };
+            res
+        })
+        .collect::<Vec<Box<dyn quote::ToTokens>>>();
 
     quote! { #(#field_tokens).* }
 }
@@ -391,21 +412,14 @@ mod test {
             convert_chaining_str_to_token("datum.value.dai.usd").to_string(),
             "datum . value . dai . usd"
         );
-        // TODO: support tuple
-        // assert_eq!(
-        //     convert_chaining_str_to_token("datum.value.0").to_string(),
-        //     "datum . value . 0"
-        // );
-        // TODO: support vec
-        // assert_eq!(
-        //     convert_chaining_str_to_token("chart.result[0].meta.regular_market_price").to_string(),
-        //     "chart . result[0] . meta . regular_market_price"
-        // );
-        // assert_eq!(
-        //     convert_chaining_str_to_token("chart.result.get(0).unwrap().meta.regular_market_price")
-        //         .to_string(),
-        //     "chart . result . get(0) . unwrap() . meta . regular_market_price"
-        // );
+        assert_eq!(
+            convert_chaining_str_to_token("datum.value.0").to_string(),
+            "datum . value . 0"
+        );
+        assert_eq!(
+            convert_chaining_str_to_token("chart.result[0].meta.regular_market_price").to_string(),
+            "chart . result [0] . meta . regular_market_price"
+        );
     }
 
     fn config() -> RelayerConfig {
