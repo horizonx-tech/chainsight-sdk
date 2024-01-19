@@ -63,6 +63,8 @@ async fn index() {
     if !filter(&datum) {
         return;
     }
+    let datum = datum;
+    ic_cdk::println!("val extracted from response = {:?}", datum.clone());
     let w3_ctx_param = get_web3_ctx_param();
     let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
         w3_ctx_param.url,

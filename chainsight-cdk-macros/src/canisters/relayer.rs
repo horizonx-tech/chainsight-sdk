@@ -420,4 +420,20 @@ mod test {
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer__with_lens_with_args", formatted);
     }
+
+    #[test]
+    fn test_snapshot_with_extracted_val_from_response() {
+        let mut config = config();
+        config.method_identifier =
+            "get_last_snapshot : () -> (record { value : text; timestamp : nat64; })".to_string();
+        config.extracted_field = Some("value".to_string());
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__relayer__with_extracted_val_from_response",
+            formatted
+        );
+    }
 }
