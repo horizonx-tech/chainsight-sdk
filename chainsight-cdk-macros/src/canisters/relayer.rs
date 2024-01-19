@@ -9,6 +9,7 @@ use chainsight_cdk::{
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
+use regex::Regex;
 use syn::parse_macro_input;
 
 use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
@@ -48,6 +49,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
         method_identifier,
+        extracted_field,
         abi_file_path,
         lens_parameter,
         method_name,
@@ -63,6 +65,18 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         inter_canister_call_args_ident(canister_name_ident.clone(), lens_parameter.clone());
     let source_ident = source_ident(&source_method_name, lens_parameter.clone());
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
+
+    let extracted_datum_ident = if let Some(chaining) = extracted_field {
+        let chaining = if let Some(stripped) = chaining.strip_prefix('.') {
+            stripped.to_string()
+        } else {
+            chaining
+        };
+        convert_chaining_str_to_token(&("datum.".to_string() + &chaining))
+    } else {
+        quote! { datum }
+    };
+
     let contract_call = ContractCall::new(ContractFunction::new(
         abi_file_path.clone(),
         method_name.clone(),
@@ -97,14 +111,15 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                     ).expect("failed to create message")
                 )
                 .await.expect("failed to call by CallProvider");
+
             let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
-
-
             ic_cdk::println!("response from canister = {:?}", datum.clone());
-
             if !filter(&datum) {
                 return;
             }
+            let datum = #extracted_datum_ident;
+            ic_cdk::println!("val extracted from response = {:?}", datum.clone());
+
             #call_option_ident
             #method_call_ident
         }
@@ -289,6 +304,35 @@ fn method_call(
     }
 }
 
+fn convert_chaining_str_to_token(base: &str) -> proc_macro2::TokenStream {
+    let re_one_item_in_vec = Regex::new(r"^([^\[]+)\[(\d+)\]$").unwrap();
+
+    let field_tokens = base
+        .split('.')
+        .map(|p| {
+            let res: Box<dyn quote::ToTokens> = if p.parse::<i64>().is_ok() {
+                // only number
+                Box::new(proc_macro2::Literal::i64_unsuffixed(
+                    p.parse::<i64>().unwrap(),
+                ))
+            } else if let Some(captures) = re_one_item_in_vec.captures(p) {
+                // one item in vec
+                let field = format_ident!("{}", captures.get(1).unwrap().as_str());
+                let index = proc_macro2::Literal::u64_unsuffixed(
+                    captures.get(2).unwrap().as_str().parse::<u64>().unwrap(),
+                );
+                Box::new(quote! { #field[#index] })
+                // only words
+            } else {
+                Box::new(format_ident!("{}", p))
+            };
+            res
+        })
+        .collect::<Vec<Box<dyn quote::ToTokens>>>();
+
+    quote! { #(#field_tokens).* }
+}
+
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -361,16 +405,34 @@ mod test {
         ));
     }
 
+    #[test]
+    fn test_convert_chaining_str_to_token() {
+        assert_eq!(convert_chaining_str_to_token("datum").to_string(), "datum");
+        assert_eq!(
+            convert_chaining_str_to_token("datum.value.dai.usd").to_string(),
+            "datum . value . dai . usd"
+        );
+        assert_eq!(
+            convert_chaining_str_to_token("datum.value.0").to_string(),
+            "datum . value . 0"
+        );
+        assert_eq!(
+            convert_chaining_str_to_token("chart.result[0].meta.regular_market_price").to_string(),
+            "chart . result [0] . meta . regular_market_price"
+        );
+    }
+
     fn config() -> RelayerConfig {
         RelayerConfig {
             common: CommonConfig {
                 canister_name: "relayer".to_string(),
             },
-            destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
+            extracted_field: None,
+            destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
-            lens_parameter: None,
             method_name: "update_state".to_string(),
+            lens_parameter: None,
         }
     }
 
@@ -403,5 +465,21 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__relayer__with_lens_with_args", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_with_extracted_val_from_response() {
+        let mut config = config();
+        config.method_identifier =
+            "get_last_snapshot : () -> (record { value : text; timestamp : nat64; })".to_string();
+        config.extracted_field = Some("value".to_string());
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__relayer__with_extracted_val_from_response",
+            formatted
+        );
     }
 }
