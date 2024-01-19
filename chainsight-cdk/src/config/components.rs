@@ -135,10 +135,15 @@ pub struct SnapshotIndexerICPConfig {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct RelayerConfig {
     pub common: CommonConfig,
-    pub destination: String,
+    /// Method identifier for data source
     pub method_identifier: String,
+    /// Address for destination
+    pub destination: String,
+    /// ABI for destination
     pub abi_file_path: String,
+    /// Function name to call for destination
     pub method_name: String,
+    /// Optional: Parameters for using Lens as data source
     pub lens_parameter: Option<LensParameter>,
 }
 
