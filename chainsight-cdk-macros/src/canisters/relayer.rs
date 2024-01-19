@@ -67,8 +67,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
 
     let extracted_datum_ident = if let Some(chaining) = extracted_field {
-        let chaining = if chaining.starts_with(".") {
-            chaining[1..].to_string()
+        let chaining = if let Some(stripped) = chaining.strip_prefix('.') {
+            stripped.to_string()
         } else {
             chaining
         };
@@ -308,7 +308,7 @@ fn convert_chaining_str_to_token(base: &str) -> proc_macro2::TokenStream {
     let re_one_item_in_vec = Regex::new(r"^([^\[]+)\[(\d+)\]$").unwrap();
 
     let field_tokens = base
-        .split(".")
+        .split('.')
         .map(|p| {
             let res: Box<dyn quote::ToTokens> = if p.parse::<i64>().is_ok() {
                 // only number
