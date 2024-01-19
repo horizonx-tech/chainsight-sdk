@@ -71,8 +71,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         } else {
             chaining
         };
-        let extracted_field_func_ident = format_ident!("{}", chaining);
-        quote! { datum.#extracted_field_func_ident }
+        convert_chaining_str_to_token(&("datum.".to_string() + &chaining))
     } else {
         quote! { datum }
     };
@@ -304,6 +303,15 @@ fn method_call(
     }
 }
 
+fn convert_chaining_str_to_token(base: &str) -> proc_macro2::TokenStream {
+    let field_tokens = base
+        .split(".")
+        .map(|p| format_ident!("{}", p))
+        .collect::<Vec<Ident>>();
+
+    quote! { #(#field_tokens).* }
+}
+
 fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -374,6 +382,30 @@ mod test {
         assert!(!is_ethabi_encodable_type(
             &TypeInner::Var("Snapshot".to_string()).into()
         ));
+    }
+
+    #[test]
+    fn test_convert_chaining_str_to_token() {
+        assert_eq!(convert_chaining_str_to_token("datum").to_string(), "datum");
+        assert_eq!(
+            convert_chaining_str_to_token("datum.value.dai.usd").to_string(),
+            "datum . value . dai . usd"
+        );
+        // TODO: support tuple
+        // assert_eq!(
+        //     convert_chaining_str_to_token("datum.value.0").to_string(),
+        //     "datum . value . 0"
+        // );
+        // TODO: support vec
+        // assert_eq!(
+        //     convert_chaining_str_to_token("chart.result[0].meta.regular_market_price").to_string(),
+        //     "chart . result[0] . meta . regular_market_price"
+        // );
+        // assert_eq!(
+        //     convert_chaining_str_to_token("chart.result.get(0).unwrap().meta.regular_market_price")
+        //         .to_string(),
+        //     "chart . result . get(0) . unwrap() . meta . regular_market_price"
+        // );
     }
 
     fn config() -> RelayerConfig {
