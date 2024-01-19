@@ -48,6 +48,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
         method_identifier,
+        extracted_field,
         abi_file_path,
         lens_parameter,
         method_name,
@@ -63,6 +64,19 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         inter_canister_call_args_ident(canister_name_ident.clone(), lens_parameter.clone());
     let source_ident = source_ident(&source_method_name, lens_parameter.clone());
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
+
+    let extracted_datum_ident = if let Some(chaining) = extracted_field {
+        let chaining = if chaining.starts_with(".") {
+            chaining[1..].to_string()
+        } else {
+            chaining
+        };
+        let extracted_field_func_ident = format_ident!("{}", chaining);
+        quote! { datum.#extracted_field_func_ident }
+    } else {
+        quote! { datum }
+    };
+
     let contract_call = ContractCall::new(ContractFunction::new(
         abi_file_path.clone(),
         method_name.clone(),
@@ -97,14 +111,15 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
                     ).expect("failed to create message")
                 )
                 .await.expect("failed to call by CallProvider");
+
             let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
-
-
             ic_cdk::println!("response from canister = {:?}", datum.clone());
-
             if !filter(&datum) {
                 return;
             }
+            let datum = #extracted_datum_ident;
+            ic_cdk::println!("val extracted from response = {:?}", datum.clone());
+
             #call_option_ident
             #method_call_ident
         }
@@ -366,11 +381,12 @@ mod test {
             common: CommonConfig {
                 canister_name: "relayer".to_string(),
             },
-            destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
+            extracted_field: None,
+            destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
-            lens_parameter: None,
             method_name: "update_state".to_string(),
+            lens_parameter: None,
         }
     }
 

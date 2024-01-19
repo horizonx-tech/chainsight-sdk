@@ -137,6 +137,8 @@ pub struct RelayerConfig {
     pub common: CommonConfig,
     /// Method identifier for data source
     pub method_identifier: String,
+    /// Optional: Field extracted from response from data source, set by chaining based on the base object
+    pub extracted_field: Option<String>,
     /// Address for destination
     pub destination: String,
     /// ABI for destination
