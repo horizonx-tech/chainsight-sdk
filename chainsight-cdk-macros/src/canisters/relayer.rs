@@ -2,7 +2,9 @@ use std::ops::Deref;
 
 use candid::types::{internal::is_primitive, Type, TypeInner};
 use chainsight_cdk::{
-    config::components::{LensParameter, RelayerConfig, LENS_FUNCTION_ARGS_TYPE},
+    config::components::{
+        LensParameter, RelayerConfig, RelayerConversionParameter, LENS_FUNCTION_ARGS_TYPE,
+    },
     convert::candid::{extract_elements, get_candid_type_from_str},
     web3::ContractFunction,
 };
@@ -49,11 +51,9 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
         method_identifier,
-        extracted_field,
-        destination_type_to_convert,
-        exponent_of_power10,
         abi_file_path,
         lens_parameter,
+        conversion_parameter,
         method_name,
         ..
     } = config;
@@ -68,29 +68,41 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let source_ident = source_ident(&source_method_name, lens_parameter.clone());
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
 
-    let extracted_datum_ident = if let Some(chaining) = extracted_field {
-        let chaining = if let Some(stripped) = chaining.strip_prefix('.') {
-            stripped.to_string()
-        } else {
-            chaining
-        };
-        convert_chaining_str_to_token(&("datum.".to_string() + &chaining))
-    } else {
-        quote! { datum }
-    };
+    let (extracted_datum_ident, converted_datum_ident) =
+        if let Some(conversion_parameter) = conversion_parameter {
+            let RelayerConversionParameter {
+                extracted_field,
+                destination_type_to_convert,
+                exponent_of_power10,
+            } = conversion_parameter;
 
-    let converted_datum_ident = if let Some(dst_type_str) = destination_type_to_convert {
-        let dst_ty = format_ident!("{}", dst_type_str);
-        let exp_pow10 = exponent_of_power10.unwrap_or(0);
-        quote! { {
-            let converted: #dst_ty = datum.convert(#exp_pow10);
-            converted
-        } }
-    } else if let Some(exp_pow10) = exponent_of_power10 {
-        quote! { datum.scale(#exp_pow10) }
-    } else {
-        quote! { datum }
-    };
+            let extracted_datum_ident = if let Some(chaining) = extracted_field {
+                let chaining = if let Some(stripped) = chaining.strip_prefix('.') {
+                    stripped.to_string()
+                } else {
+                    chaining
+                };
+                convert_chaining_str_to_token(&("datum.".to_string() + &chaining))
+            } else {
+                quote! { datum }
+            };
+            let converted_datum_ident = if let Some(dst_type_str) = destination_type_to_convert {
+                let dst_ty = format_ident!("{}", dst_type_str);
+                let exp_pow10 = exponent_of_power10.unwrap_or(0);
+                quote! { {
+                    let converted: #dst_ty = datum.convert(#exp_pow10);
+                    converted
+                } }
+            } else if let Some(exp_pow10) = exponent_of_power10 {
+                quote! { datum.scale(#exp_pow10) }
+            } else {
+                quote! { datum }
+            };
+
+            (extracted_datum_ident, converted_datum_ident)
+        } else {
+            (quote! { datum }, quote! { datum })
+        };
 
     let contract_call = ContractCall::new(ContractFunction::new(
         abi_file_path.clone(),
@@ -404,7 +416,7 @@ fn is_ethabi_encodable_type(canister_response_type: &Type) -> bool {
 
 #[cfg(test)]
 mod test {
-    use chainsight_cdk::config::components::CommonConfig;
+    use chainsight_cdk::config::components::{CommonConfig, RelayerConversionParameter};
     use insta::assert_snapshot;
     use rust_format::{Formatter, RustFmt};
 
@@ -446,12 +458,10 @@ mod test {
                 canister_name: "relayer".to_string(),
             },
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
-            extracted_field: None,
-            destination_type_to_convert: None,
-            exponent_of_power10: None,
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             method_name: "update_state".to_string(),
+            conversion_parameter: None,
             lens_parameter: None,
         }
     }
@@ -492,7 +502,12 @@ mod test {
         let mut config = config();
         config.method_identifier =
             "get_last_snapshot : () -> (record { value : text; timestamp : nat64; })".to_string();
-        config.extracted_field = Some("value".to_string());
+        config.conversion_parameter = Some(RelayerConversionParameter {
+            extracted_field: Some("value".to_string()),
+            destination_type_to_convert: None,
+            exponent_of_power10: None,
+        });
+
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
@@ -506,7 +521,12 @@ mod test {
     #[test]
     fn test_snapshot_with_scaled_val_from_extracted() {
         let mut config = config();
-        config.exponent_of_power10 = Some(3);
+        config.conversion_parameter = Some(RelayerConversionParameter {
+            extracted_field: None,
+            destination_type_to_convert: None,
+            exponent_of_power10: Some(3),
+        });
+
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
@@ -520,8 +540,12 @@ mod test {
     #[test]
     fn test_snapshot_with_converted_val_from_extracted() {
         let mut config = config();
-        config.destination_type_to_convert = Some("U256".to_string());
-        config.exponent_of_power10 = Some(3);
+        config.conversion_parameter = Some(RelayerConversionParameter {
+            extracted_field: None,
+            destination_type_to_convert: Some("U256".to_string()),
+            exponent_of_power10: Some(3),
+        });
+
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
