@@ -2,7 +2,7 @@
 source: chainsight-cdk-macros/src/canisters/relayer.rs
 expression: formatted
 ---
-use chainsight_cdk::convert::scalar::Convertible;
+use chainsight_cdk::convert::scalar::{Convertible, Scalable};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{
@@ -61,7 +61,7 @@ async fn index() {
     let datum = datum;
     ic_cdk::println!("val extracted from response = {:?}", datum.clone());
     let datum = {
-        let converted: U256 = datum.convert(0);
+        let converted: U256 = datum.convert(3u32);
         converted
     };
     ic_cdk::println!("val converted from extracted = {:?}", datum.clone());

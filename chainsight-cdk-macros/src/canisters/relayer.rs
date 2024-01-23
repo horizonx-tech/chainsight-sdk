@@ -51,6 +51,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         method_identifier,
         extracted_field,
         destination_type_to_convert,
+        exponent_of_power10,
         abi_file_path,
         lens_parameter,
         method_name,
@@ -80,10 +81,13 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
     let converted_datum_ident = if let Some(dst_type_str) = destination_type_to_convert {
         let dst_ty = format_ident!("{}", dst_type_str);
+        let exp_pow10 = exponent_of_power10.unwrap_or(0);
         quote! { {
-            let converted: #dst_ty = datum.convert(0);
+            let converted: #dst_ty = datum.convert(#exp_pow10);
             converted
         } }
+    } else if let Some(exp_pow10) = exponent_of_power10 {
+        quote! { datum.scale(#exp_pow10) }
     } else {
         quote! { datum }
     };
@@ -335,8 +339,8 @@ fn convert_chaining_str_to_token(base: &str) -> proc_macro2::TokenStream {
                     captures.get(2).unwrap().as_str().parse::<u64>().unwrap(),
                 );
                 Box::new(quote! { #field[#index] })
-                // only words
             } else {
+                // only words
                 Box::new(format_ident!("{}", p))
             };
             res
@@ -365,7 +369,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
-        use chainsight_cdk::convert::scalar::Convertible;
+        use chainsight_cdk::convert::scalar::{Convertible, Scalable};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
@@ -444,6 +448,7 @@ mod test {
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             extracted_field: None,
             destination_type_to_convert: None,
+            exponent_of_power10: None,
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             method_name: "update_state".to_string(),
@@ -499,9 +504,24 @@ mod test {
     }
 
     #[test]
+    fn test_snapshot_with_scaled_val_from_extracted() {
+        let mut config = config();
+        config.exponent_of_power10 = Some(3);
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__relayer__with_scaled_val_from_extracted",
+            formatted
+        );
+    }
+
+    #[test]
     fn test_snapshot_with_converted_val_from_extracted() {
         let mut config = config();
         config.destination_type_to_convert = Some("U256".to_string());
+        config.exponent_of_power10 = Some(3);
         let generated = relayer_canister(config);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())

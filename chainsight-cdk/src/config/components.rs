@@ -141,6 +141,8 @@ pub struct RelayerConfig {
     pub extracted_field: Option<String>,
     /// Optional: Set the destination type
     pub destination_type_to_convert: Option<String>,
+    /// Optional: Set exponent for power10, this is N when value * 10^N
+    pub exponent_of_power10: Option<u32>,
     /// Address for destination
     pub destination: String,
     /// ABI for destination
