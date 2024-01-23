@@ -3,16 +3,16 @@ use ic_web3_rs::types::U256;
 pub trait Convertible<To> {
     fn convert(
         &self,
-        digit_to_scale: u32, // only support carry
+        exp_pow10: u32, // only support carry
     ) -> To;
 }
 
 macro_rules! convertible_num_for_string {
     ($uint_ty: ident) => {
         impl Convertible<$uint_ty> for String {
-            fn convert(&self, digit_to_scale: u32) -> $uint_ty {
+            fn convert(&self, exp_pow10: u32) -> $uint_ty {
                 let casted = self.parse::<$uint_ty>().unwrap();
-                let scaled = casted * (10 as $uint_ty).pow(digit_to_scale);
+                let scaled = casted * (10 as $uint_ty).pow(exp_pow10);
                 scaled
             }
         }
@@ -21,9 +21,9 @@ macro_rules! convertible_num_for_string {
 macro_rules! convertible_num_for_str {
     ($uint_ty: ident) => {
         impl Convertible<$uint_ty> for &str {
-            fn convert(&self, digit_to_scale: u32) -> $uint_ty {
+            fn convert(&self, exp_pow10: u32) -> $uint_ty {
                 let casted = self.parse::<$uint_ty>().unwrap();
-                let scaled = casted * (10 as $uint_ty).pow(digit_to_scale);
+                let scaled = casted * (10 as $uint_ty).pow(exp_pow10);
                 scaled
             }
         }
@@ -42,8 +42,8 @@ convertible_num_for_string!(i16);
 convertible_num_for_string!(i8);
 
 impl Convertible<U256> for String {
-    fn convert(&self, digit_to_scale: u32) -> U256 {
-        U256::from_dec_str(self).unwrap() * U256::from(10u128.pow(digit_to_scale))
+    fn convert(&self, exp_pow10: u32) -> U256 {
+        U256::from_dec_str(self).unwrap() * U256::from(10u128.pow(exp_pow10))
     }
 }
 
@@ -59,16 +59,16 @@ convertible_num_for_str!(i16);
 convertible_num_for_str!(i8);
 
 impl Convertible<U256> for &str {
-    fn convert(&self, digit_to_scale: u32) -> U256 {
-        U256::from_dec_str(self).unwrap() * U256::from(10u128.pow(digit_to_scale))
+    fn convert(&self, exp_pow10: u32) -> U256 {
+        U256::from_dec_str(self).unwrap() * U256::from(10u128.pow(exp_pow10))
     }
 }
 
 macro_rules! convertible_u256_for_num {
     ($uint_ty: ident) => {
         impl Convertible<U256> for $uint_ty {
-            fn convert(&self, digit_to_scale: u32) -> U256 {
-                let scaled: u128 = self.convert(digit_to_scale);
+            fn convert(&self, exp_pow10: u32) -> U256 {
+                let scaled: u128 = self.convert(exp_pow10);
                 U256::from(scaled)
             }
         }
@@ -78,8 +78,8 @@ macro_rules! convertible_u256_for_num {
 macro_rules! convertible_uint_for_int {
     ($int_ty: ident, $uint_ty: ident) => {
         impl Convertible<$uint_ty> for $int_ty {
-            fn convert(&self, digit_to_scale: u32) -> $uint_ty {
-                let scaled = (*self as i128) * (10u128.pow(digit_to_scale) as i128);
+            fn convert(&self, exp_pow10: u32) -> $uint_ty {
+                let scaled = (*self as i128) * (10u128.pow(exp_pow10) as i128);
                 scaled as $uint_ty
             }
         }
@@ -100,8 +100,8 @@ convertible_u256_for_num!(i8);
 macro_rules! convertible_num_for_float {
     ($int_ty: ident, $uint_ty: ident) => {
         impl Convertible<$uint_ty> for $int_ty {
-            fn convert(&self, digit_to_scale: u32) -> $uint_ty {
-                let scaled = (*self as f64) * (10u128.pow(digit_to_scale) as f64);
+            fn convert(&self, exp_pow10: u32) -> $uint_ty {
+                let scaled = (*self as f64) * (10u128.pow(exp_pow10) as f64);
                 scaled as $uint_ty
             }
         }
@@ -117,15 +117,15 @@ convertible_num_for_float!(f32, i128);
 convertible_u256_for_num!(f32);
 
 pub trait Scalable {
-    fn scale(&self, digit: u32) -> Self;
+    fn scale(&self, exp_pow10: u32) -> Self;
 }
 
 macro_rules! scale_num {
     ($scalar_ty: ident, $intermediate_ty: ident) => {
         impl Scalable for $scalar_ty {
-            fn scale(&self, digit_to_scale: u32) -> Self {
+            fn scale(&self, exp_pow10: u32) -> Self {
                 let scaled =
-                    *self as $intermediate_ty * (10u128.pow(digit_to_scale) as $intermediate_ty);
+                    *self as $intermediate_ty * (10u128.pow(exp_pow10) as $intermediate_ty);
                 scaled as $scalar_ty
             }
         }
@@ -262,14 +262,14 @@ mod tests {
         assert_eq!(val, U256::from(123000u128));
     }
 
-    fn assert_convertible_num<T>(num: T, digit: u32, expected: u128)
+    fn assert_convertible_num<T>(num: T, exp_pow10: u32, expected: u128)
     where
         T: Convertible<u128> + Convertible<U256>,
     {
         let expected_u256 = U256::from(expected);
 
-        let val_from_i128: u128 = num.convert(digit);
-        let val_from_u256: U256 = num.convert(digit);
+        let val_from_i128: u128 = num.convert(exp_pow10);
+        let val_from_u256: U256 = num.convert(exp_pow10);
 
         assert_eq!(val_from_i128, expected);
         assert_eq!(val_from_u256, expected_u256);
@@ -307,11 +307,11 @@ mod tests {
         assert_convertible_num::<f32>(123.0, 3, 123000);
     }
 
-    fn assert_scale<T>(num: T, digit: u32, expected: T)
+    fn assert_scale<T>(num: T, exp_pow10: u32, expected: T)
     where
         T: Scalable + std::fmt::Debug + PartialEq,
     {
-        let scaled = num.scale(digit);
+        let scaled = num.scale(exp_pow10);
         assert_eq!(scaled, expected);
     }
 
