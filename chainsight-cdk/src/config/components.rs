@@ -137,16 +137,26 @@ pub struct RelayerConfig {
     pub common: CommonConfig,
     /// Method identifier for data source
     pub method_identifier: String,
-    /// Optional: Field extracted from response from data source, set by chaining based on the base object
-    pub extracted_field: Option<String>,
     /// Address for destination
     pub destination: String,
     /// ABI for destination
     pub abi_file_path: String,
     /// Function name to call for destination
     pub method_name: String,
+    /// Optional: Parameters for conversion
+    pub conversion_parameter: Option<RelayerConversionParameter>,
     /// Optional: Parameters for using Lens as data source
     pub lens_parameter: Option<LensParameter>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct RelayerConversionParameter {
+    /// Optional: Field extracted from response from data source, set by chaining based on the base object
+    pub extracted_field: Option<String>,
+    /// Optional: Set the destination type
+    pub destination_type_to_convert: Option<String>,
+    /// Optional: Set exponent for power10, this is N when value * 10^N
+    pub exponent_of_power10: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]

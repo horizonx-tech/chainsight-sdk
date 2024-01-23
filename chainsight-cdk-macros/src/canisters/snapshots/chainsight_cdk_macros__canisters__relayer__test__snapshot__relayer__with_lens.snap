@@ -2,6 +2,7 @@
 source: chainsight-cdk-macros/src/canisters/relayer.rs
 expression: formatted
 ---
+use chainsight_cdk::convert::scalar::{Convertible, Scalable};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{
@@ -62,6 +63,8 @@ async fn index() {
     }
     let datum = datum;
     ic_cdk::println!("val extracted from response = {:?}", datum.clone());
+    let datum = datum;
+    ic_cdk::println!("val converted from extracted = {:?}", datum.clone());
     let w3_ctx_param = get_web3_ctx_param();
     let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
         w3_ctx_param.url,

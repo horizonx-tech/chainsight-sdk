@@ -60,7 +60,10 @@ async fn index() {
     }
     let datum = datum;
     ic_cdk::println!("val extracted from response = {:?}", datum.clone());
-    let datum = datum;
+    let datum = {
+        let converted: U256 = datum.convert(3u32);
+        converted
+    };
     ic_cdk::println!("val converted from extracted = {:?}", datum.clone());
     let w3_ctx_param = get_web3_ctx_param();
     let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
