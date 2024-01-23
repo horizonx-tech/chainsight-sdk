@@ -178,6 +178,34 @@ mod tests {
     }
 
     #[test]
+    fn test_convertible_string_with_scale() {
+        let s = "123".to_string();
+        let val: u128 = s.convert(3);
+        assert_eq!(val, 123000u128);
+        let val: u64 = s.convert(3);
+        assert_eq!(val, 123000u64);
+        let val: u32 = s.convert(2);
+        assert_eq!(val, 12300u32);
+        let val: u16 = s.convert(1);
+        assert_eq!(val, 1230u16);
+        let val: u8 = s.convert(0);
+        assert_eq!(val, 123u8);
+        let val: i128 = s.convert(3);
+        assert_eq!(val, 123000i128);
+        let val: i64 = s.convert(3);
+        assert_eq!(val, 123000i64);
+        let val: i32 = s.convert(2);
+        assert_eq!(val, 12300i32);
+        let val: i16 = s.convert(1);
+        assert_eq!(val, 1230i16);
+        let val: i8 = s.convert(0);
+        assert_eq!(val, 123i8);
+
+        let val: U256 = s.convert(3);
+        assert_eq!(val, U256::from(123000u128));
+    }
+
+    #[test]
     fn test_convertible_str() {
         let s = "123";
 
@@ -206,14 +234,42 @@ mod tests {
         assert_eq!(val, U256::from(123u128));
     }
 
-    fn assert_convertible_num<T>(num: T, expected: u128)
+    #[test]
+    fn test_convertible_str_with_scale() {
+        let s = "123";
+        let val: u128 = s.convert(3);
+        assert_eq!(val, 123000u128);
+        let val: u64 = s.convert(3);
+        assert_eq!(val, 123000u64);
+        let val: u32 = s.convert(2);
+        assert_eq!(val, 12300u32);
+        let val: u16 = s.convert(1);
+        assert_eq!(val, 1230u16);
+        let val: u8 = s.convert(0);
+        assert_eq!(val, 123u8);
+        let val: i128 = s.convert(3);
+        assert_eq!(val, 123000i128);
+        let val: i64 = s.convert(3);
+        assert_eq!(val, 123000i64);
+        let val: i32 = s.convert(2);
+        assert_eq!(val, 12300i32);
+        let val: i16 = s.convert(1);
+        assert_eq!(val, 1230i16);
+        let val: i8 = s.convert(0);
+        assert_eq!(val, 123i8);
+
+        let val: U256 = s.convert(3);
+        assert_eq!(val, U256::from(123000u128));
+    }
+
+    fn assert_convertible_num<T>(num: T, digit: u32, expected: u128)
     where
         T: Convertible<u128> + Convertible<U256>,
     {
         let expected_u256 = U256::from(expected);
 
-        let val_from_i128: u128 = num.convert(0);
-        let val_from_u256: U256 = num.convert(0);
+        let val_from_i128: u128 = num.convert(digit);
+        let val_from_u256: U256 = num.convert(digit);
 
         assert_eq!(val_from_i128, expected);
         assert_eq!(val_from_u256, expected_u256);
@@ -222,18 +278,33 @@ mod tests {
     #[test]
     fn test_convertible_int() {
         let expected = 123u128;
-        assert_convertible_num::<i128>(123, expected);
-        assert_convertible_num::<i64>(123, expected);
-        assert_convertible_num::<i32>(123, expected);
-        assert_convertible_num::<i16>(123, expected);
-        assert_convertible_num::<i8>(123, expected);
+        assert_convertible_num::<i128>(123, 0, expected);
+        assert_convertible_num::<i64>(123, 0, expected);
+        assert_convertible_num::<i32>(123, 0, expected);
+        assert_convertible_num::<i16>(123, 0, expected);
+        assert_convertible_num::<i8>(123, 0, expected);
+    }
+
+    #[test]
+    fn test_converible_int_with_scale() {
+        assert_convertible_num::<i128>(123, 3, 123000);
+        assert_convertible_num::<i64>(123, 3, 123000);
+        assert_convertible_num::<i32>(123, 2, 12300);
+        assert_convertible_num::<i16>(123, 1, 1230);
+        assert_convertible_num::<i8>(123, 0, 123);
     }
 
     #[test]
     fn test_convertible_float() {
         let expected = 123u128;
-        assert_convertible_num::<f64>(123.0, expected);
-        assert_convertible_num::<f32>(123.0, expected);
+        assert_convertible_num::<f64>(123.0, 0, expected);
+        assert_convertible_num::<f32>(123.0, 0, expected);
+    }
+
+    #[test]
+    fn test_convertible_float_with_scale() {
+        assert_convertible_num::<f64>(123.0, 3, 123000);
+        assert_convertible_num::<f32>(123.0, 3, 123000);
     }
 
     fn assert_scale<T>(num: T, digit: u32, expected: T)
