@@ -12,7 +12,7 @@ macro_rules! convertible_num_for_string {
         impl Convertible<$uint_ty> for String {
             fn convert(&self, exp_pow10: u32) -> $uint_ty {
                 let casted = self.parse::<$uint_ty>().unwrap();
-                let scaled = casted * (10 as $uint_ty).pow(exp_pow10);
+                let scaled = casted.scale(exp_pow10);
                 scaled
             }
         }
@@ -23,7 +23,7 @@ macro_rules! convertible_num_for_str {
         impl Convertible<$uint_ty> for &str {
             fn convert(&self, exp_pow10: u32) -> $uint_ty {
                 let casted = self.parse::<$uint_ty>().unwrap();
-                let scaled = casted * (10 as $uint_ty).pow(exp_pow10);
+                let scaled = casted.scale(exp_pow10);
                 scaled
             }
         }
@@ -79,8 +79,7 @@ macro_rules! convertible_uint_for_int {
     ($int_ty: ident, $uint_ty: ident) => {
         impl Convertible<$uint_ty> for $int_ty {
             fn convert(&self, exp_pow10: u32) -> $uint_ty {
-                let scaled = (*self as i128) * (10u128.pow(exp_pow10) as i128);
-                scaled as $uint_ty
+                self.scale(exp_pow10) as $uint_ty
             }
         }
     };
@@ -101,8 +100,7 @@ macro_rules! convertible_num_for_float {
     ($int_ty: ident, $uint_ty: ident) => {
         impl Convertible<$uint_ty> for $int_ty {
             fn convert(&self, exp_pow10: u32) -> $uint_ty {
-                let scaled = (*self as f64) * (10u128.pow(exp_pow10) as f64);
-                scaled as $uint_ty
+                self.scale(exp_pow10) as $uint_ty
             }
         }
     };
