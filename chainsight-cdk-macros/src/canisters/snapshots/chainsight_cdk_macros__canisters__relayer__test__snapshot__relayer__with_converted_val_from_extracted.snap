@@ -30,7 +30,7 @@ type CallCanisterArgs = relayer::CallCanisterArgs;
 pub fn call_args() -> CallCanisterArgs {
     relayer::call_args()
 }
-relayer_source!("get_last_snapshot");
+relayer_source!("get_last_snapshot_value");
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
@@ -44,7 +44,7 @@ async fn index() {
             Message::new::<CallCanisterArgs>(
                 call_args(),
                 _get_target_proxy(target_canister.clone()).await,
-                "proxy_get_last_snapshot",
+                "proxy_get_last_snapshot_value",
             )
             .expect("failed to create message"),
         )
@@ -57,9 +57,12 @@ async fn index() {
     if !filter(&datum) {
         return;
     }
-    let datum = datum.value;
-    ic_cdk::println!("val extracted from response = {:?}", datum.clone());
     let datum = datum;
+    ic_cdk::println!("val extracted from response = {:?}", datum.clone());
+    let datum = {
+        let converted: U256 = datum.convert(0);
+        converted
+    };
     ic_cdk::println!("val converted from extracted = {:?}", datum.clone());
     let w3_ctx_param = get_web3_ctx_param();
     let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
@@ -76,7 +79,10 @@ async fn index() {
         Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
         &web3_ctx().expect("Failed to get web3_ctx"),
     )
-    .update_state(format!("{:?}", &datum).into_bytes(), call_option)
+    .update_state(
+        chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone()),
+        call_option,
+    )
     .await
     .expect("Failed to call update_state for oracle");
     ic_cdk::println!("value_to_sync={:?}", result);

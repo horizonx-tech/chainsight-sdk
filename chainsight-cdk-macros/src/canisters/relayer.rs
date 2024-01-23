@@ -50,6 +50,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         common,
         method_identifier,
         extracted_field,
+        destination_type_to_convert,
         abi_file_path,
         lens_parameter,
         method_name,
@@ -73,6 +74,16 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             chaining
         };
         convert_chaining_str_to_token(&("datum.".to_string() + &chaining))
+    } else {
+        quote! { datum }
+    };
+
+    let converted_datum_ident = if let Some(dst_type_str) = destination_type_to_convert {
+        let dst_ty = format_ident!("{}", dst_type_str);
+        quote! { {
+            let converted: #dst_ty = datum.convert(0);
+            converted
+        } }
     } else {
         quote! { datum }
     };
@@ -119,6 +130,8 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             }
             let datum = #extracted_datum_ident;
             ic_cdk::println!("val extracted from response = {:?}", datum.clone());
+            let datum = #converted_datum_ident;
+            ic_cdk::println!("val converted from extracted = {:?}", datum.clone());
 
             #call_option_ident
             #method_call_ident
@@ -429,6 +442,7 @@ mod test {
             },
             method_identifier: "get_last_snapshot_value : () -> (text)".to_string(),
             extracted_field: None,
+            destination_type_to_convert: None,
             destination: "0539a0EF8e5E60891fFf0958A059E049e43020d9".to_string(),
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             method_name: "update_state".to_string(),
@@ -479,6 +493,20 @@ mod test {
             .expect("rustfmt failed");
         assert_snapshot!(
             "snapshot__relayer__with_extracted_val_from_response",
+            formatted
+        );
+    }
+
+    #[test]
+    fn test_snapshot_with_converted_val_from_extracted() {
+        let mut config = config();
+        config.destination_type_to_convert = Some("U256".to_string());
+        let generated = relayer_canister(config);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__relayer__with_converted_val_from_extracted",
             formatted
         );
     }
