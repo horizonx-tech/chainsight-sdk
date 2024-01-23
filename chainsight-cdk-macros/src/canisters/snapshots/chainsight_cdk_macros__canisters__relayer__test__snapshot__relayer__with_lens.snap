@@ -2,6 +2,7 @@
 source: chainsight-cdk-macros/src/canisters/relayer.rs
 expression: formatted
 ---
+use chainsight_cdk::convert::scalar::Convertible;
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{

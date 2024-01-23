@@ -365,6 +365,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
+        use chainsight_cdk::convert::scalar::Convertible;
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
