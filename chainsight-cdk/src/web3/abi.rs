@@ -2,11 +2,9 @@ use crate::core::U256 as ChainsightU256;
 use ethabi::{Bytes, Token};
 use primitive_types::U256;
 
-pub trait Encoder<T> {
-    fn encode(&self, val: T) -> Bytes;
+pub trait ContractEvent {
+    fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
-
-pub struct EthAbiEncoder;
 
 #[derive(Clone)]
 pub struct ContractFunction {
@@ -14,10 +12,6 @@ pub struct ContractFunction {
     method_name: String,
 }
 pub const CALL_ARGS_STRUCT_NAME: &str = "ContractCallArgs";
-
-pub trait ContractEvent {
-    fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
-}
 
 impl ContractFunction {
     pub fn new(abi: String, method_name: String) -> Self {
@@ -38,6 +32,13 @@ impl ContractFunction {
         self.function().inputs.clone()
     }
 }
+
+pub trait Encoder<T> {
+    fn encode(&self, val: T) -> Bytes;
+}
+
+pub struct EthAbiEncoder;
+
 impl Encoder<U256> for EthAbiEncoder {
     fn encode(&self, val: U256) -> Bytes {
         let token = Token::Uint(val);
@@ -58,66 +59,36 @@ impl Encoder<ChainsightU256> for EthAbiEncoder {
         ethabi::encode(&[token])
     }
 }
-impl Encoder<u128> for EthAbiEncoder {
-    fn encode(&self, val: u128) -> Bytes {
-        let token = Token::Uint(val.into());
+
+macro_rules! scalar_type_ethabi_encodable {
+    ($scalar_ty: ident, $token_ty: ident) => {
+        impl Encoder<$scalar_ty> for EthAbiEncoder {
+            fn encode(&self, val: $scalar_ty) -> Bytes {
+                let token = Token::$token_ty(val.into());
+                ethabi::encode(&[token])
+            }
+        }
+    };
+}
+scalar_type_ethabi_encodable!(u128, Uint);
+scalar_type_ethabi_encodable!(u64, Uint);
+scalar_type_ethabi_encodable!(u32, Uint);
+scalar_type_ethabi_encodable!(u16, Uint);
+scalar_type_ethabi_encodable!(u8, Uint);
+scalar_type_ethabi_encodable!(i128, Int);
+scalar_type_ethabi_encodable!(i64, Int);
+scalar_type_ethabi_encodable!(i32, Int);
+scalar_type_ethabi_encodable!(i16, Int);
+scalar_type_ethabi_encodable!(i8, Int);
+scalar_type_ethabi_encodable!(String, String);
+
+impl Encoder<&str> for EthAbiEncoder {
+    fn encode(&self, val: &str) -> Bytes {
+        let token = Token::String(val.into());
         ethabi::encode(&[token])
     }
 }
-impl Encoder<u64> for EthAbiEncoder {
-    fn encode(&self, val: u64) -> Bytes {
-        let token = Token::Uint(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<u32> for EthAbiEncoder {
-    fn encode(&self, val: u32) -> Bytes {
-        let token = Token::Uint(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<u16> for EthAbiEncoder {
-    fn encode(&self, val: u16) -> Bytes {
-        let token = Token::Uint(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<u8> for EthAbiEncoder {
-    fn encode(&self, val: u8) -> Bytes {
-        let token = Token::Uint(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<i128> for EthAbiEncoder {
-    fn encode(&self, val: i128) -> Bytes {
-        let token = Token::Int(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<i64> for EthAbiEncoder {
-    fn encode(&self, val: i64) -> Bytes {
-        let token = Token::Int(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<i32> for EthAbiEncoder {
-    fn encode(&self, val: i32) -> Bytes {
-        let token = Token::Int(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<i16> for EthAbiEncoder {
-    fn encode(&self, val: i16) -> Bytes {
-        let token = Token::Int(val.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<i8> for EthAbiEncoder {
-    fn encode(&self, val: i8) -> Bytes {
-        let token = Token::Int(val.into());
-        ethabi::encode(&[token])
-    }
-}
+
 impl Encoder<f64> for EthAbiEncoder {
     fn encode(&self, val: f64) -> Bytes {
         let rounded = val.round() as i128; // NOTE: Assume that the value has already been scaled to integer.
@@ -129,18 +100,6 @@ impl Encoder<f32> for EthAbiEncoder {
     fn encode(&self, val: f32) -> Bytes {
         let rounded = val.round() as i64; // NOTE: Assume that the value has already been scaled to integer.
         let token = Token::Int(rounded.into());
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<String> for EthAbiEncoder {
-    fn encode(&self, val: String) -> Bytes {
-        let token = Token::String(val);
-        ethabi::encode(&[token])
-    }
-}
-impl Encoder<&str> for EthAbiEncoder {
-    fn encode(&self, val: &str) -> Bytes {
-        let token = Token::String(val.to_string());
         ethabi::encode(&[token])
     }
 }
