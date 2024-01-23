@@ -116,6 +116,35 @@ convertible_num_for_float!(f32, u128);
 convertible_num_for_float!(f32, i128);
 convertible_u256_for_num!(f32);
 
+pub trait Scalable {
+    fn scale(&self, digit: u32) -> Self;
+}
+
+macro_rules! scale_num {
+    ($scalar_ty: ident, $intermediate_ty: ident) => {
+        impl Scalable for $scalar_ty {
+            fn scale(&self, digit_to_scale: u32) -> Self {
+                let scaled =
+                    *self as $intermediate_ty * (10u128.pow(digit_to_scale) as $intermediate_ty);
+                scaled as $scalar_ty
+            }
+        }
+    };
+}
+
+scale_num!(u128, u128);
+scale_num!(u64, u128);
+scale_num!(u32, u128);
+scale_num!(u16, u128);
+scale_num!(u8, u128);
+scale_num!(i128, i128);
+scale_num!(i64, i128);
+scale_num!(i32, i128);
+scale_num!(i16, i128);
+scale_num!(i8, i128);
+scale_num!(f64, f64);
+scale_num!(f32, f64);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,5 +234,35 @@ mod tests {
         let expected = 123u128;
         assert_convertible_num::<f64>(123.0, expected);
         assert_convertible_num::<f32>(123.0, expected);
+    }
+
+    fn assert_scale<T>(num: T, digit: u32, expected: T)
+    where
+        T: Scalable + std::fmt::Debug + PartialEq,
+    {
+        let scaled = num.scale(digit);
+        assert_eq!(scaled, expected);
+    }
+
+    #[test]
+    fn test_scale() {
+        assert_scale(12345u128, 5, 1234500000);
+        assert_scale(1234u64, 4, 12340000);
+        assert_scale(123u32, 3, 123000);
+        assert_scale(12u16, 2, 1200);
+        assert_scale(1u8, 1, 10);
+        assert_scale(1u8, 0, 1);
+
+        assert_scale(-12345i128, 5, -1234500000);
+        assert_scale(-1234i64, 4, -12340000);
+        assert_scale(-123i32, 3, -123000);
+        assert_scale(-12i16, 2, -1200);
+        assert_scale(-1i8, 1, -10);
+        assert_scale(-1i8, 0, -1);
+
+        assert_scale(654.321f64, 3, 654321.0);
+        assert_scale(654.321f64, 1, 6543.21);
+        assert_scale(43.21f32, 3, 43210.0);
+        assert_scale(43.21f32, 1, 432.09998); // 432.1
     }
 }
