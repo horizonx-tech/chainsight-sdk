@@ -228,6 +228,30 @@ mod tests {
         assert_eq!((decoded), (expected as u128));
     }
     #[test]
+    fn test_encode_f64() {
+        let encoder = EthAbiEncoder;
+        let expected: f64 = 123.45;
+        let encoded = encoder.encode(expected);
+        let decoded = ethabi::decode(&[ethabi::ParamType::Int(8)], &encoded).unwrap()[0]
+            .clone()
+            .into_int()
+            .unwrap()
+            .as_u128();
+        assert_eq!((decoded), (expected.round() as u128));
+    }
+    #[test]
+    fn test_encode_f32() {
+        let encoder = EthAbiEncoder;
+        let expected: f32 = 123.45;
+        let encoded = encoder.encode(expected);
+        let decoded = ethabi::decode(&[ethabi::ParamType::Int(8)], &encoded).unwrap()[0]
+            .clone()
+            .into_int()
+            .unwrap()
+            .as_u128();
+        assert_eq!((decoded), (expected.round() as u128));
+    }
+    #[test]
     fn test_encode_u256() {
         let encoder = EthAbiEncoder;
         let expected: U256 = U256::from(12345678901234567890u128);
