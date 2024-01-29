@@ -3,7 +3,14 @@ use std::borrow::Cow;
 use ic_stable_structures::{BoundedStorable, Storable};
 
 #[derive(
-    Debug, Clone, PartialEq, PartialOrd, candid::CandidType, candid::Deserialize, serde::Serialize,
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    PartialOrd,
+    candid::CandidType,
+    candid::Deserialize,
+    serde::Serialize,
 )]
 pub struct StorableBool(pub bool);
 
@@ -25,12 +32,6 @@ impl Storable for StorableBool {
 impl BoundedStorable for StorableBool {
     const MAX_SIZE: u32 = 1;
     const IS_FIXED_SIZE: bool = true;
-}
-
-impl Default for StorableBool {
-    fn default() -> Self {
-        StorableBool(false)
-    }
 }
 impl From<StorableBool> for bool {
     fn from(storable_bool: StorableBool) -> Self {
