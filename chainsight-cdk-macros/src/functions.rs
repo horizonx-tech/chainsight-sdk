@@ -2,6 +2,7 @@ use chainsight_cdk::config::components::{LENS_FUNCTION_ARGS_TYPE, LENS_FUNCTION_
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream};
+use syn::LitInt;
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
 pub fn init_in_env(_input: TokenStream) -> TokenStream {
@@ -64,13 +65,25 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
 
 struct SetupArgs {
     fields: Punctuated<NamedField, Token![,]>,
+    stable_memory_id: Option<LitInt>,
 }
 impl Parse for SetupArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let content;
         braced!(content in input);
         let fields = Punctuated::parse_terminated(&content)?;
-        Ok(SetupArgs { fields })
+        let stable_memory_id = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
+
+        Ok(SetupArgs {
+            fields,
+            stable_memory_id,
+        })
     }
 }
 struct NamedField {
@@ -92,7 +105,10 @@ pub fn setup_func(input: TokenStream) -> TokenStream {
     setup_func_internal(args).into()
 }
 fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
-    let SetupArgs { fields } = input;
+    let SetupArgs {
+        fields,
+        stable_memory_id,
+    } = input;
 
     let setters: Vec<_> = fields
         .iter()
@@ -102,15 +118,26 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
     let names: Vec<_> = fields.iter().map(|field| &field.name).collect();
     let types: Vec<_> = fields.iter().map(|field| &field.ty).collect();
 
+    // If stable_memory_id is specified, use Stable Memory, otherwise use Heap Memory
+    let storage_quote = if let Some(memory_id) = stable_memory_id {
+        quote! {
+            chainsight_cdk_macros::stable_memory_for_scalar!("setup_flag", StorableBool, #memory_id, false);
+        }
+    } else {
+        quote! {
+            chainsight_cdk_macros::manage_single_state!("setup_flag", bool, false);
+        }
+    };
+
     quote! {
-        chainsight_cdk_macros::manage_single_state!("setup_flag", bool, false);
+        #storage_quote
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         fn setup(#( #names: #types ),*) -> Result<(), String> {
-            assert!(!get_setup_flag(), "Already setup");
+            assert!(!bool::from(get_setup_flag()), "Already setup");
             #( #setters(#names); )*
-            set_setup_flag(true);
+            set_setup_flag(true.into()); // note: when using stable_memory, the returned result is not handled
             Ok(())
         }
     }
@@ -304,7 +331,7 @@ mod test {
     }
 
     #[test]
-    fn test_snapshot_setup_fumc() {
+    fn test_snapshot_setup_func() {
         let input = quote! {
             {
                 target_canister: String,
@@ -318,6 +345,24 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__setup_func", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_setup_func_with_stable_memory() {
+        let input = quote! {
+            {
+                target_canister: String,
+                target_addr: String,
+                web3_ctx_param: Web3CtxParam
+            },
+            0
+        };
+        let args: syn::Result<SetupArgs> = syn::parse2(input);
+        let generated = setup_func_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__setup_func_with_stable_memory", formatted);
     }
 
     #[test]
