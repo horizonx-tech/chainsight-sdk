@@ -149,18 +149,14 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
     CborSerde,
 )]
 pub struct UpgradeStableState {
-    pub proxy: candid::Principal,
-    pub initialized: bool,
-    pub env: chainsight_cdk::core::Env,
+    pub initializing_state: InitializingState,
     pub indexing_interval: u32,
 }
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     ic_cdk::println!("start: pre_upgrade");
     let state = UpgradeStableState {
-        proxy: proxy(),
-        initialized: is_initialized(),
-        env: get_env(),
+        initializing_state: get_initializing_state(),
         indexing_interval: get_indexing_interval(),
     };
     let state_bytes = state.to_cbor();
@@ -181,9 +177,7 @@ fn post_upgrade() {
     let mut state_bytes = vec![0; state_len];
     memory.read(4, &mut state_bytes);
     let state = UpgradeStableState::from_cbor(&state_bytes);
-    set_initialized(state.initialized);
-    set_proxy(state.proxy);
-    set_env(state.env);
+    set_initializing_state(state.initializing_state);
     set_indexing_interval(state.indexing_interval);
     ic_cdk::println!("finish: post_upgrade");
 }

@@ -2,7 +2,7 @@
 source: chainsight-cdk-macros/src/canisters/algorithm_indexer.rs
 expression: formatted
 ---
-use candid::CandidType;
+use candid::{CandidType, Decode, Encode};
 use chainsight_cdk::indexer::IndexingConfig;
 use chainsight_cdk_macros::{
     algorithm_indexer, algorithm_indexer_source, chainsight_common, did_export, init_in,
@@ -32,9 +32,7 @@ algorithm_indexer ! (HashMap < u64 , Vec < String >> , "get_list");
     CborSerde,
 )]
 pub struct UpgradeStableState {
-    pub proxy: candid::Principal,
-    pub initialized: bool,
-    pub env: chainsight_cdk::core::Env,
+    pub initializing_state: InitializingState,
     pub target_addr: String,
     pub config: IndexingConfig,
     pub indexing_interval: u32,
@@ -43,9 +41,7 @@ pub struct UpgradeStableState {
 fn pre_upgrade() {
     ic_cdk::println!("start: pre_upgrade");
     let state = UpgradeStableState {
-        proxy: get_proxy(),
-        initialized: is_initialized(),
-        env: get_env(),
+        initializing_state: get_initializing_state(),
         target_addr: get_target_addr(),
         config: get_config(),
         indexing_interval: get_indexing_interval(),
@@ -68,9 +64,7 @@ fn post_upgrade() {
     let mut state_bytes = vec![0; state_len];
     memory.read(4, &mut state_bytes);
     let state = UpgradeStableState::from_cbor(&state_bytes);
-    set_initialized(state.initialized);
-    set_proxy(state.proxy);
-    set_env(state.env);
+    set_initializing_state(state.initializing_state);
     setup(state.target_addr, state.config).expect("Failed to `setup` in post_upgrade");
     set_indexing_interval(state.indexing_interval);
     ic_cdk::println!("finish: post_upgrade");

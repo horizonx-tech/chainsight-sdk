@@ -2,6 +2,7 @@
 source: chainsight-cdk-macros/src/canisters/relayer.rs
 expression: formatted
 ---
+use candid::{Decode, Encode};
 use chainsight_cdk::convert::scalar::{Convertible, Scalable};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
@@ -101,9 +102,7 @@ async fn index() {
     CborSerde,
 )]
 pub struct UpgradeStableState {
-    pub proxy: candid::Principal,
-    pub initialized: bool,
-    pub env: chainsight_cdk::core::Env,
+    pub initializing_state: InitializingState,
     pub target_addr: String,
     pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
     pub target_canister: String,
@@ -114,9 +113,7 @@ pub struct UpgradeStableState {
 fn pre_upgrade() {
     ic_cdk::println!("start: pre_upgrade");
     let state = UpgradeStableState {
-        proxy: proxy(),
-        initialized: is_initialized(),
-        env: get_env(),
+        initializing_state: get_initializing_state(),
         target_addr: get_target_addr(),
         web3_ctx_param: get_web3_ctx_param(),
         target_canister: get_target_canister(),
@@ -141,9 +138,7 @@ fn post_upgrade() {
     let mut state_bytes = vec![0; state_len];
     memory.read(4, &mut state_bytes);
     let state = UpgradeStableState::from_cbor(&state_bytes);
-    set_initialized(state.initialized);
-    set_proxy(state.proxy);
-    set_env(state.env);
+    set_initializing_state(state.initializing_state);
     setup(
         state.target_addr,
         state.web3_ctx_param,

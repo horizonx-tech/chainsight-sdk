@@ -6,6 +6,7 @@ expression: formatted
     Debug,
     Clone,
     Default,
+    PartialEq,
     candid :: CandidType,
     candid :: Deserialize,
     serde :: Serialize,

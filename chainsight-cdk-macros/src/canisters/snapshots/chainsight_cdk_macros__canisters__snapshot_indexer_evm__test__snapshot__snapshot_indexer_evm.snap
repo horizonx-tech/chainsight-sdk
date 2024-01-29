@@ -127,9 +127,7 @@ async fn index() {
     CborSerde,
 )]
 pub struct UpgradeStableState {
-    pub proxy: candid::Principal,
-    pub initialized: bool,
-    pub env: chainsight_cdk::core::Env,
+    pub initializing_state: InitializingState,
     pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
     pub target_addr: String,
     pub indexing_interval: u32,
@@ -138,9 +136,7 @@ pub struct UpgradeStableState {
 fn pre_upgrade() {
     ic_cdk::println!("start: pre_upgrade");
     let state = UpgradeStableState {
-        proxy: get_proxy(),
-        initialized: is_initialized(),
-        env: get_env(),
+        initializing_state: get_initializing_state(),
         web3_ctx_param: get_web3_ctx_param(),
         target_addr: get_target_addr(),
         indexing_interval: get_indexing_interval(),
@@ -163,9 +159,7 @@ fn post_upgrade() {
     let mut state_bytes = vec![0; state_len];
     memory.read(4, &mut state_bytes);
     let state = UpgradeStableState::from_cbor(&state_bytes);
-    set_initialized(state.initialized);
-    set_proxy(state.proxy);
-    set_env(state.env);
+    set_initializing_state(state.initializing_state);
     setup(state.target_addr, state.web3_ctx_param).expect("Failed to `setup` in post_upgrade");
     set_indexing_interval(state.indexing_interval);
     ic_cdk::println!("finish: post_upgrade");
