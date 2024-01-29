@@ -27,24 +27,18 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         let state_struct = quote! {
             #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
             pub struct UpgradeStableState {
-                pub proxy: candid::Principal,
-                pub initialized: bool,
-                pub env: chainsight_cdk::core::Env,
+                pub initializing_state: InitializingState,
             }
         };
 
         let update_funcs_to_upgrade = update_funcs_to_upgrade(
             quote! {
                 UpgradeStableState {
-                    proxy: proxy(),
-                    initialized: is_initialized(),
-                    env: get_env(),
+                    initializing_state: get_initializing_state()
                 }
             },
             quote! {
-                set_initialized(state.initialized);
-                set_proxy(state.proxy);
-                set_env(state.env);
+                set_initializing_state(state.initializing_state);
             },
         );
 
@@ -56,7 +50,8 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
 
     quote! {
         did_export!(#canister_name);
-        use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method, prepare_stable_structure, CborSerde};
+        use candid::{Decode, Encode};
+        use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method, prepare_stable_structure, StableMemoryStorable, CborSerde};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
         chainsight_common!();

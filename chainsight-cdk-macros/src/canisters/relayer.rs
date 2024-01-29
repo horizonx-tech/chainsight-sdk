@@ -173,9 +173,7 @@ fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::To
     let state_struct = quote! {
         #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
         pub struct UpgradeStableState {
-            pub proxy: candid::Principal,
-            pub initialized: bool,
-            pub env: chainsight_cdk::core::Env,
+            pub initializing_state: InitializingState,
             pub target_addr: String,
             pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
             pub target_canister: String,
@@ -187,9 +185,7 @@ fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::To
     let update_funcs_to_upgrade = update_funcs_to_upgrade(
         quote! {
             UpgradeStableState {
-                proxy: proxy(),
-                initialized: is_initialized(),
-                env: get_env(),
+                initializing_state: get_initializing_state(),
                 target_addr: get_target_addr(),
                 web3_ctx_param: get_web3_ctx_param(),
                 target_canister: get_target_canister(),
@@ -198,9 +194,7 @@ fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::To
             }
         },
         quote! {
-            set_initialized(state.initialized);
-            set_proxy(state.proxy);
-            set_env(state.env);
+            set_initializing_state(state.initializing_state);
             setup(
                 state.target_addr,
                 state.web3_ctx_param,
@@ -376,6 +370,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         quote! {}
     };
     quote! {
+        use candid::{Decode, Encode};
         use ic_cdk::api::call::result;
         use std::str::FromStr;
         use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};

@@ -1,3 +1,4 @@
+#[allow(unused_must_use)]
 mod function_setup_with_stable_memory {
     use chainsight_cdk::storage::StorableBool;
     use chainsight_cdk_macros::{manage_single_state, prepare_stable_structure, setup_func};
@@ -7,6 +8,7 @@ mod function_setup_with_stable_memory {
     manage_single_state!("dst_address", String, false);
 
     prepare_stable_structure!();
+
     setup_func!({
         rpc: String,
         chain_id: u8,

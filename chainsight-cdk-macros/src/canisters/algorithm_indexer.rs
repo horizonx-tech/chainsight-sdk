@@ -26,9 +26,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         let state_struct = quote! {
             #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
             pub struct UpgradeStableState {
-                pub proxy: candid::Principal,
-                pub initialized: bool,
-                pub env: chainsight_cdk::core::Env,
+                pub initializing_state: InitializingState,
                 pub target_addr: String,
                 pub config: IndexingConfig,
                 pub indexing_interval: u32,
@@ -38,18 +36,14 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         let update_funcs_to_upgrade = update_funcs_to_upgrade(
             quote! {
                 UpgradeStableState {
-                    proxy: get_proxy(),
-                    initialized: is_initialized(),
-                    env: get_env(),
+                    initializing_state: get_initializing_state(),
                     target_addr: get_target_addr(),
                     config: get_config(),
                     indexing_interval: get_indexing_interval(),
                 }
             },
             quote! {
-                set_initialized(state.initialized);
-                set_proxy(state.proxy);
-                set_env(state.env);
+                set_initializing_state(state.initializing_state);
                 setup(
                     state.target_addr,
                     state.config,
@@ -66,7 +60,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
 
     let method_name = input.method_name;
     quote! {
-        use candid::CandidType;
+        use candid::{CandidType, Decode, Encode};
         use chainsight_cdk::indexer::IndexingConfig;
         use chainsight_cdk_macros::{
             algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
