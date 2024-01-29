@@ -5,11 +5,48 @@ use syn::parse::{Parse, ParseStream};
 use syn::LitInt;
 use syn::{braced, punctuated::Punctuated, Ident, Result, Token, Type};
 
-pub fn init_in_env(_input: TokenStream) -> TokenStream {
-    init_in_env_internal().into()
+struct InitInEnvArgs {
+    stable_memory_id: Option<LitInt>,
 }
-fn init_in_env_internal() -> proc_macro2::TokenStream {
+impl Parse for InitInEnvArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let stable_memory_id = if !input.is_empty() {
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
+        Ok(InitInEnvArgs { stable_memory_id })
+    }
+}
+pub fn init_in_env(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as InitInEnvArgs);
+    init_in_env_internal(args).into()
+}
+fn init_in_env_internal(_input: InitInEnvArgs) -> proc_macro2::TokenStream {
+    let struct_quote = quote! {
+        #[derive(Debug, Clone, Default, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
+        #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
+        pub struct InitializingState {
+            pub initialized: bool,
+            pub proxy: String,
+            pub env: chainsight_cdk::core::Env,
+        }
+    };
+    let storage_quote = if let Some(memory_id) = _input.stable_memory_id {
+        quote! {
+            chainsight_cdk_macros::stable_memory_for_scalar!("initializing_state", InitializingState, #memory_id, false);
+        }
+    } else {
+        quote! {
+            chainsight_cdk_macros::manage_single_state!("initializing_state", InitializingState, false);
+        }
+    };
+
     quote! {
+        #struct_quote
+        #storage_quote
+
         use chainsight_cdk::initializer::{CycleManagements, Initializer};
         use ic_cdk::api::management_canister::{provisional::{CanisterIdRecord, CanisterSettings}, main::{update_settings, UpdateSettingsArgument}};
         #[ic_cdk::update]
@@ -23,42 +60,29 @@ fn init_in_env_internal() -> proc_macro2::TokenStream {
             let deployer = ic_cdk::caller();
             let init_result = initializer.initialize(&deployer, &cycles).await?;
             let proxy = init_result.proxy;
-            set_initialized(true);
-            set_proxy(proxy);
-            set_env(env);
+
+            set_initializing_state(InitializingState {
+                initialized: true,
+                proxy: proxy.to_text(),
+                env,
+            }); // note: when using stable_memory, the returned result is not handled
 
             Ok(())
         }
         fn proxy() -> candid::Principal {
-            PROXY.with(|proxy| proxy.borrow().clone())
+            candid::Principal::from_text(get_initializing_state().proxy).unwrap()
         }
         fn get_env() -> chainsight_cdk::core::Env {
-            ENV.with(|env| env.borrow().clone())
+            get_initializing_state().env
         }
         fn is_initialized() -> bool {
-            INITIALIZED.with(|f| *f.borrow())
+            get_initializing_state().initialized
         }
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
         fn get_proxy() -> candid::Principal {
             proxy()
-        }
-
-        fn set_initialized(flag: bool) {
-            INITIALIZED.with(|f| *f.borrow_mut() = flag);
-        }
-        fn set_proxy(proxy: candid::Principal) {
-            PROXY.with(|f| *f.borrow_mut() = proxy);
-        }
-        fn set_env(env: chainsight_cdk::core::Env) {
-            ENV.with(|f| *f.borrow_mut() = env);
-        }
-
-        thread_local! {
-            static INITIALIZED: std::cell::RefCell<bool> = std::cell::RefCell::new(false);
-            static PROXY: std::cell::RefCell<candid::Principal> = std::cell::RefCell::new(candid::Principal::anonymous());
-            static ENV: std::cell::RefCell<chainsight_cdk::core::Env> = std::cell::RefCell::new(chainsight_cdk::core::Env::default());
         }
     }
 }
@@ -323,7 +347,9 @@ mod test {
 
     #[test]
     fn test_snapshot_init_in_env() {
-        let generated = init_in_env_internal();
+        let input = quote! {};
+        let args: syn::Result<InitInEnvArgs> = syn::parse2(input);
+        let generated = init_in_env_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
