@@ -128,8 +128,8 @@ pub fn define_transform_for_web3(_input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn define_web3_ctx(_input: TokenStream) -> TokenStream {
-    web3::define_web3_ctx().into()
+pub fn define_web3_ctx(input: TokenStream) -> TokenStream {
+    web3::define_web3_ctx(input)
 }
 
 #[proc_macro]
