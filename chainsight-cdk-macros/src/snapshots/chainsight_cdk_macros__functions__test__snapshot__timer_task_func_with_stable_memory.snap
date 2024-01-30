@@ -2,7 +2,7 @@
 source: chainsight-cdk-macros/src/functions.rs
 expression: formatted
 ---
-manage_single_state!("indexing_interval", u32, false);
+stable_memory_for_scalar!("indexing_interval", u32, 1, false);
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 pub async fn set_task(task_interval_secs: u32, delay_secs: u32) {

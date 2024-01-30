@@ -1,0 +1,61 @@
+---
+source: chainsight-cdk-macros/src/functions.rs
+expression: formatted
+---
+#[derive(
+    Debug,
+    Clone,
+    Default,
+    PartialEq,
+    candid :: CandidType,
+    candid :: Deserialize,
+    serde :: Serialize,
+    StableMemoryStorable,
+)]
+#[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
+pub struct InitializingState {
+    pub initialized: bool,
+    pub proxy: String,
+    pub env: chainsight_cdk::core::Env,
+}
+stable_memory_for_scalar!("initializing_state", InitializingState, 1, false);
+use chainsight_cdk::initializer::{CycleManagements, Initializer};
+use ic_cdk::api::management_canister::{
+    main::{update_settings, UpdateSettingsArgument},
+    provisional::{CanisterIdRecord, CanisterSettings},
+};
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn init_in(
+    env: chainsight_cdk::core::Env,
+    cycles: CycleManagements,
+) -> Result<(), chainsight_cdk::initializer::InitError> {
+    assert!(!is_initialized(), "Already initialized");
+    let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
+        chainsight_cdk::initializer::InitConfig { env: env.clone() },
+    );
+    let deployer = ic_cdk::caller();
+    let init_result = initializer.initialize(&deployer, &cycles).await?;
+    let proxy = init_result.proxy;
+    set_initializing_state(InitializingState {
+        initialized: true,
+        proxy: proxy.to_text(),
+        env,
+    });
+    Ok(())
+}
+fn proxy() -> candid::Principal {
+    candid::Principal::from_text(get_initializing_state().proxy).unwrap()
+}
+fn get_env() -> chainsight_cdk::core::Env {
+    get_initializing_state().env
+}
+fn is_initialized() -> bool {
+    get_initializing_state().initialized
+}
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+fn get_proxy() -> candid::Principal {
+    proxy()
+}
+
