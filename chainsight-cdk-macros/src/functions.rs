@@ -170,15 +170,24 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
 struct TimerTaskArgs {
     func_name: syn::LitStr,
     called_func_name: syn::LitStr,
+    stable_memory_id: Option<LitInt>,
 }
 impl Parse for TimerTaskArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let func_name: syn::LitStr = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let called_func_name: syn::LitStr = input.parse()?;
+        let stable_memory_id = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
         Ok(TimerTaskArgs {
             func_name,
             called_func_name,
+            stable_memory_id,
         })
     }
 }
@@ -190,22 +199,25 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
     let TimerTaskArgs {
         func_name,
         called_func_name,
+        stable_memory_id,
     } = args;
 
     let func_name_ident = format_ident!("{}", func_name.value());
     let called_func_name_str = called_func_name.value().to_string();
 
-    quote! {
-        thread_local! {
-            static INDEXING_INTERVAL: std::cell::RefCell<u32> = std::cell::RefCell::new(0);
+    // If stable_memory_id is specified, use Stable Memory, otherwise use Heap Memory
+    let storage_quote = if let Some(memory_id) = stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("indexing_interval", u32, #memory_id, false);
         }
+    } else {
+        quote! {
+            manage_single_state!("indexing_interval", u32, false);
+        }
+    };
 
-        fn get_indexing_interval() -> u32 {
-            INDEXING_INTERVAL.with(|f| f.borrow().clone())
-        }
-        fn set_indexing_interval(interval: u32) {
-            INDEXING_INTERVAL.with(|f| *f.borrow_mut() = interval);
-        }
+    quote! {
+        #storage_quote
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -400,6 +412,17 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__timer_task_func", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_timer_task_func_with_stable_memory() {
+        let input = quote! {"set_task","HELLO",1};
+        let args: syn::Result<TimerTaskArgs> = syn::parse2(input);
+        let generated = timer_task_func_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__timer_task_func_with_stable_memory", formatted);
     }
 
     #[test]
