@@ -369,6 +369,17 @@ mod test {
     }
 
     #[test]
+    fn test_snapshot_init_in_env_with_stable_memory() {
+        let input = quote! {1};
+        let args: syn::Result<InitInEnvArgs> = syn::parse2(input);
+        let generated = init_in_env_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__init_in_env_with_stable_memory", formatted);
+    }
+
+    #[test]
     fn test_snapshot_setup_func() {
         let input = quote! {
             {
