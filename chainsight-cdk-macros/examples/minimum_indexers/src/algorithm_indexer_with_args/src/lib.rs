@@ -1,8 +1,9 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Decode, Encode, Principal};
 use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
 use chainsight_cdk_macros::{
     algorithm_indexer_source, algorithm_indexer_with_args, chainsight_common, did_export, init_in,
     manage_single_state, setup_func, timer_task_func, KeyValueStore, KeyValuesStore, Persist,
+    StableMemoryStorable,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

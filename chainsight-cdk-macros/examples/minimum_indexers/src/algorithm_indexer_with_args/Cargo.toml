@@ -13,6 +13,7 @@ candid.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-cdk-timers.workspace = true
+ic-stable-structures.workspace = true
 serde.workspace = true
 hex.workspace = true
 

@@ -34,7 +34,7 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
     let CommonConfig { canister_name } = common;
 
     quote! {
-        use candid::CandidType;
+        use candid::{CandidType, Decode, Encode};
         use chainsight_cdk::{
             core::{U256},
             indexer::{Event, Indexer, IndexingConfig},
@@ -106,9 +106,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
         let state_struct = quote! {
             #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
             pub struct UpgradeStableState {
-                pub proxy: candid::Principal,
-                pub initialized: bool,
-                pub env: chainsight_cdk::core::Env,
+                pub initializing_state: InitializingState,
                 pub target_addr: String,
                 pub web3_ctx_param: Web3CtxParam,
                 pub config: IndexingConfig,
@@ -119,9 +117,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
         let update_funcs_to_upgrade = update_funcs_to_upgrade(
             quote! {
                 UpgradeStableState {
-                    proxy: get_proxy(),
-                    initialized: is_initialized(),
-                    env: get_env(),
+                    initializing_state: get_initializing_state(),
                     web3_ctx_param: get_web3_ctx_param(),
                     target_addr: get_target_addr(),
                     config: get_config(),
@@ -129,9 +125,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
                 }
             },
             quote! {
-                set_initialized(state.initialized);
-                set_proxy(state.proxy);
-                set_env(state.env);
+                set_initializing_state(state.initializing_state);
                 setup(
                     state.target_addr,
                     state.web3_ctx_param,

@@ -155,9 +155,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         let state_struct = quote! {
             #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
             pub struct UpgradeStableState {
-                pub proxy: candid::Principal,
-                pub initialized: bool,
-                pub env: chainsight_cdk::core::Env,
+                pub initializing_state: InitializingState,
                 pub target_canister: String,
                 #lens_targets_quote
                 pub indexing_interval: u32
@@ -167,18 +165,14 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         let update_funcs_to_upgrade = update_funcs_to_upgrade(
             quote! {
                 UpgradeStableState {
-                    proxy: proxy(),
-                    initialized: is_initialized(),
-                    env: get_env(),
+                    initializing_state: get_initializing_state(),
                     target_canister: get_target_canister(),
                     #generate_lens_targets
                     indexing_interval: get_indexing_interval(),
                 }
             },
             quote! {
-                set_initialized(state.initialized);
-                set_proxy(state.proxy);
-                set_env(state.env);
+                set_initializing_state(state.initializing_state);
                 setup(
                     state.target_canister,
                     #recover_lens_targets

@@ -3,8 +3,10 @@ source: chainsight-cdk-macros/src/canisters/algorithm_lens.rs
 expression: formatted
 ---
 did_export!("app");
+use candid::{Decode, Encode};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, lens_method, prepare_stable_structure, CborSerde,
+    StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
 use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
@@ -23,17 +25,13 @@ lens_method!(10usize, CalculateArgs);
     CborSerde,
 )]
 pub struct UpgradeStableState {
-    pub proxy: candid::Principal,
-    pub initialized: bool,
-    pub env: chainsight_cdk::core::Env,
+    pub initializing_state: InitializingState,
 }
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     ic_cdk::println!("start: pre_upgrade");
     let state = UpgradeStableState {
-        proxy: proxy(),
-        initialized: is_initialized(),
-        env: get_env(),
+        initializing_state: get_initializing_state(),
     };
     let state_bytes = state.to_cbor();
     let len = state_bytes.len() as u32;
@@ -53,9 +51,7 @@ fn post_upgrade() {
     let mut state_bytes = vec![0; state_len];
     memory.read(4, &mut state_bytes);
     let state = UpgradeStableState::from_cbor(&state_bytes);
-    set_initialized(state.initialized);
-    set_proxy(state.proxy);
-    set_env(state.env);
+    set_initializing_state(state.initializing_state);
     ic_cdk::println!("finish: post_upgrade");
 }
 

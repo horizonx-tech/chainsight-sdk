@@ -1,7 +1,11 @@
 use chainsight_cdk::web3::ContractFunction;
 use ethabi::Param;
-use proc_macro2::TokenStream;
+use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
+use syn::{
+    parse::{Parse, ParseStream},
+    LitInt, Result,
+};
 
 pub trait ContractEvent {
     fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
@@ -87,7 +91,7 @@ pub fn contract_event_derive(input: proc_macro::TokenStream) -> proc_macro::Toke
     gen.into()
 }
 
-pub fn define_transform_for_web3() -> TokenStream {
+pub fn define_transform_for_web3() -> proc_macro2::TokenStream {
     define_transform_for_web3_internal()
 }
 fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
@@ -127,12 +131,37 @@ fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn define_web3_ctx() -> TokenStream {
-    define_web3_ctx_internal()
+struct DefineWeb3CtxArgs {
+    stable_memory_id: Option<LitInt>,
 }
-fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
+impl Parse for DefineWeb3CtxArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let stable_memory_id = if !input.is_empty() {
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
+        Ok(DefineWeb3CtxArgs { stable_memory_id })
+    }
+}
+pub fn define_web3_ctx(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as DefineWeb3CtxArgs);
+    define_web3_ctx_internal(args).into()
+}
+fn define_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStream {
+    let storage_quote = if let Some(memory_id) = input.stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, #memory_id, false);
+        }
+    } else {
+        quote! {
+            manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
+        }
+    };
+
     quote! {
-        manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
+        #storage_quote
 
         pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
             let param = get_web3_ctx_param();
@@ -150,7 +179,7 @@ fn define_web3_ctx_internal() -> proc_macro2::TokenStream {
     }
 }
 
-pub fn define_get_ethereum_address() -> TokenStream {
+pub fn define_get_ethereum_address() -> proc_macro2::TokenStream {
     define_get_ethereum_address_internal()
 }
 fn define_get_ethereum_address_internal() -> proc_macro2::TokenStream {
@@ -195,11 +224,24 @@ mod test {
 
     #[test]
     fn test_snapshot_define_web3_ctx() {
-        let generated = define_web3_ctx_internal();
+        let input = quote! {};
+        let args: syn::Result<DefineWeb3CtxArgs> = syn::parse2(input);
+        let generated = define_web3_ctx_internal(args.unwrap());
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__define_web3_ctx", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_define_web3_ctx_with_stable_memory() {
+        let input = quote! {1};
+        let args: syn::Result<DefineWeb3CtxArgs> = syn::parse2(input);
+        let generated = define_web3_ctx_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__define_web3_ctx__with_stable_memory", formatted);
     }
 
     #[test]

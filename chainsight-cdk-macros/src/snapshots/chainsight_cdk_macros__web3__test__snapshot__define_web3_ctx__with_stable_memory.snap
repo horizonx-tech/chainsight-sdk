@@ -1,0 +1,24 @@
+---
+source: chainsight-cdk-macros/src/web3.rs
+expression: formatted
+---
+stable_memory_for_scalar!(
+    "web3_ctx_param",
+    chainsight_cdk::web3::Web3CtxParam,
+    1,
+    false
+);
+pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
+    let param = get_web3_ctx_param();
+    let from = match param.from {
+        Some(from) => Address::from_str(&from).unwrap(),
+        None => Address::from_low_u64_be(0),
+    };
+    ic_solidity_bindgen::Web3Context::new(
+        &param.url,
+        from,
+        param.chain_id,
+        param.env.ecdsa_key_name(),
+    )
+}
+
