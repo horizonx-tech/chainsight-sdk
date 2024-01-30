@@ -51,7 +51,7 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
     quote! {
         did_export!(#canister_name);
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method, prepare_stable_structure, StableMemoryStorable, CborSerde};
+        use chainsight_cdk_macros::{chainsight_common, did_export, init_in, lens_method, manage_single_state, stable_memory_for_scalar, prepare_stable_structure, StableMemoryStorable, CborSerde};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
         chainsight_common!();
