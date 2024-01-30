@@ -1,5 +1,7 @@
 use candid::{Decode, Encode};
-use chainsight_cdk_macros::{chainsight_common, init_in, timer_task_func, StableMemoryStorable};
+use chainsight_cdk_macros::{
+    chainsight_common, init_in, manage_single_state, timer_task_func, StableMemoryStorable,
+};
 
 #[allow(dead_code)]
 static HELLO: fn() -> () = || {};

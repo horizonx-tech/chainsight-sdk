@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::{borrow::Cow, collections::HashMap, marker::PhantomData};
 
 use crate::{
     core::Env,
@@ -6,9 +6,10 @@ use crate::{
     storage::{KeyValuesStore, Persist},
 };
 use async_trait::async_trait;
-use candid::CandidType;
+use candid::{CandidType, Decode, Encode};
 use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
 use ic_solidity_bindgen::types::EventLog;
+use ic_stable_structures::{BoundedStorable, Storable};
 use ic_web3_rs::{
     futures::future::BoxFuture,
     transports::ic_http_client::{CallOptions, CallOptionsBuilder},
@@ -29,6 +30,19 @@ pub struct Web3CtxParam {
     pub from: Option<String>,
     pub chain_id: u64,
     pub env: Env,
+}
+impl Storable for Web3CtxParam {
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+impl BoundedStorable for Web3CtxParam {
+    const MAX_SIZE: u32 = 128;
+    const IS_FIXED_SIZE: bool = false;
 }
 
 #[derive(Clone)]

@@ -18,7 +18,7 @@ pub struct InitializingState {
     pub proxy: String,
     pub env: chainsight_cdk::core::Env,
 }
-chainsight_cdk_macros::manage_single_state!("initializing_state", InitializingState, false);
+manage_single_state!("initializing_state", InitializingState, false);
 use chainsight_cdk::initializer::{CycleManagements, Initializer};
 use ic_cdk::api::management_canister::{
     main::{update_settings, UpdateSettingsArgument},

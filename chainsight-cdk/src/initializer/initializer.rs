@@ -32,14 +32,14 @@ impl std::error::Error for InitError {
     }
 }
 
-#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug, Default)]
 pub struct CycleManagement {
     pub initial_supply: u128,
     pub refueling_amount: u128,
     pub refueling_threshold: u128,
 }
 
-#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
+#[derive(CandidType, serde::Serialize, Deserialize, Clone, Copy, PartialEq, Debug, Default)]
 pub struct CycleManagements {
     pub refueling_interval: u64,
     pub vault_intial_supply: u128,

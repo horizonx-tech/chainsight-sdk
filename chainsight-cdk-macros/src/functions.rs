@@ -23,7 +23,7 @@ pub fn init_in_env(input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(input as InitInEnvArgs);
     init_in_env_internal(args).into()
 }
-fn init_in_env_internal(_input: InitInEnvArgs) -> proc_macro2::TokenStream {
+fn init_in_env_internal(input: InitInEnvArgs) -> proc_macro2::TokenStream {
     let struct_quote = quote! {
         #[derive(Debug, Clone, Default, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
         #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
@@ -33,13 +33,13 @@ fn init_in_env_internal(_input: InitInEnvArgs) -> proc_macro2::TokenStream {
             pub env: chainsight_cdk::core::Env,
         }
     };
-    let storage_quote = if let Some(memory_id) = _input.stable_memory_id {
+    let storage_quote = if let Some(memory_id) = input.stable_memory_id {
         quote! {
-            chainsight_cdk_macros::stable_memory_for_scalar!("initializing_state", InitializingState, #memory_id, false);
+            stable_memory_for_scalar!("initializing_state", InitializingState, #memory_id, false);
         }
     } else {
         quote! {
-            chainsight_cdk_macros::manage_single_state!("initializing_state", InitializingState, false);
+            manage_single_state!("initializing_state", InitializingState, false);
         }
     };
 
@@ -145,11 +145,11 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
     // If stable_memory_id is specified, use Stable Memory, otherwise use Heap Memory
     let storage_quote = if let Some(memory_id) = stable_memory_id {
         quote! {
-            chainsight_cdk_macros::stable_memory_for_scalar!("setup_flag", StorableBool, #memory_id, false);
+            stable_memory_for_scalar!("setup_flag", StorableBool, #memory_id, false);
         }
     } else {
         quote! {
-            chainsight_cdk_macros::manage_single_state!("setup_flag", bool, false);
+            manage_single_state!("setup_flag", bool, false);
         }
     };
 

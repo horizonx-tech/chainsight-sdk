@@ -9,8 +9,8 @@ mod web3;
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn chainsight_common(_input: TokenStream) -> TokenStream {
-    utils::chainsight_common()
+pub fn chainsight_common(input: TokenStream) -> TokenStream {
+    utils::chainsight_common(input)
 }
 
 #[proc_macro]
@@ -68,8 +68,8 @@ pub fn manage_map_state(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
-    storages::prepare_stable_structure()
+pub fn prepare_stable_structure(input: TokenStream) -> TokenStream {
+    storages::prepare_stable_structure(input)
 }
 
 #[proc_macro_derive(StableMemoryStorable, attributes(stable_mem_storable_opts))]
@@ -123,8 +123,8 @@ pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn define_transform_for_web3(_input: TokenStream) -> TokenStream {
-    web3::define_transform_for_web3().into()
+pub fn define_transform_for_web3(input: TokenStream) -> TokenStream {
+    web3::define_transform_for_web3(input)
 }
 
 #[proc_macro]
@@ -133,8 +133,8 @@ pub fn define_web3_ctx(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn define_get_ethereum_address(_input: TokenStream) -> TokenStream {
-    web3::define_get_ethereum_address().into()
+pub fn define_get_ethereum_address(input: TokenStream) -> TokenStream {
+    web3::define_get_ethereum_address(input)
 }
 
 #[proc_macro_derive(ContractEvent)]
@@ -163,8 +163,8 @@ pub fn lens_method(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn algorithm_indexer_source(_input: TokenStream) -> TokenStream {
-    indexers::sources::algorithm_indexer_source()
+pub fn algorithm_indexer_source(input: TokenStream) -> TokenStream {
+    indexers::sources::algorithm_indexer_source(input)
 }
 #[proc_macro]
 pub fn web3_event_indexer_source(input: TokenStream) -> TokenStream {
@@ -175,8 +175,8 @@ pub fn snapshot_indexer_web3_source(input: TokenStream) -> TokenStream {
     indexers::sources::snapshot_indexer_web3_source(input)
 }
 #[proc_macro]
-pub fn snapshot_indexer_https_source(_input: TokenStream) -> TokenStream {
-    indexers::sources::snapshot_indexer_https_source()
+pub fn snapshot_indexer_https_source(input: TokenStream) -> TokenStream {
+    indexers::sources::snapshot_indexer_https_source(input)
 }
 #[proc_macro]
 pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {

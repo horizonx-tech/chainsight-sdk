@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
-pub fn chainsight_common() -> TokenStream {
+pub fn chainsight_common(_input: TokenStream) -> TokenStream {
     chainsight_common_internal().into()
 }
 fn chainsight_common_internal() -> proc_macro2::TokenStream {

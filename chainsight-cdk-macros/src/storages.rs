@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
-pub fn prepare_stable_structure() -> TokenStream {
+pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
     prepare_stable_structure_internal().into()
 }
 fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {

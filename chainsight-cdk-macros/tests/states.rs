@@ -49,7 +49,9 @@ mod manage_single_state {
 mod manage_vec_state {
     use super::Message;
     use candid::{Decode, Encode};
-    use chainsight_cdk_macros::{init_in, manage_vec_state, StableMemoryStorable};
+    use chainsight_cdk_macros::{
+        init_in, manage_single_state, manage_vec_state, StableMemoryStorable,
+    };
     init_in!();
     manage_vec_state!("result", String, false);
     manage_vec_state!("message", Message, false);

@@ -5,8 +5,8 @@ expression: formatted
 did_export!("app");
 use candid::{Decode, Encode};
 use chainsight_cdk_macros::{
-    chainsight_common, did_export, init_in, lens_method, prepare_stable_structure, CborSerde,
-    StableMemoryStorable,
+    chainsight_common, did_export, init_in, lens_method, manage_single_state,
+    prepare_stable_structure, stable_memory_for_scalar, CborSerde, StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
 use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
