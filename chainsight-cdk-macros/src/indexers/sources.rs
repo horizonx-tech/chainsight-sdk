@@ -29,7 +29,7 @@ fn web3_event_indexer_source_internal(tt: syn::Type) -> proc_macro2::TokenStream
     }
 }
 
-pub fn algorithm_indexer_source() -> TokenStream {
+pub fn algorithm_indexer_source(_input: TokenStream) -> TokenStream {
     algorithm_indexer_source_internal().into()
 }
 fn algorithm_indexer_source_internal() -> proc_macro2::TokenStream {
@@ -68,7 +68,7 @@ fn snapshot_indexer_web3_source_internal(func_name: syn::LitStr) -> proc_macro2:
     }
 }
 
-pub fn snapshot_indexer_https_source() -> TokenStream {
+pub fn snapshot_indexer_https_source(_input: TokenStream) -> TokenStream {
     snapshot_indexer_https_source_internal().into()
 }
 fn snapshot_indexer_https_source_internal() -> proc_macro2::TokenStream {
