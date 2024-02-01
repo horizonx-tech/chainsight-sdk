@@ -104,7 +104,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
 
     quote! {
         did_export!(#id); // NOTE: need to be declared before query, update
-        init_in!();
+        init_in!(2);
         chainsight_common!();
         snapshot_indexer_https_source!();
 
@@ -116,7 +116,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         }
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-        timer_task_func!("set_task", "index");
+        timer_task_func!("set_task", "index", 3);
 
         const URL : &str = #url;
         fn get_attrs() -> HttpsSnapshotIndexerSourceAttrs {
