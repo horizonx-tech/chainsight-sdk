@@ -37,7 +37,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
     quote! {
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in,manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, CborSerde, snapshot_indexer_icp_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, CborSerde, snapshot_indexer_icp_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use ic_stable_structures::writer::Writer;
 
@@ -45,10 +45,10 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
         did_export!(#id); // NOTE: need to be declared before query, update
 
-        init_in!();
+        init_in!(2);
         chainsight_common!();
 
-        manage_single_state!("target_canister", String, false);
+        stable_memory_for_scalar!("target_canister", String, 3, false);
         setup_func!({
             target_canister: String,
             #lens_targets_quote
@@ -56,7 +56,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-        timer_task_func!("set_task", "index");
+        timer_task_func!("set_task", "index", 4);
     }
 }
 
@@ -119,7 +119,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
         };
         (
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
+                manage_single_state!("lens_targets", Vec<String>, false); // todo: should use stable memory, but `Storable` isn't implemented for `Vec<String>`
                 #call_args_ident
             },
             quote! { snapshot_indexer_icp_source!(#method_ident, "get_lens_targets"); },
@@ -213,7 +213,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                 value: value.clone(),
                 timestamp: current_ts_sec,
             };
-            let _ = add_snapshot(datum.clone());
+            add_snapshot(datum.clone());
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }

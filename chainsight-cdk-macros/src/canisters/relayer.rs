@@ -34,19 +34,6 @@ fn relayer_canister(config: RelayerConfig) -> proc_macro2::TokenStream {
     }
 }
 
-fn call_option() -> proc_macro2::TokenStream {
-    quote! {
-        let w3_ctx_param = get_web3_ctx_param();
-        let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
-            w3_ctx_param.url,
-            w3_ctx_param.chain_id,
-            w3_ctx_param.env.ecdsa_key_name(),
-        );
-        use chainsight_cdk::web3::TransactionOptionBuilder;
-        let call_option = call_option_builder.build().await.expect("Failed to build call_option");
-    }
-}
-
 fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     let RelayerConfig {
         common,
@@ -159,6 +146,19 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
     generated
 }
 
+fn call_option() -> proc_macro2::TokenStream {
+    quote! {
+        let w3_ctx_param = get_web3_ctx_param();
+        let call_option_builder = chainsight_cdk::web3::EVMTransactionOptionBuilder::new(
+            w3_ctx_param.url,
+            w3_ctx_param.chain_id,
+            w3_ctx_param.env.ecdsa_key_name(),
+        );
+        use chainsight_cdk::web3::TransactionOptionBuilder;
+        let call_option = call_option_builder.build().await.expect("Failed to build call_option");
+    }
+}
+
 fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::TokenStream {
     let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
         if lens_parameter.is_some() {
@@ -252,7 +252,7 @@ fn inter_canister_call_args_ident(
                 }
             };
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false);
+                manage_single_state!("lens_targets", Vec<String>, false); // todo: should use stable memory, but `Storable` isn't implemented for `Vec<String>`
                 #call_args_ident
             }
         }
@@ -373,7 +373,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use candid::{Decode, Encode};
         use ic_cdk::api::call::result;
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, StableMemoryStorable, CborSerde, relayer_source};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, stable_memory_for_scalar, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
         use chainsight_cdk::convert::scalar::{Convertible, Scalable};
@@ -381,20 +381,20 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
-        define_web3_ctx!();
+        define_web3_ctx!(2);
         define_transform_for_web3!();
-        manage_single_state!("target_addr", String, false);
+        stable_memory_for_scalar!("target_addr", String, 3, false);
         define_get_ethereum_address!();
-        manage_single_state!("target_canister", String, false);
+        stable_memory_for_scalar!("target_canister", String, 4, false);
         prepare_stable_structure!();
-        timer_task_func!("set_task", "index");
-        init_in!();
+        timer_task_func!("set_task", "index", 6);
+        init_in!(1);
         setup_func!({
             target_addr: String,
             web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
             target_canister: String,
             #lens_targets_quote
-        });
+        }, 5);
     }
 }
 

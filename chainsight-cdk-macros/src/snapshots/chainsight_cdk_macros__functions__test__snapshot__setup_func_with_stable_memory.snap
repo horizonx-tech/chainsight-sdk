@@ -2,7 +2,12 @@
 source: chainsight-cdk-macros/src/functions.rs
 expression: formatted
 ---
-stable_memory_for_scalar!("setup_flag", StorableBool, 0, false);
+stable_memory_for_scalar!(
+    "setup_flag",
+    chainsight_cdk::storage::StorableBool,
+    0,
+    false
+);
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 fn setup(

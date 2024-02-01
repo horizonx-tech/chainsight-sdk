@@ -55,7 +55,7 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::futures::{future::BoxFuture, FutureExt};
         chainsight_common!();
-        init_in!();
+        init_in!(1);
         prepare_stable_structure!();
         use #canister_name_ident::*;
         #lens_method_quote

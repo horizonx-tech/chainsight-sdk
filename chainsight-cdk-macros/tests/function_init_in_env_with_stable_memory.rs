@@ -20,7 +20,7 @@ mod test_init_in_env_with_stable_memory {
             proxy: candid::Principal::anonymous().to_text(),
             env: chainsight_cdk::core::Env::Production,
         };
-        assert!(set_initializing_state(updated.clone()).is_ok());
+        assert!(set_initializing_state_internal(updated.clone()).is_ok());
 
         assert_eq!(get_initializing_state(), updated);
         assert_eq!(

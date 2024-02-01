@@ -6,19 +6,19 @@ use candid::{Decode, Encode};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, manage_single_state, prepare_stable_structure,
-    setup_func, snapshot_indexer_icp_source, stable_memory_for_vec, timer_task_func, CborSerde,
-    StableMemoryStorable,
+    setup_func, snapshot_indexer_icp_source, stable_memory_for_scalar, stable_memory_for_vec,
+    timer_task_func, CborSerde, StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
 mod types;
 did_export!("sample_snapshot_indexer_icp");
-init_in!();
+init_in!(2);
 chainsight_common!();
-manage_single_state!("target_canister", String, false);
+stable_memory_for_scalar!("target_canister", String, 3, false);
 setup_func ! ({ target_canister : String , lens_targets : Vec < String > });
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-timer_task_func!("set_task", "index");
+timer_task_func!("set_task", "index", 4);
 #[derive(
     Clone,
     Debug,
@@ -130,7 +130,7 @@ async fn index() {
         value: value.clone(),
         timestamp: current_ts_sec,
     };
-    let _ = add_snapshot(datum.clone());
+    add_snapshot(datum.clone());
     ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
 }
 #[derive(

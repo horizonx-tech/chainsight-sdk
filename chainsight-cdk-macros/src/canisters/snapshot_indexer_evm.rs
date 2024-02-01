@@ -35,26 +35,26 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::Address;
 
         did_export!(#canister_name); // NOTE: need to be declared before query, update
 
-        init_in!();
+        init_in!(2);
         chainsight_common!();
 
-        define_web3_ctx!();
+        define_web3_ctx!(3);
         define_transform_for_web3!();
-        manage_single_state!("target_addr", String, false);
+        stable_memory_for_scalar!("target_addr", String, 4, false);
         setup_func!({
             target_addr: String,
             web3_ctx_param: chainsight_cdk::web3::Web3CtxParam
-        });
+        }, 5);
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-        timer_task_func!("set_task", "index");
+        timer_task_func!("set_task", "index", 6);
     }
 }
 
@@ -212,7 +212,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
                 value: #response_values,
                 timestamp: current_ts_sec,
             };
-            let _ = add_snapshot(datum.clone());
+            add_snapshot(datum.clone());
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }

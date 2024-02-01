@@ -9,7 +9,7 @@ use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{
     chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
     did_export, init_in, manage_single_state, prepare_stable_structure, relayer_source, setup_func,
-    timer_task_func, CborSerde, StableMemoryStorable,
+    stable_memory_for_scalar, timer_task_func, CborSerde, StableMemoryStorable,
 };
 use ic_cdk::api::call::result;
 use ic_stable_structures::writer::Writer;
@@ -17,15 +17,15 @@ use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
 did_export!("relayer");
 chainsight_common!();
-define_web3_ctx!();
+define_web3_ctx!(2);
 define_transform_for_web3!();
-manage_single_state!("target_addr", String, false);
+stable_memory_for_scalar!("target_addr", String, 3, false);
 define_get_ethereum_address!();
-manage_single_state!("target_canister", String, false);
+stable_memory_for_scalar!("target_canister", String, 4, false);
 prepare_stable_structure!();
-timer_task_func!("set_task", "index");
-init_in!();
-setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , });
+timer_task_func!("set_task", "index", 6);
+init_in!(1);
+setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , } , 5);
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
 use relayer::{filter, CallCanisterResponse};
 type CallCanisterArgs = relayer::CallCanisterArgs;

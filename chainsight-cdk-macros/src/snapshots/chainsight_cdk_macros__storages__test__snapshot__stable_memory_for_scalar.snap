@@ -8,7 +8,10 @@ thread_local! { static TIMESTAMP : std :: cell :: RefCell < ic_stable_structures
 pub fn get_timestamp() -> u64 {
     TIMESTAMP.with(|cell| cell.borrow().get().clone())
 }
-pub fn set_timestamp(value: u64) -> Result<(), String> {
+pub fn set_timestamp(value: u64) {
+    set_timestamp_internal(value).unwrap()
+}
+pub fn set_timestamp_internal(value: u64) -> Result<(), String> {
     let res = TIMESTAMP.with(|cell| cell.borrow_mut().set(value));
     res.map(|_| ()).map_err(|e| format!("{:?}", e))
 }
