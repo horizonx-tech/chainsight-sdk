@@ -160,7 +160,7 @@ fn setup_func_internal(input: SetupArgs) -> proc_macro2::TokenStream {
         #[candid::candid_method(update)]
         fn setup(#( #names: #types ),*) -> Result<(), String> {
             assert!(!bool::from(get_setup_flag()), "Already setup");
-            #( #setters(#names); )*
+            #( #setters(#names.into()); )*
             set_setup_flag(true.into()); // note: when using stable_memory, the returned result is not handled
             Ok(())
         }

@@ -164,7 +164,7 @@ fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::To
         if lens_parameter.is_some() {
             (
                 quote! { lens_targets: Vec<String>, },
-                quote! { lens_targets: get_lens_targets(), },
+                quote! { lens_targets: get_lens_targets().into(), },
                 quote! { state.lens_targets },
             )
         } else {
@@ -234,7 +234,7 @@ fn inter_canister_call_args_ident(
                        #[candid::candid_method(query)]
                        pub fn call_args() -> CallCanisterArgs {
                            #canister_name_ident::#lens_args_ident {
-                               targets: get_lens_targets(),
+                               targets: get_lens_targets().into(),
                                args: #canister_name_ident::call_args(),
                            }
                        }
@@ -246,13 +246,13 @@ fn inter_canister_call_args_ident(
                        #[ic_cdk::query]
                        #[candid::candid_method(query)]
                        pub fn call_args() -> CallCanisterArgs {
-                           get_lens_targets()
+                           get_lens_targets().into()
                        }
                     }
                 }
             };
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false); // todo: should use stable memory, but `Storable` isn't implemented for `Vec<String>`
+                stable_memory_for_scalar!("lens_targets", chainsight_cdk::storage::StorableStrings, 5, false);
                 #call_args_ident
             }
         }
@@ -387,14 +387,14 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         define_get_ethereum_address!();
         stable_memory_for_scalar!("target_canister", String, 4, false);
         prepare_stable_structure!();
-        timer_task_func!("set_task", "index", 6);
+        timer_task_func!("set_task", "index", 7);
         init_in!(1);
         setup_func!({
             target_addr: String,
             web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
             target_canister: String,
             #lens_targets_quote
-        }, 5);
+        }, 6);
     }
 }
 
