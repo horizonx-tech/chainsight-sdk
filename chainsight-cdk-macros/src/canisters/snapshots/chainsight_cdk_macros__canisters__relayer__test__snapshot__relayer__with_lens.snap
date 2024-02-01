@@ -23,17 +23,22 @@ stable_memory_for_scalar!("target_addr", String, 3, false);
 define_get_ethereum_address!();
 stable_memory_for_scalar!("target_canister", String, 4, false);
 prepare_stable_structure!();
-timer_task_func!("set_task", "index", 6);
+timer_task_func!("set_task", "index", 7);
 init_in!(1);
-setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , lens_targets : Vec < String > } , 5);
+setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam , target_canister : String , lens_targets : Vec < String > } , 6);
 ic_solidity_bindgen::contract_abi!("__interfaces/Uint256Oracle.json");
 use relayer::{filter, CallCanisterResponse};
-manage_single_state!("lens_targets", Vec<String>, false);
+stable_memory_for_scalar!(
+    "lens_targets",
+    chainsight_cdk::storage::StorableStrings,
+    5,
+    false
+);
 type CallCanisterArgs = Vec<String>;
 #[ic_cdk::query]
 #[candid::candid_method(query)]
 pub fn call_args() -> CallCanisterArgs {
-    get_lens_targets()
+    get_lens_targets().into()
 }
 relayer_source!("get_last_snapshot_value", "get_lens_targets");
 #[ic_cdk::update]
@@ -114,7 +119,7 @@ fn pre_upgrade() {
         target_addr: get_target_addr(),
         web3_ctx_param: get_web3_ctx_param(),
         target_canister: get_target_canister(),
-        lens_targets: get_lens_targets(),
+        lens_targets: get_lens_targets().into(),
         indexing_interval: get_indexing_interval(),
     };
     let state_bytes = state.to_cbor();

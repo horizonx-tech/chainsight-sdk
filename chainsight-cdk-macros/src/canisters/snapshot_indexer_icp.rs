@@ -52,11 +52,11 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
         setup_func!({
             target_canister: String,
             #lens_targets_quote
-        });
+        }, 5);
 
         prepare_stable_structure!();
         stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-        timer_task_func!("set_task", "index", 4);
+        timer_task_func!("set_task", "index", 6);
     }
 }
 
@@ -102,7 +102,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                 type CallCanisterArgs = #canister_name_ident::#lens_args_ident;
                 pub fn call_args() -> CallCanisterArgs {
                     #canister_name_ident::#lens_args_ident {
-                        targets: get_lens_targets(),
+                        targets: get_lens_targets().into(),
                         args: #canister_name_ident::call_args(),
                     }
                 }
@@ -113,13 +113,13 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                 #[ic_cdk::query]
                 #[candid::candid_method(query)]
                 pub fn call_args() -> CallCanisterArgs {
-                    get_lens_targets()
+                    get_lens_targets().into()
                 }
             }
         };
         (
             quote! {
-                manage_single_state!("lens_targets", Vec<String>, false); // todo: should use stable memory, but `Storable` isn't implemented for `Vec<String>`
+                stable_memory_for_scalar!("lens_targets", chainsight_cdk::storage::StorableStrings, 4, false);
                 #call_args_ident
             },
             quote! { snapshot_indexer_icp_source!(#method_ident, "get_lens_targets"); },
@@ -146,7 +146,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
             if lens_parameter.is_some() {
                 (
                     quote! { lens_targets: Vec<String>, },
-                    quote! { lens_targets: get_lens_targets(), },
+                    quote! { lens_targets: get_lens_targets().into(), },
                     quote! { state.lens_targets },
                 )
             } else {

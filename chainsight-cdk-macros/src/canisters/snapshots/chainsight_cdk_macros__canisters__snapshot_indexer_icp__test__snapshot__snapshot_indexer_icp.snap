@@ -15,10 +15,10 @@ did_export!("sample_snapshot_indexer_icp");
 init_in!(2);
 chainsight_common!();
 stable_memory_for_scalar!("target_canister", String, 3, false);
-setup_func ! ({ target_canister : String , });
+setup_func ! ({ target_canister : String , } , 5);
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-timer_task_func!("set_task", "index", 4);
+timer_task_func!("set_task", "index", 6);
 #[derive(
     Clone,
     Debug,

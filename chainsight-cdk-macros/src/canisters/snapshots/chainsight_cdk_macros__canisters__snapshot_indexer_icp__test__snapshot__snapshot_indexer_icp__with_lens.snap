@@ -15,10 +15,10 @@ did_export!("sample_snapshot_indexer_icp");
 init_in!(2);
 chainsight_common!();
 stable_memory_for_scalar!("target_canister", String, 3, false);
-setup_func ! ({ target_canister : String , lens_targets : Vec < String > });
+setup_func ! ({ target_canister : String , lens_targets : Vec < String > } , 5);
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-timer_task_func!("set_task", "index", 4);
+timer_task_func!("set_task", "index", 6);
 #[derive(
     Clone,
     Debug,
@@ -91,12 +91,17 @@ pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec
         .await
 }
 snapshot_indexer_icp_source!("get_last_snapshot", "get_lens_targets");
-manage_single_state!("lens_targets", Vec<String>, false);
+stable_memory_for_scalar!(
+    "lens_targets",
+    chainsight_cdk::storage::StorableStrings,
+    4,
+    false
+);
 type CallCanisterArgs = Vec<String>;
 #[ic_cdk::query]
 #[candid::candid_method(query)]
 pub fn call_args() -> CallCanisterArgs {
-    get_lens_targets()
+    get_lens_targets().into()
 }
 type CallCanisterResponse = SnapshotValue;
 async fn call_target_method_to_target_canister(
@@ -153,7 +158,7 @@ fn pre_upgrade() {
     let state = UpgradeStableState {
         initializing_state: get_initializing_state(),
         target_canister: get_target_canister(),
-        lens_targets: get_lens_targets(),
+        lens_targets: get_lens_targets().into(),
         indexing_interval: get_indexing_interval(),
     };
     let state_bytes = state.to_cbor();

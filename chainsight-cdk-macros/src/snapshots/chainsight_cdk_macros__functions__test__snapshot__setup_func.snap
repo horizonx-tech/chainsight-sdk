@@ -11,9 +11,9 @@ fn setup(
     web3_ctx_param: Web3CtxParam,
 ) -> Result<(), String> {
     assert!(!bool::from(get_setup_flag()), "Already setup");
-    set_target_canister(target_canister);
-    set_target_addr(target_addr);
-    set_web3_ctx_param(web3_ctx_param);
+    set_target_canister(target_canister.into());
+    set_target_addr(target_addr.into());
+    set_web3_ctx_param(web3_ctx_param.into());
     set_setup_flag(true.into());
     Ok(())
 }

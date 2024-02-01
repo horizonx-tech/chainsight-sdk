@@ -129,7 +129,7 @@ pub fn snapshot_indexer_icp_source_internal(
                         get_target_canister(),
                         get_indexing_interval(),
                         #method_identifier,
-                        #func_ident()
+                        #func_ident().into()
                     )
                 ]
             }
@@ -192,7 +192,7 @@ fn relayer_source_internal(args: RelayerSourceInput) -> proc_macro2::TokenStream
                         get_target_canister(),
                         get_indexing_interval(),
                         #method_identifier,
-                        #func_ident()
+                        #func_ident().into()
                     ),
                 ]
             }
