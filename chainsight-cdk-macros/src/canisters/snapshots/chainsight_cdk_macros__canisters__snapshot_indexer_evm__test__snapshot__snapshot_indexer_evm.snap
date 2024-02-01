@@ -6,21 +6,22 @@ use candid::{Decode, Encode};
 use chainsight_cdk_macros::{
     chainsight_common, define_transform_for_web3, define_web3_ctx, did_export, init_in,
     manage_single_state, prepare_stable_structure, setup_func, snapshot_indexer_web3_source,
-    stable_memory_for_vec, timer_task_func, CborSerde, StableMemoryStorable,
+    stable_memory_for_scalar, stable_memory_for_vec, timer_task_func, CborSerde,
+    StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
 use ic_web3_rs::types::Address;
 use std::str::FromStr;
 did_export!("sample_snapshot_indexer_evm");
-init_in!();
+init_in!(2);
 chainsight_common!();
-define_web3_ctx!();
+define_web3_ctx!(3);
 define_transform_for_web3!();
-manage_single_state!("target_addr", String, false);
-setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam });
+stable_memory_for_scalar!("target_addr", String, 4, false);
+setup_func ! ({ target_addr : String , web3_ctx_param : chainsight_cdk :: web3 :: Web3CtxParam } , 5);
 prepare_stable_structure!();
 stable_memory_for_vec!("snapshot", Snapshot, 1, true);
-timer_task_func!("set_task", "index");
+timer_task_func!("set_task", "index", 6);
 #[derive(
     Debug,
     Clone,
@@ -114,7 +115,7 @@ async fn index() {
         value: res.to_string(),
         timestamp: current_ts_sec,
     };
-    let _ = add_snapshot(datum.clone());
+    add_snapshot(datum.clone());
     ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
 }
 #[derive(

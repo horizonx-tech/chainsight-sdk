@@ -100,7 +100,10 @@ async fn proxy_get_timestamp(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
         .reply(input)
         .await
 }
-pub fn add_timestamp(value: u64) -> Result<(), String> {
+pub fn add_timestamp(value: u64) {
+    add_timestamp_internal(value).unwrap()
+}
+pub fn add_timestamp_internal(value: u64) -> Result<(), String> {
     let res = TIMESTAMPS.with(|vec| vec.borrow_mut().push(&value));
     res.map_err(|e| format!("{:?}", e))
 }
