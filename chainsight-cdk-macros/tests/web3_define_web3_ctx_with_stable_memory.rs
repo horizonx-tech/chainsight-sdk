@@ -21,7 +21,7 @@ mod test_define_web3_ctx_with_stable_memory {
             chain_id: 1,
             env: chainsight_cdk::core::Env::Production,
         };
-        assert!(set_web3_ctx_param(ctx_param.clone()).is_ok());
+        assert!(set_web3_ctx_param_internal(ctx_param.clone()).is_ok());
         assert_eq!(get_web3_ctx_param(), ctx_param);
 
         let ctx = web3_ctx().unwrap();

@@ -122,6 +122,8 @@ fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_m
     let var_ident = syn::Ident::new(&name.value().to_uppercase(), name.span());
     let get_ident = syn::Ident::new(&format!("get_{}", name.value()), name.span());
     let set_ident = syn::Ident::new(&format!("set_{}", name.value()), name.span());
+    let set_internal_ident =
+        syn::Ident::new(&format!("set_{}_internal", name.value()), name.span());
 
     let init = match init {
         Some(init_value) => quote!(#init_value),
@@ -153,7 +155,12 @@ fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_m
             #var_ident.with(|cell| cell.borrow().get().clone())
         }
 
-        pub fn #set_ident(value: #ty) -> Result<(), String> {
+        // NOTE: consistency with macro return value for heap (not return Result)
+        pub fn #set_ident(value: #ty) {
+            #set_internal_ident(value).unwrap()
+        }
+
+        pub fn #set_internal_ident(value: #ty) -> Result<(), String> {
             let res = #var_ident.with(|cell| cell.borrow_mut().set(value));
             res.map(|_| ()).map_err(|e| format!("{:?}", e))
         }
@@ -483,6 +490,8 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     let _get_elem_func = syn::Ident::new(&format!("_get_{}", state_name), name.span());
     let proxy_get_elem_func = syn::Ident::new(&format!("proxy_get_{}", state_name), name.span());
     let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
+    let add_elem_func_internal =
+        syn::Ident::new(&format!("add_{}_internal", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
         quote! {
@@ -625,7 +634,12 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
             .await
         }
 
-        pub fn #add_elem_func(value: #ty) -> Result<(), String> {
+        // NOTE: consistency with macro return value for heap (not return Result)
+        pub fn #add_elem_func(value: #ty) {
+            #add_elem_func_internal(value).unwrap()
+        }
+
+        pub fn #add_elem_func_internal(value: #ty) -> Result<(), String> {
             let res = #state_upper_name.with(|vec| vec.borrow_mut().push(&value));
             res.map_err(|e| format!("{:?}", e))
         }

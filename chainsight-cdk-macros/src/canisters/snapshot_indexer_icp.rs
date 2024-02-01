@@ -213,7 +213,7 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
                 value: value.clone(),
                 timestamp: current_ts_sec,
             };
-            let _ = add_snapshot(datum.clone());
+            add_snapshot(datum.clone());
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }

@@ -156,7 +156,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
                 value: res,
                 timestamp: ic_cdk::api::time() / 1000000,
             };
-            let _ = add_snapshot(snapshot.clone());
+            add_snapshot(snapshot.clone());
 
             ic_cdk::println!("timestamp={}, value={:?}", snapshot.timestamp, snapshot.value);
         }
