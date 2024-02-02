@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::{camel_to_snake, update_funcs_to_upgrade};
+use crate::canisters::utils::camel_to_snake;
 
 use super::utils::extract_contract_name_from_path;
 
