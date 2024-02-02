@@ -74,34 +74,6 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
     };
     let queries = generate_queries_without_timestamp(format_ident!("SnapshotValue"));
 
-    let quote_to_upgradable = {
-        let state_struct = quote! {
-            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
-            pub struct UpgradeStableState {
-                pub initializing_state: InitializingState,
-                pub indexing_interval: u32
-            }
-        };
-
-        let update_funcs_to_upgrade = update_funcs_to_upgrade(
-            quote! {
-                UpgradeStableState {
-                    initializing_state: get_initializing_state(),
-                    indexing_interval: get_indexing_interval(),
-                }
-            },
-            quote! {
-                set_initializing_state(state.initializing_state);
-                set_indexing_interval(state.indexing_interval);
-            },
-        );
-
-        quote! {
-            #state_struct
-            #update_funcs_to_upgrade
-        }
-    };
-
     quote! {
         did_export!(#id); // NOTE: need to be declared before query, update
         init_in!(2);
@@ -161,8 +133,6 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
             ic_cdk::println!("timestamp={}, value={:?}", snapshot.timestamp, snapshot.value);
         }
         #queries
-
-        #quote_to_upgradable
     }
 }
 
