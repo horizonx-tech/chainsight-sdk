@@ -16,7 +16,7 @@ use syn::parse_macro_input;
 
 use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
 
-use super::utils::{extract_contract_name_from_path, update_funcs_to_upgrade};
+use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -102,8 +102,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         canister_name_ident.clone(),
     );
 
-    let quote_to_upgradable = quote_to_upgradable(lens_parameter.clone());
-
     let generated = quote! {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
@@ -139,8 +137,6 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
             #call_option_ident
             #method_call_ident
         }
-
-        #quote_to_upgradable
     };
 
     generated
@@ -156,58 +152,6 @@ fn call_option() -> proc_macro2::TokenStream {
         );
         use chainsight_cdk::web3::TransactionOptionBuilder;
         let call_option = call_option_builder.build().await.expect("Failed to build call_option");
-    }
-}
-
-fn quote_to_upgradable(lens_parameter: Option<LensParameter>) -> proc_macro2::TokenStream {
-    let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
-        if lens_parameter.is_some() {
-            (
-                quote! { lens_targets: Vec<String>, },
-                quote! { lens_targets: get_lens_targets().into(), },
-                quote! { state.lens_targets },
-            )
-        } else {
-            (quote! {}, quote! {}, quote! {})
-        };
-    let state_struct = quote! {
-        #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
-        pub struct UpgradeStableState {
-            pub initializing_state: InitializingState,
-            pub target_addr: String,
-            pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
-            pub target_canister: String,
-            #lens_targets_quote
-            pub indexing_interval: u32
-        }
-    };
-
-    let update_funcs_to_upgrade = update_funcs_to_upgrade(
-        quote! {
-            UpgradeStableState {
-                initializing_state: get_initializing_state(),
-                target_addr: get_target_addr(),
-                web3_ctx_param: get_web3_ctx_param(),
-                target_canister: get_target_canister(),
-                #generate_lens_targets
-                indexing_interval: get_indexing_interval(),
-            }
-        },
-        quote! {
-            set_initializing_state(state.initializing_state);
-            setup(
-                state.target_addr,
-                state.web3_ctx_param,
-                state.target_canister,
-                #recover_lens_targets
-            ).expect("Failed to `setup` in post_upgrade");
-            set_indexing_interval(state.indexing_interval);
-        },
-    );
-
-    quote! {
-        #state_struct
-        #update_funcs_to_upgrade
     }
 }
 

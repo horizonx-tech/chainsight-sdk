@@ -3,8 +3,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::update_funcs_to_upgrade;
-
 pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: AlgorithmLensConfig =
@@ -23,31 +21,6 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         quote! { lens_method!(#lens_size); }
     };
 
-    let quote_to_upgradable = {
-        let state_struct = quote! {
-            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
-            pub struct UpgradeStableState {
-                pub initializing_state: InitializingState,
-            }
-        };
-
-        let update_funcs_to_upgrade = update_funcs_to_upgrade(
-            quote! {
-                UpgradeStableState {
-                    initializing_state: get_initializing_state()
-                }
-            },
-            quote! {
-                set_initializing_state(state.initializing_state);
-            },
-        );
-
-        quote! {
-            #state_struct
-            #update_funcs_to_upgrade
-        }
-    };
-
     quote! {
         did_export!(#canister_name);
         use candid::{Decode, Encode};
@@ -59,7 +32,6 @@ fn algorithm_lens_canister(config: AlgorithmLensConfig) -> proc_macro2::TokenStr
         prepare_stable_structure!();
         use #canister_name_ident::*;
         #lens_method_quote
-        #quote_to_upgradable
     }
 }
 

@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::{generate_queries_without_timestamp, update_funcs_to_upgrade};
+use crate::canisters::utils::generate_queries_without_timestamp;
 
 pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
@@ -141,52 +141,6 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
     let quote_to_call_target =
         generate_quote_to_call_target(is_target_component, method_ident.clone());
 
-    let quote_to_upgradable = {
-        let (lens_targets_quote, generate_lens_targets, recover_lens_targets) =
-            if lens_parameter.is_some() {
-                (
-                    quote! { lens_targets: Vec<String>, },
-                    quote! { lens_targets: get_lens_targets().into(), },
-                    quote! { state.lens_targets },
-                )
-            } else {
-                (quote! {}, quote! {}, quote! {})
-            };
-        let state_struct = quote! {
-            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
-            pub struct UpgradeStableState {
-                pub initializing_state: InitializingState,
-                pub target_canister: String,
-                #lens_targets_quote
-                pub indexing_interval: u32
-            }
-        };
-
-        let update_funcs_to_upgrade = update_funcs_to_upgrade(
-            quote! {
-                UpgradeStableState {
-                    initializing_state: get_initializing_state(),
-                    target_canister: get_target_canister(),
-                    #generate_lens_targets
-                    indexing_interval: get_indexing_interval(),
-                }
-            },
-            quote! {
-                set_initializing_state(state.initializing_state);
-                setup(
-                    state.target_canister,
-                    #recover_lens_targets
-                ).expect("Failed to `setup` in post_upgrade");
-                set_indexing_interval(state.indexing_interval);
-            },
-        );
-
-        quote! {
-            #state_struct
-            #update_funcs_to_upgrade
-        }
-    };
-
     quote! {
         #snapshot_idents
 
@@ -217,8 +171,6 @@ fn custom_code(config: SnapshotIndexerICPConfig) -> proc_macro2::TokenStream {
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
-
-        #quote_to_upgradable
     }
 }
 
