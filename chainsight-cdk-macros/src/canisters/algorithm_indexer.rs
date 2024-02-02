@@ -3,8 +3,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::utils::update_funcs_to_upgrade;
-
 pub fn def_algorithm_indexer_canister(input: TokenStream) -> TokenStream {
     let input_json_string = parse_macro_input!(input as syn::LitStr).value();
     let config: AlgorithmIndexerConfig =
