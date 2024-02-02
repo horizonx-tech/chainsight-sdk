@@ -155,15 +155,24 @@ fn event_indexer_common(
 pub struct AlgorithmIndexerInput {
     in_type: syn::Type,
     call_method: syn::LitStr,
+    stable_memory_id: Option<LitInt>,
 }
 impl Parse for AlgorithmIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let call_method_str: syn::LitStr = input.parse()?;
+        let stable_memory_id = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
         Ok(AlgorithmIndexerInput {
             in_type: in_ty,
             call_method: call_method_str,
+            stable_memory_id,
         })
     }
 }
@@ -175,10 +184,22 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
     let AlgorithmIndexerInput {
         in_type,
         call_method,
+        stable_memory_id,
     } = args;
 
+    let storage_quote = if let Some(memory_id) = stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("config", IndexingConfig, #memory_id, false);
+        }
+    } else {
+        quote! {
+            manage_single_state!("config", IndexingConfig, false);
+        }
+    };
+
     quote! {
-        manage_single_state!("config", IndexingConfig, false);
+        #storage_quote
+
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)
