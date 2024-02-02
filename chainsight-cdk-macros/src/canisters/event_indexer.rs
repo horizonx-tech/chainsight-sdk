@@ -57,6 +57,8 @@ fn common_code(common: &CommonConfig) -> proc_macro2::TokenStream {
         use std::{collections::HashMap, str::FromStr};
         did_export!(#canister_name);
 
+        // NOTE: The memory id in canister is used from a number that does not duplicate the memory id declared in the storage module of the cdk.
+        // https://github.com/horizonx-tech/chainsight-sdk/blob/8aa1d1dd1cb8e3d0adde2fa9d27f374d430f663a/chainsight-cdk/src/storage/storage.rs#L97
         init_in!(11);
         chainsight_common!();
         define_web3_ctx!(12);

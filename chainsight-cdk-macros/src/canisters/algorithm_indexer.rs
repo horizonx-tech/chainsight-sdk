@@ -33,6 +33,9 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         use std::collections::HashMap;
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
+
+        // NOTE: The memory id in canister is used from a number that does not duplicate the memory id declared in the storage module of the cdk.
+        // https://github.com/horizonx-tech/chainsight-sdk/blob/8aa1d1dd1cb8e3d0adde2fa9d27f374d430f663a/chainsight-cdk/src/storage/storage.rs#L97
         init_in!(11);
         prepare_stable_structure!();
         stable_memory_for_scalar!("target_addr", String, 12, false);
