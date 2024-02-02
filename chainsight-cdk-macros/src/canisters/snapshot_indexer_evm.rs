@@ -151,42 +151,6 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
         generate_queries_without_timestamp(format_ident!("SnapshotValue")),
     );
 
-    let quote_to_upgradable = {
-        let state_struct = quote! {
-            #[derive(Clone, Debug, PartialEq, candid::CandidType, serde::Serialize, serde::Deserialize, CborSerde)]
-            pub struct UpgradeStableState {
-                pub initializing_state: InitializingState,
-                pub web3_ctx_param: chainsight_cdk::web3::Web3CtxParam,
-                pub target_addr: String,
-                pub indexing_interval: u32,
-            }
-        };
-
-        let update_funcs_to_upgrade = update_funcs_to_upgrade(
-            quote! {
-                UpgradeStableState {
-                    initializing_state: get_initializing_state(),
-                    web3_ctx_param: get_web3_ctx_param(),
-                    target_addr: get_target_addr(),
-                    indexing_interval: get_indexing_interval(),
-                }
-            },
-            quote! {
-                set_initializing_state(state.initializing_state);
-                setup(
-                    state.target_addr,
-                    state.web3_ctx_param,
-                ).expect("Failed to `setup` in post_upgrade");
-                set_indexing_interval(state.indexing_interval);
-            },
-        );
-
-        quote! {
-            #state_struct
-            #update_funcs_to_upgrade
-        }
-    };
-
     quote! {
         #snapshot_idents
 
@@ -216,8 +180,6 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
             ic_cdk::println!("timestamp={}, value={:?}", datum.timestamp, datum.value);
         }
-
-        #quote_to_upgradable
     }
 }
 
