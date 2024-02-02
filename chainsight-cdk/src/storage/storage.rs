@@ -96,11 +96,12 @@ impl Data {
 
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static MAP: RefCell<StableBTreeMap<u64, Values, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MANAGER.with(|m|m.borrow().get(MemoryId::new(0))),
-        )
-    );
+    // NOTE: Not currently in use, and id=0 conflicts with prepare_stable_structure macro
+    // static MAP: RefCell<StableBTreeMap<u64, Values, Memory>> = RefCell::new(
+    //     StableBTreeMap::init(
+    //         MANAGER.with(|m|m.borrow().get(MemoryId::new(0))),
+    //     )
+    // );
     static KEY_VALUE_STORE_1: RefCell<StableBTreeMap<Id, Data, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MANAGER.with(|m|m.borrow().get(MemoryId::new(1))),
