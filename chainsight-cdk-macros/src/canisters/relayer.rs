@@ -16,7 +16,7 @@ use syn::parse_macro_input;
 
 use crate::{canisters::utils::camel_to_snake, web3::ContractCall};
 
-use super::utils::{extract_contract_name_from_path, update_funcs_to_upgrade};
+use super::utils::extract_contract_name_from_path;
 
 pub fn def_relayer_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();

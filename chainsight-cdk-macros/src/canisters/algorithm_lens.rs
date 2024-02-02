@@ -3,8 +3,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::update_funcs_to_upgrade;
-
 pub fn def_algorithm_lens_canister(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();
     let config: AlgorithmLensConfig =

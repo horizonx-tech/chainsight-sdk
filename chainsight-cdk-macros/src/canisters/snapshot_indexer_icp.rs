@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use crate::canisters::utils::{generate_queries_without_timestamp, update_funcs_to_upgrade};
+use crate::canisters::utils::generate_queries_without_timestamp;
 
 pub fn def_snapshot_indexer_icp(input: TokenStream) -> TokenStream {
     let input_json_string: String = parse_macro_input!(input as syn::LitStr).value();

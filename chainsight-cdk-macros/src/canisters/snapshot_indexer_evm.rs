@@ -10,7 +10,6 @@ use syn::parse_macro_input;
 
 use crate::canisters::utils::{
     camel_to_snake, extract_contract_name_from_path, generate_queries_without_timestamp,
-    update_funcs_to_upgrade,
 };
 
 pub fn def_snapshot_indexer_evm(input: TokenStream) -> TokenStream {
