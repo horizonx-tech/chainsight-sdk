@@ -89,6 +89,7 @@ pub fn generate_queries_without_timestamp(
     }
 }
 
+#[allow(dead_code)]
 pub fn update_funcs_to_upgrade(
     generate_state: proc_macro2::TokenStream,
     recover_from_state: proc_macro2::TokenStream,

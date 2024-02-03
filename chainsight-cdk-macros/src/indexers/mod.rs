@@ -2,18 +2,29 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, Type,
+    parse_macro_input, LitInt, Type,
 };
 
 pub mod sources;
 
 pub struct Web3EventIndexerInput {
     out_type: syn::Type,
+    stable_memory_id: Option<LitInt>,
 }
 impl Parse for Web3EventIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let out_type: Type = input.parse()?;
-        Ok(Web3EventIndexerInput { out_type })
+        let stable_memory_id = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
+        Ok(Web3EventIndexerInput {
+            out_type,
+            stable_memory_id,
+        })
     }
 }
 pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
@@ -21,8 +32,11 @@ pub fn web3_event_indexer(input: TokenStream) -> TokenStream {
     web3_event_indexer_internal(args).into()
 }
 fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::TokenStream {
-    let Web3EventIndexerInput { out_type } = args;
-    let common = event_indexer_common(out_type.clone());
+    let Web3EventIndexerInput {
+        out_type,
+        stable_memory_id,
+    } = args;
+    let common = event_indexer_common(out_type.clone(), stable_memory_id);
 
     quote! {
         #common
@@ -40,9 +54,23 @@ fn web3_event_indexer_internal(args: Web3EventIndexerInput) -> proc_macro2::Toke
 
     }
 }
-fn event_indexer_common(out_type: syn::Type) -> proc_macro2::TokenStream {
+fn event_indexer_common(
+    out_type: syn::Type,
+    stable_memory_id: Option<LitInt>,
+) -> proc_macro2::TokenStream {
+    let storage_quote = if let Some(memory_id) = stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("config", IndexingConfig, #memory_id, false);
+        }
+    } else {
+        quote! {
+            manage_single_state!("config", IndexingConfig, false);
+        }
+    };
+
     let output = quote! {
-        manage_single_state!("config", IndexingConfig, false);
+        #storage_quote
+
         #[ic_cdk::query]
         #[candid::candid_method(query)]
         pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
@@ -127,15 +155,24 @@ fn event_indexer_common(out_type: syn::Type) -> proc_macro2::TokenStream {
 pub struct AlgorithmIndexerInput {
     in_type: syn::Type,
     call_method: syn::LitStr,
+    stable_memory_id: Option<LitInt>,
 }
 impl Parse for AlgorithmIndexerInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let in_ty: Type = input.parse()?;
         input.parse::<syn::Token![,]>()?;
         let call_method_str: syn::LitStr = input.parse()?;
+        let stable_memory_id = if input.peek(syn::Token![,]) {
+            input.parse::<syn::Token![,]>()?;
+            let parsed: LitInt = input.parse()?;
+            Some(parsed)
+        } else {
+            None
+        };
         Ok(AlgorithmIndexerInput {
             in_type: in_ty,
             call_method: call_method_str,
+            stable_memory_id,
         })
     }
 }
@@ -147,10 +184,22 @@ fn algorithm_indexer_internal(args: AlgorithmIndexerInput) -> proc_macro2::Token
     let AlgorithmIndexerInput {
         in_type,
         call_method,
+        stable_memory_id,
     } = args;
 
+    let storage_quote = if let Some(memory_id) = stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("config", IndexingConfig, #memory_id, false);
+        }
+    } else {
+        quote! {
+            manage_single_state!("config", IndexingConfig, false);
+        }
+    };
+
     quote! {
-        manage_single_state!("config", IndexingConfig, false);
+        #storage_quote
+
         use chainsight_cdk::indexer::Indexer;
         async fn indexer() -> chainsight_cdk::algorithm::AlgorithmIndexer<#in_type> {
             chainsight_cdk::algorithm::AlgorithmIndexer::new_with_method(_get_target_proxy(get_target()).await, #call_method, persist)

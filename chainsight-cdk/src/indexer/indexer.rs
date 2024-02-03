@@ -1,5 +1,7 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
-use candid::CandidType;
+use candid::{CandidType, Decode, Encode};
 use derive_more::Display;
 use serde::Deserialize;
 
@@ -21,6 +23,19 @@ pub enum Error {
 pub struct IndexingConfig {
     pub start_from: u64,
     pub chunk_size: Option<u64>,
+}
+impl ic_stable_structures::Storable for IndexingConfig {
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+impl ic_stable_structures::BoundedStorable for IndexingConfig {
+    const MAX_SIZE: u32 = 100; // temp
+    const IS_FIXED_SIZE: bool = false; // temp
 }
 
 pub trait Event<T>: CandidType + Send + Sync + Clone + From<T> + Persist + 'static {
