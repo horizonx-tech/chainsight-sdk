@@ -773,7 +773,7 @@ mod test {
         assert_eq!(
             serde_to_token_streams(&[ParamType::String], &[json!("0xffff")],).unwrap()[0]
                 .to_string(),
-            r#""0xffff""#,
+            r#""0xffff" . into ()"#,
         );
     }
 
