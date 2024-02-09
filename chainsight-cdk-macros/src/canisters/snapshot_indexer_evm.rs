@@ -313,7 +313,10 @@ pub fn serde_to_token_streams(
                     .collect::<Vec<_>>();
                 quote! { vec![#(#bytes),*] }
             }
-            ParamType::String => value.as_str().unwrap().to_token_stream(),
+            ParamType::String => {
+                let token = value.as_str().unwrap().to_token_stream();
+                quote! { #token.into() } // from String to &str
+            }
         };
         tokens.push(t);
     }
@@ -770,7 +773,7 @@ mod test {
         assert_eq!(
             serde_to_token_streams(&[ParamType::String], &[json!("0xffff")],).unwrap()[0]
                 .to_string(),
-            r#""0xffff""#,
+            r#""0xffff" . into ()"#,
         );
     }
 
