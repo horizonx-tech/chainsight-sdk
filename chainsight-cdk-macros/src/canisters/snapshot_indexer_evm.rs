@@ -313,7 +313,10 @@ pub fn serde_to_token_streams(
                     .collect::<Vec<_>>();
                 quote! { vec![#(#bytes),*] }
             }
-            ParamType::String => value.as_str().unwrap().to_token_stream(),
+            ParamType::String => {
+                let token = value.as_str().unwrap().to_token_stream();
+                quote! { #token.into() } // from String to &str
+            },
         };
         tokens.push(t);
     }
