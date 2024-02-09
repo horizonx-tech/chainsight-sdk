@@ -316,7 +316,7 @@ pub fn serde_to_token_streams(
             ParamType::String => {
                 let token = value.as_str().unwrap().to_token_stream();
                 quote! { #token.into() } // from String to &str
-            },
+            }
         };
         tokens.push(t);
     }
