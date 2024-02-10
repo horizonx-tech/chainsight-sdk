@@ -378,7 +378,7 @@ fn to_candid_type(kind: &ParamType) -> (proc_macro2::TokenStream, usize) {
 }
 
 fn to_candid_values(
-    outputs: &Vec<ParamType>,
+    outputs: &[ParamType],
     accessor: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     if outputs.len() == 1 {
