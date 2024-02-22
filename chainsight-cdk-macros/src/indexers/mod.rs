@@ -5,6 +5,8 @@ use syn::{
     parse_macro_input, LitInt, Type,
 };
 
+use crate::internal::attrs_query_func;
+
 pub mod sources;
 
 pub struct Web3EventIndexerInput {
@@ -68,11 +70,12 @@ fn event_indexer_common(
         }
     };
 
+    let attrs_query = attrs_query_func();
+
     let output = quote! {
         #storage_quote
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
             _events_from_to((from,to))
         }
@@ -96,8 +99,7 @@ fn event_indexer_common(
             indexer().between(input.0,input.1).unwrap()
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
             _events_latest_n(n)
         }
@@ -120,8 +122,7 @@ fn event_indexer_common(
         }
 
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn get_last_indexed() -> u64 {
             _get_last_indexed()
         }

@@ -1,6 +1,8 @@
 use quote::quote;
 use std::path::PathBuf;
 
+use crate::internal::attrs_query_func;
+
 /// Convert camelCase String to snake_case
 pub fn camel_to_snake(val: &str) -> String {
     // NOTE: use Inflator in ic-solidity-bindgen
@@ -17,10 +19,7 @@ pub fn extract_contract_name_from_path(s: &str) -> String {
 pub fn generate_queries_without_timestamp(
     return_type: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
-    let query_derives = quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-    };
+    let query_derives = attrs_query_func();
     let update_derives = quote! {
         #[ic_cdk::update]
         #[candid::candid_method(update)]

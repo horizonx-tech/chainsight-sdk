@@ -3,6 +3,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
+use super::internal::attrs_query_func;
+
 pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
     prepare_stable_structure_internal().into()
 }
@@ -130,10 +132,7 @@ fn stable_memory_for_scalar_internal(args: StableMemoryForScalarInput) -> proc_m
         None => quote!(std::default::Default::default()),
     };
     let getter_derives = if is_expose_getter.value {
-        quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-        }
+        attrs_query_func()
     } else {
         quote! {}
     };
@@ -187,10 +186,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let name = input.clone().ident;
     let memory_id = mem_id(input);
-    let query = quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-    };
+    let query = attrs_query_func();
     let update = quote! {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -314,10 +310,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
     let name = input.clone().ident;
     let memory_id = mem_id(input);
-    let query = quote! {
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
-    };
+    let query = attrs_query_func();
     let update = quote! {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -494,10 +487,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
         syn::Ident::new(&format!("add_{}_internal", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
-        quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-        }
+        attrs_query_func()
     } else {
         quote! {}
     };
