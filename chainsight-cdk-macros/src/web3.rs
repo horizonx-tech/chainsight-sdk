@@ -7,6 +7,8 @@ use syn::{
     LitInt, Result,
 };
 
+use super::internal::attrs_query_func;
+
 pub trait ContractEvent {
     fn from(item: ic_solidity_bindgen::types::EventLog) -> Self;
 }
@@ -95,10 +97,11 @@ pub fn define_transform_for_web3(_input: TokenStream) -> TokenStream {
     define_transform_for_web3_internal().into()
 }
 fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
+    let attrs = attrs_query_func();
+
     quote! {
         use ic_web3_rs::transforms::transform::TransformProcessor;
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs
         fn transform(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
             let res = response.response;
             ic_cdk::api::management_canister::http_request::HttpResponse {
@@ -108,20 +111,17 @@ fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
             }
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs
         fn transform_send_transaction(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
             ic_web3_rs::transforms::processors::send_transaction_processor().transform(response)
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs
         fn transform_get_filter_changes(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
             ic_web3_rs::transforms::processors::get_filter_changes_processor().transform(response)
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs
         fn transform_eip1559_support(response: ic_cdk::api::management_canister::http_request::TransformArgs) -> ic_cdk::api::management_canister::http_request::HttpResponse {
             use chainsight_cdk::web3::TransformProcessor;
             let processor = chainsight_cdk::web3::processors::EIP1559SupportProcessor;

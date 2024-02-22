@@ -6,6 +6,8 @@ use syn::{
     parse_macro_input, Expr, LitBool, LitStr, Type,
 };
 
+use super::internal::{attrs_query_func, attrs_update_func};
+
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
     fn tokenize(&self) -> Data;
@@ -159,10 +161,7 @@ fn manage_single_state_internal(args: SingleStateInput) -> proc_macro2::TokenStr
         None => quote!(std::default::Default::default()),
     };
     let getter_derives = if is_expose_getter.value {
-        quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-        }
+        attrs_query_func()
     } else {
         quote! {}
     };
@@ -235,17 +234,11 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
     let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
-        quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-        }
+        attrs_query_func()
     } else {
         quote! {}
     };
-    let update_derive = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update_derive = attrs_update_func();
 
     quote! {
         thread_local! {
@@ -403,10 +396,7 @@ fn manage_map_state_internal(args: MapStateInput) -> proc_macro2::TokenStream {
     let insert_elem_func = syn::Ident::new(&format!("insert_{}", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
-        quote! {
-            #[ic_cdk::query]
-            #[candid::candid_method(query)]
-        }
+        attrs_query_func()
     } else {
         quote! {}
     };

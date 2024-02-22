@@ -5,6 +5,8 @@ use syn::{
     parse_macro_input, LitInt, Type,
 };
 
+use crate::internal::{attrs_query_func, attrs_update_func};
+
 pub mod sources;
 
 pub struct Web3EventIndexerInput {
@@ -68,16 +70,17 @@ fn event_indexer_common(
         }
     };
 
+    let attrs_query = attrs_query_func();
+    let attrs_update = attrs_update_func();
+
     let output = quote! {
         #storage_quote
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
             _events_from_to((from,to))
         }
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
+        #attrs_update
         pub async fn proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             _proxy_events_from_to(input).await
         }
@@ -96,14 +99,12 @@ fn event_indexer_common(
             indexer().between(input.0,input.1).unwrap()
         }
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
             _events_latest_n(n)
         }
 
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
+        #attrs_update
         pub async fn proxy_events_latest_n(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProvider::<u64, HashMap<u64, Vec<#out_type>>>::new(
@@ -120,14 +121,12 @@ fn event_indexer_common(
         }
 
 
-        #[ic_cdk::query]
-        #[candid::candid_method(query)]
+        #attrs_query
         pub fn get_last_indexed() -> u64 {
             _get_last_indexed()
         }
 
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
+        #attrs_update
         pub async fn proxy_get_last_indexed(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             use chainsight_cdk::rpc::Receiver;
             chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(
@@ -142,8 +141,7 @@ fn event_indexer_common(
             indexer().get_last_indexed().unwrap()
         }
 
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
+        #attrs_update
         async fn proxy_call(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
             _proxy_events_from_to(input).await
         }

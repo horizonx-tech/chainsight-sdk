@@ -1,6 +1,7 @@
 mod canisters;
 mod functions;
 mod indexers;
+mod internal;
 mod states;
 mod storages;
 mod utils;
