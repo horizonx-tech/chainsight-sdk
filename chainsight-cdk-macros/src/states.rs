@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, Expr, LitBool, LitStr, Type,
 };
 
-use super::internal::attrs_query_func;
+use super::internal::{attrs_query_func, attrs_update_func};
 
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
@@ -238,10 +238,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
     } else {
         quote! {}
     };
-    let update_derive = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update_derive = attrs_update_func();
 
     quote! {
         thread_local! {

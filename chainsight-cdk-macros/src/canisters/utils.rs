@@ -1,7 +1,7 @@
 use quote::quote;
 use std::path::PathBuf;
 
-use crate::internal::attrs_query_func;
+use crate::internal::{attrs_query_func, attrs_update_func};
 
 /// Convert camelCase String to snake_case
 pub fn camel_to_snake(val: &str) -> String {
@@ -20,10 +20,7 @@ pub fn generate_queries_without_timestamp(
     return_type: proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
     let query_derives = attrs_query_func();
-    let update_derives = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update_derives = attrs_update_func();
 
     quote! {
         fn _get_last_snapshot_value() -> #return_type {

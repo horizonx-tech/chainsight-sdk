@@ -3,6 +3,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse::Parse, parse_macro_input, DeriveInput, Expr, LitBool, LitInt, LitStr, Type};
 
+use crate::internal::attrs_update_func;
+
 use super::internal::attrs_query_func;
 
 pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
@@ -187,10 +189,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
     let query = attrs_query_func();
-    let update = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update = attrs_update_func();
     let getter = syn::Ident::new(
         &format!("get_{}", name.to_string().to_lowercase()),
         name.span(),
@@ -311,10 +310,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
     let query = attrs_query_func();
-    let update = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update = attrs_update_func();
     let getter = syn::Ident::new(
         &format!("get_{}", name.to_string().to_lowercase()),
         name.span(),
@@ -491,10 +487,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     } else {
         quote! {}
     };
-    let update_derives = quote! {
-        #[ic_cdk::update]
-        #[candid::candid_method(update)]
-    };
+    let update_derives = attrs_update_func();
 
     quote! {
         thread_local! {
