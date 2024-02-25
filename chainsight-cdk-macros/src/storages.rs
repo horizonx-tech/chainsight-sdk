@@ -196,7 +196,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     );
     let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
     let _getter = syn::Ident::new(&_getter_str, name.span());
-    let proxy_getter = gen_func_quote_to_call_proxy(
+    let proxy_getter_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", name.to_string().to_lowercase()),
         parse_quote! { Vec<#name> },
         Some(parse_quote! { String }),
@@ -208,7 +208,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     );
     let _between_str = format!("_between_{}", name.to_string().to_lowercase());
     let _between = syn::Ident::new(&_between_str, name.span());
-    let proxy_between = gen_func_quote_to_call_proxy(
+    let proxy_between_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_between_{}", name.to_string().to_lowercase()),
         parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { (String, String) }),
@@ -220,7 +220,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     );
     let _last_str = format!("_last_{}", name.to_string().to_lowercase());
     let _last = syn::Ident::new(&_last_str, name.span());
-    let proxy_last = gen_func_quote_to_call_proxy(
+    let proxy_last_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_last_{}", name.to_string().to_lowercase()),
         parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { u64 }),
@@ -236,7 +236,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
             #name::get(id.as_str())
         }
         #update
-        #proxy_getter
+        #proxy_getter_quote
 
         #query
         fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
@@ -247,7 +247,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
         }
 
         #update
-        #proxy_between
+        #proxy_between_quote
         #query
         fn #last(n: u64) -> HashMap<String, Vec<#name>> {
             #_last(n)
@@ -256,7 +256,7 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
             #name::last(n)
         }
         #update
-        #proxy_last
+        #proxy_last_quote
 
         impl #name {
 
@@ -296,7 +296,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
         &_getter_str,
         name.span(),
     );
-    let proxy_getter = gen_func_quote_to_call_proxy(
+    let proxy_getter_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", name.to_string().to_lowercase()),
         parse_quote! { Option<#name> },
         Some(parse_quote! { String }),
@@ -308,7 +308,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     );
     let _between_str = format!("_between_{}", name.to_string().to_lowercase());
     let _between = syn::Ident::new(&_between_str, name.span());
-    let proxy_between = gen_func_quote_to_call_proxy(
+    let proxy_between_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_between_{}", name.to_string().to_lowercase()),
         parse_quote! {  Vec<(String, #name)> },
         Some(parse_quote! { (String, String) }),
@@ -320,7 +320,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     );
     let _last_str = format!("_last_{}", name.to_string().to_lowercase());
     let _last = syn::Ident::new(&_last_str, name.span());
-    let proxy_last = gen_func_quote_to_call_proxy(
+    let proxy_last_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_last_{}", name.to_string().to_lowercase()),
         parse_quote! {  Vec<(String, #name)> },
         Some(parse_quote! { u64 }),
@@ -337,7 +337,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
             #name::get(id.as_str())
         }
         #update
-        #proxy_getter
+        #proxy_getter_quote
 
         #query
         fn #between(a:(String, String)) -> Vec<(String, #name)> {
@@ -347,7 +347,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
             #name::between(a.0.as_str(), a.1.as_str())
         }
         #update
-        #proxy_between
+        #proxy_between_quote
 
         #query
         fn #last(n: u64) -> Vec<(String, #name)> {
@@ -357,7 +357,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
             #name::last(n)
         }
         #update
-        #proxy_last
+        #proxy_last_quote
 
         impl #name {
             pub fn get(id: &str) -> Option<Self> {
@@ -439,7 +439,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
     let _get_last_elem_func_str = format!("_get_last_{}", state_name);
     let _get_last_elem_func = syn::Ident::new(&_get_last_elem_func_str, name.span());
-    let proxy_get_last_elem_func = gen_func_quote_to_call_proxy(
+    let proxy_get_last_elem_func_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_last_{}", state_name),
         parse_quote! { #ty },
         None,
@@ -448,7 +448,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
     let _get_top_elems_func_str = format!("_get_top_{}s", state_name);
     let _get_top_elems_func = syn::Ident::new(&_get_top_elems_func_str, name.span());
-    let proxy_get_top_elems_func = gen_func_quote_to_call_proxy(
+    let proxy_get_top_elems_func_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_top_{}s", state_name),
         parse_quote! { Vec<#ty> },
         Some(parse_quote! { u64 }),
@@ -457,7 +457,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
     let _get_elem_func_str = format!("_get_{}", state_name);
     let _get_elem_func = syn::Ident::new(&_get_elem_func_str, name.span());
-    let proxy_get_elem_func = gen_func_quote_to_call_proxy(
+    let proxy_get_elem_func_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", state_name),
         parse_quote! { #ty },
         Some(parse_quote! { u64 }),
@@ -523,7 +523,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
         }
 
         #update_derives
-        #proxy_get_last_elem_func
+        #proxy_get_last_elem_func_quote
 
         #getter_derives
         pub fn #get_top_elems_func(n: u64) -> Vec<#ty> {
@@ -546,7 +546,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
         }
 
         #update_derives
-        #proxy_get_top_elems_func
+        #proxy_get_top_elems_func_quote
 
         #getter_derives
         fn #get_elem_func(idx: u64) -> #ty {
@@ -558,7 +558,7 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
         }
 
         #update_derives
-        #proxy_get_elem_func
+        #proxy_get_elem_func_quote
 
         // NOTE: consistency with macro return value for heap (not return Result)
         pub fn #add_elem_func(value: #ty) {
