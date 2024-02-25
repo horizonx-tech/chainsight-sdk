@@ -1,11 +1,15 @@
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, DeriveInput, Expr, LitBool, LitInt, LitStr, Type,
 };
 
-use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};
+use crate::{
+    canisters::utils::camel_to_snake,
+    internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy},
+};
 
 pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
     prepare_stable_structure_internal().into()
@@ -190,40 +194,65 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
 fn key_values_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
+
+    quote! {
+        impl #name {
+            pub fn get(id: &str) -> Vec<Self> {
+                Self::get_store().get(id)
+            }
+
+            pub fn put(id: &str, e: Vec<Self>) {
+                Self::get_store().set(id, e)
+            }
+            pub fn between(from:&str, to: &str) -> HashMap<String, Vec<Self>> {
+                Self::get_store().between(from, to)
+            }
+            pub fn last(n: u64) -> HashMap<String, Vec<Self>> {
+                Self::get_store().last_elems(n)
+            }
+            fn get_store() -> chainsight_cdk::storage::KeyValuesStore {
+                chainsight_cdk::storage::KeyValuesStore::new(#memory_id)
+            }
+        }
+    }
+}
+
+pub fn generate_queries_for_key_values_store_struct(input: TokenStream) -> TokenStream {
+    generate_queries_for_key_values_store_struct_internal(syn::parse_macro_input!(
+        input as syn::Type
+    ))
+    .into()
+}
+fn generate_queries_for_key_values_store_struct_internal(
+    name: syn::Type,
+) -> proc_macro2::TokenStream {
+    let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
+
     let query = attrs_query_func();
     let update = attrs_update_func();
-    let getter = syn::Ident::new(
-        &format!("get_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
-    let _getter = syn::Ident::new(&_getter_str, name.span());
+    let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
+    let _getter_str = format!("_get_{}", lowercase_name);
+    let _getter = syn::Ident::new(&_getter_str, Span::call_site());
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_get_{}", name.to_string().to_lowercase()),
+        &format!("proxy_get_{}", lowercase_name),
         parse_quote! { Vec<#name> },
         Some(parse_quote! { String }),
         &_getter_str,
     );
-    let between = syn::Ident::new(
-        &format!("between_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _between_str = format!("_between_{}", name.to_string().to_lowercase());
-    let _between = syn::Ident::new(&_between_str, name.span());
+    let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
+    let _between_str = format!("_between_{}", lowercase_name);
+    let _between = syn::Ident::new(&_between_str, Span::call_site());
     let proxy_between_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_between_{}", name.to_string().to_lowercase()),
+        &format!("proxy_between_{}", lowercase_name),
         parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { (String, String) }),
         &_between_str,
     );
-    let last = syn::Ident::new(
-        &format!("last_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _last_str = format!("_last_{}", name.to_string().to_lowercase());
-    let _last = syn::Ident::new(&_last_str, name.span());
+    let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
+    let _last_str = format!("_last_{}", lowercase_name);
+    let _last = syn::Ident::new(&_last_str, Span::call_site());
     let proxy_last_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_last_{}", name.to_string().to_lowercase()),
+        &format!("proxy_last_{}", lowercase_name),
         parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { u64 }),
         &_last_str,
@@ -260,25 +289,6 @@ fn key_values_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::Tok
         #update
         #proxy_last_quote
 
-        impl #name {
-
-            pub fn get(id: &str) -> Vec<Self> {
-                Self::get_store().get(id)
-            }
-
-            pub fn put(id: &str, e: Vec<Self>) {
-                Self::get_store().set(id, e)
-            }
-            pub fn between(from:&str, to: &str) -> HashMap<String, Vec<Self>> {
-                Self::get_store().between(from, to)
-            }
-            pub fn last(n: u64) -> HashMap<String, Vec<Self>> {
-                Self::get_store().last_elems(n)
-            }
-            fn get_store() -> chainsight_cdk::storage::KeyValuesStore {
-                chainsight_cdk::storage::KeyValuesStore::new(#memory_id)
-            }
-        }
     }
 }
 
@@ -288,47 +298,68 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
 pub fn key_value_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
+
+    quote! {
+        impl #name {
+            pub fn get(id: &str) -> Option<Self> {
+                Self::get_store().get(id)
+            }
+            pub fn put(&self, id: &str) {
+                Self::get_store().set(id, self.clone())
+            }
+            pub fn between(from:&str, to: &str) -> Vec<(String, Self)> {
+                Self::get_store().between(from, to)
+            }
+            pub fn last(n: u64) -> Vec<(String, Self)> {
+                Self::get_store().last(n)
+            }
+            fn get_store() -> chainsight_cdk::storage::KeyValueStore {
+                chainsight_cdk::storage::KeyValueStore::new(#memory_id)
+            }
+        }
+    }
+}
+pub fn generate_queries_for_key_value_store_struct(input: TokenStream) -> TokenStream {
+    generate_queries_for_key_value_store_struct_internal(syn::parse_macro_input!(
+        input as syn::Type
+    ))
+    .into()
+}
+fn generate_queries_for_key_value_store_struct_internal(
+    name: syn::Type,
+) -> proc_macro2::TokenStream {
+    let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
+
     let query = attrs_query_func();
     let update = attrs_update_func();
-    let getter = syn::Ident::new(
-        &format!("get_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
-    let _getter = syn::Ident::new(&_getter_str, name.span());
+    let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
+    let _getter_str = format!("_get_{}", lowercase_name);
+    let _getter = syn::Ident::new(&_getter_str, Span::call_site());
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_get_{}", name.to_string().to_lowercase()),
+        &format!("proxy_get_{}", lowercase_name),
         parse_quote! { Option<#name> },
         Some(parse_quote! { String }),
         &_getter_str,
     );
-    let between = syn::Ident::new(
-        &format!("between_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _between_str = format!("_between_{}", name.to_string().to_lowercase());
-    let _between = syn::Ident::new(&_between_str, name.span());
+    let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
+    let _between_str = format!("_between_{}", lowercase_name);
+    let _between = syn::Ident::new(&_between_str, Span::call_site());
     let proxy_between_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_between_{}", name.to_string().to_lowercase()),
+        &format!("proxy_between_{}", lowercase_name),
         parse_quote! {  Vec<(String, #name)> },
         Some(parse_quote! { (String, String) }),
         &_between_str,
     );
-    let last = syn::Ident::new(
-        &format!("last_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _last_str = format!("_last_{}", name.to_string().to_lowercase());
-    let _last = syn::Ident::new(&_last_str, name.span());
+    let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
+    let _last_str = format!("_last_{}", lowercase_name);
+    let _last = syn::Ident::new(&_last_str, Span::call_site());
     let proxy_last_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_last_{}", name.to_string().to_lowercase()),
+        &format!("proxy_last_{}", lowercase_name),
         parse_quote! {  Vec<(String, #name)> },
         Some(parse_quote! { u64 }),
         &_last_str,
     );
-
     quote! {
-
         #query
         fn #getter(id: String) -> Option<#name> {
             #_getter(id)
@@ -358,24 +389,6 @@ pub fn key_value_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::
         }
         #update
         #proxy_last_quote
-
-        impl #name {
-            pub fn get(id: &str) -> Option<Self> {
-                Self::get_store().get(id)
-            }
-            pub fn put(&self, id: &str) {
-                Self::get_store().set(id, self.clone())
-            }
-            pub fn between(from:&str, to: &str) -> Vec<(String, Self)> {
-                Self::get_store().between(from, to)
-            }
-            pub fn last(n: u64) -> Vec<(String, Self)> {
-                Self::get_store().last(n)
-            }
-            fn get_store() -> chainsight_cdk::storage::KeyValueStore {
-                chainsight_cdk::storage::KeyValueStore::new(#memory_id)
-            }
-        }
     }
 }
 
@@ -610,6 +623,24 @@ mod test {
     }
 
     #[test]
+    fn test_snapshot_key_values_store_derive() {
+        let input = quote! {
+            #[memory_id(1)]
+            struct Account {
+                pub id: String,
+                pub token: String,
+                pub balance: u64,
+            }
+        };
+        let input: syn::DeriveInput = syn::parse2(input).unwrap();
+        let generated = key_values_store_derive_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__key_values_store_derive", formatted);
+    }
+
+    #[test]
     fn test_snapshot_key_value_store_derive() {
         let input = quote! {
             #[memory_id(1)]
@@ -628,20 +659,30 @@ mod test {
     }
 
     #[test]
-    fn test_snapshot_key_values_store_derive() {
-        let input = quote! {
-            #[memory_id(1)]
-            struct Account {
-                pub id: String,
-                pub token: String,
-                pub balance: u64,
-            }
-        };
-        let input: syn::DeriveInput = syn::parse2(input).unwrap();
-        let generated = key_values_store_derive_internal(input);
+    fn test_snapshot_generate_queries_for_key_values_store_struct() {
+        let input = quote! { Account };
+        let input: syn::Type = syn::parse2(input).unwrap();
+        let generated = generate_queries_for_key_values_store_struct_internal(input);
         let formatted = RustFmt::default()
             .format_str(generated.to_string())
             .expect("rustfmt failed");
-        assert_snapshot!("snapshot__key_values_store_derive", formatted);
+        assert_snapshot!(
+            "snapshot__generate_queries_for_key_values_store_struct_internal",
+            formatted
+        );
+    }
+
+    #[test]
+    fn test_snapshot_generate_queries_for_key_value_store_struct() {
+        let input = quote! { Account };
+        let input: syn::Type = syn::parse2(input).unwrap();
+        let generated = generate_queries_for_key_value_store_struct_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__generate_queries_for_key_value_store_struct_internal",
+            formatted
+        );
     }
 }
