@@ -31,31 +31,31 @@ stable_memory_for_vec!("user", UserData, 4, true);
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-fn update_timestamp(value: u64) -> Result<(), String>{
+fn update_timestamp(value: u64) {
     set_timestamp(value)
 }
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-fn update_price(value: u128) -> Result<(), String>{
+fn update_price(value: u128) {
     set_price(value)
 }
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-fn insert_year(value: u16) -> Result<(), String>{
+fn insert_year(value: u16) {
     add_year(value)
 }
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-fn insert_score(value: u128) -> Result<(), String>{
+fn insert_score(value: u128) {
     add_score(value)
 }
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-fn insert_user(value: UserData) -> Result<(), String>{
+fn insert_user(value: UserData) {
     add_user(value)
 }
 
