@@ -185,7 +185,9 @@ fn mem_id(input: DeriveInput) -> u8 {
     memory_id
 }
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    key_values_store_derive_internal(syn::parse_macro_input!(input as syn::DeriveInput)).into()
+}
+fn key_values_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
     let query = attrs_query_func();
@@ -278,11 +280,12 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
             }
         }
     }
-    .into()
 }
 
 pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    key_value_store_derive_internal(syn::parse_macro_input!(input as syn::DeriveInput)).into()
+}
+pub fn key_value_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
     let query = attrs_query_func();
@@ -374,7 +377,6 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
             }
         }
     }
-    .into()
 }
 
 struct StableMemoryForVecInput {
@@ -605,5 +607,41 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__stable_memory_for_vec", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_key_value_store_derive() {
+        let input = quote! {
+            #[memory_id(1)]
+            struct Account {
+                pub id: String,
+                pub token: String,
+                pub balance: u64,
+            }
+        };
+        let input: syn::DeriveInput = syn::parse2(input).unwrap();
+        let generated = key_value_store_derive_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__key_value_store_derive", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_key_values_store_derive() {
+        let input = quote! {
+            #[memory_id(1)]
+            struct Account {
+                pub id: String,
+                pub token: String,
+                pub balance: u64,
+            }
+        };
+        let input: syn::DeriveInput = syn::parse2(input).unwrap();
+        let generated = key_values_store_derive_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__key_values_store_derive", formatted);
     }
 }
