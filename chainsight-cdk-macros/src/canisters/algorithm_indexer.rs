@@ -1,4 +1,6 @@
-use chainsight_cdk::config::components::{AlgorithmIndexerConfig, AlgorithmInputType, AlgorithmOutputType};
+use chainsight_cdk::config::components::{
+    AlgorithmIndexerConfig, AlgorithmInputType, AlgorithmOutputType,
+};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -20,7 +22,8 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
     let canister_name = common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let input_ty = input_type_ident(input.response_type, input.source_type);
-    let outputs_quote = output.types
+    let outputs_quote = output
+        .types
         .iter()
         .map(|val| {
             let name = format_ident!("{}", val.name);
@@ -99,7 +102,10 @@ pub fn input_type_ident(
 #[cfg(test)]
 mod test {
     use chainsight_cdk::{
-        config::components::{AlgorithmIndexerInput, CommonConfig, AlgorithmIndexerOutput, AlgorithmIndexerOutputIdentifier},
+        config::components::{
+            AlgorithmIndexerInput, AlgorithmIndexerOutput, AlgorithmIndexerOutputIdentifier,
+            CommonConfig,
+        },
         indexer::IndexingConfig,
     };
     use insta::assert_snapshot;
@@ -133,7 +139,7 @@ mod test {
                         type_: AlgorithmOutputType::KeyValues,
                     },
                 ],
-            }
+            },
         };
         let generated = algorithm_indexer_canister(config);
         let formatted = RustFmt::default()
