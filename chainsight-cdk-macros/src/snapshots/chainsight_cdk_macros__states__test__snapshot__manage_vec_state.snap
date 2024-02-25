@@ -13,7 +13,7 @@ pub fn _get_snapshotss() -> Vec<Snapshot> {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn proxy_get_snapshotss(input: Vec<u8>) -> Vec<u8> {
+async fn proxy_get_snapshotss(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<Snapshot>>::new(proxy(), _get_snapshotss)
         .reply(input)
@@ -29,7 +29,7 @@ pub fn _snapshotss_len() -> usize {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn proxy_snapshotss_len(input: Vec<u8>) -> Vec<u8> {
+async fn proxy_snapshotss_len(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<usize>::new(proxy(), _snapshotss_len)
         .reply(input)
@@ -45,7 +45,7 @@ pub fn _get_last_snapshots() -> Snapshot {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn proxy_get_last_snapshots(input: Vec<u8>) -> Vec<u8> {
+async fn proxy_get_last_snapshots(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Snapshot>::new(proxy(), _get_last_snapshots)
         .reply(input)
@@ -69,7 +69,7 @@ pub fn _get_top_snapshotss(n: usize) -> Vec<Snapshot> {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn proxy_get_top_snapshotss(input: Vec<u8>) -> Vec<u8> {
+async fn proxy_get_top_snapshotss(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProvider::<usize, Vec<Snapshot>>::new(proxy(), _get_top_snapshotss)
         .reply(input)
@@ -85,7 +85,7 @@ pub fn _get_snapshots(idx: usize) -> Snapshot {
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-async fn proxy_get_snapshots(input: Vec<u8>) -> Vec<u8> {
+async fn proxy_get_snapshots(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
     chainsight_cdk::rpc::ReceiverProvider::<usize, Snapshot>::new(proxy(), _get_snapshots)
         .reply(input)
