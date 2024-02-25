@@ -228,8 +228,8 @@ fn generate_queries_for_key_values_store_struct_internal(
 ) -> proc_macro2::TokenStream {
     let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
 
-    let query = attrs_query_func();
-    let update = attrs_update_func();
+    let query_attrs = attrs_query_func();
+    let update_attrs = attrs_update_func();
     let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
     let _getter_str = format!("_get_{}", lowercase_name);
     let _getter = syn::Ident::new(&_getter_str, Span::call_site());
@@ -259,17 +259,17 @@ fn generate_queries_for_key_values_store_struct_internal(
     );
 
     quote! {
-        #query
+        #query_attrs
         fn #getter(id: String) -> Vec<#name> {
             #_getter(id)
         }
         fn #_getter(id: String) -> Vec<#name> {
             #name::get(id.as_str())
         }
-        #update
+        #update_attrs
         #proxy_getter_quote
 
-        #query
+        #query_attrs
         fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
             #_between(a)
         }
@@ -277,16 +277,16 @@ fn generate_queries_for_key_values_store_struct_internal(
             #name::between(a.0.as_str(), a.1.as_str())
         }
 
-        #update
+        #update_attrs
         #proxy_between_quote
-        #query
+        #query_attrs
         fn #last(n: u64) -> HashMap<String, Vec<#name>> {
             #_last(n)
         }
         fn #_last(n: u64) -> HashMap<String, Vec<#name>> {
             #name::last(n)
         }
-        #update
+        #update_attrs
         #proxy_last_quote
 
     }
@@ -330,8 +330,8 @@ fn generate_queries_for_key_value_store_struct_internal(
 ) -> proc_macro2::TokenStream {
     let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
 
-    let query = attrs_query_func();
-    let update = attrs_update_func();
+    let query_attrs = attrs_query_func();
+    let update_attrs = attrs_update_func();
     let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
     let _getter_str = format!("_get_{}", lowercase_name);
     let _getter = syn::Ident::new(&_getter_str, Span::call_site());
@@ -360,34 +360,34 @@ fn generate_queries_for_key_value_store_struct_internal(
         &_last_str,
     );
     quote! {
-        #query
+        #query_attrs
         fn #getter(id: String) -> Option<#name> {
             #_getter(id)
         }
         fn #_getter(id: String) -> Option<#name> {
             #name::get(id.as_str())
         }
-        #update
+        #update_attrs
         #proxy_getter_quote
 
-        #query
+        #query_attrs
         fn #between(a:(String, String)) -> Vec<(String, #name)> {
             #_between(a)
         }
         fn #_between(a:(String, String)) -> Vec<(String, #name)> {
             #name::between(a.0.as_str(), a.1.as_str())
         }
-        #update
+        #update_attrs
         #proxy_between_quote
 
-        #query
+        #query_attrs
         fn #last(n: u64) -> Vec<(String, #name)> {
             #_last(n)
         }
         fn #_last(n: u64) -> Vec<(String, #name)> {
             #name::last(n)
         }
-        #update
+        #update_attrs
         #proxy_last_quote
     }
 }
