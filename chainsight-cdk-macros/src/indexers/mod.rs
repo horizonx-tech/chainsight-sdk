@@ -2,10 +2,10 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, LitInt, Type,
+    parse_quote, parse_macro_input, LitInt, Type,
 };
 
-use crate::internal::{attrs_query_func, attrs_update_func};
+use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};
 
 pub mod sources;
 
@@ -73,6 +73,25 @@ fn event_indexer_common(
     let attrs_query = attrs_query_func();
     let attrs_update = attrs_update_func();
 
+    let _proxy_events_from_to_quote = gen_func_quote_to_call_proxy(
+        "_proxy_events_from_to",
+        parse_quote! { HashMap<u64, Vec<#out_type>> },
+        Some(parse_quote! { (u64, u64) }),
+        "_events_from_to",
+    );
+    let proxy_events_latest_n_quote = gen_func_quote_to_call_proxy(
+        "proxy_events_latest_n",
+        parse_quote! { HashMap<u64, Vec<#out_type>> },
+        Some(parse_quote! { u64 }),
+        "_events_latest_n",
+    );
+    let proxy_get_last_indexed_quote = gen_func_quote_to_call_proxy(
+        "proxy_get_last_indexed",
+        parse_quote! { u64 },
+        None,
+        "_get_last_indexed",
+    );
+
     let output = quote! {
         #storage_quote
 
@@ -85,15 +104,7 @@ fn event_indexer_common(
             _proxy_events_from_to(input).await
         }
 
-        async fn _proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), HashMap<u64, Vec<#out_type>>>::new(
-                proxy(),
-                _events_from_to.clone(),
-            )
-            .reply(input)
-            .await
-        }
+        #_proxy_events_from_to_quote
 
         fn _events_from_to(input: (u64,  u64)) -> HashMap<u64, Vec<#out_type>> {
             indexer().between(input.0,input.1).unwrap()
@@ -105,15 +116,7 @@ fn event_indexer_common(
         }
 
         #attrs_update
-        pub async fn proxy_events_latest_n(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<u64, HashMap<u64, Vec<#out_type>>>::new(
-                proxy(),
-                _events_latest_n.clone(),
-            )
-            .reply(input)
-            .await
-        }
+        pub #proxy_events_latest_n_quote
 
         fn _events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
             let last_indexed = indexer().get_last_indexed().unwrap();
@@ -127,15 +130,7 @@ fn event_indexer_common(
         }
 
         #attrs_update
-        pub async fn proxy_get_last_indexed(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<u64>::new(
-                proxy(),
-                _get_last_indexed.clone(),
-            )
-            .reply(input)
-            .await
-        }
+        pub #proxy_get_last_indexed_quote
 
         fn _get_last_indexed() -> u64 {
             indexer().get_last_indexed().unwrap()

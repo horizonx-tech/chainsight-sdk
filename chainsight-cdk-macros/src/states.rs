@@ -3,10 +3,10 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, Expr, LitBool, LitStr, Type,
+    parse_macro_input, parse_quote, Expr, LitBool, LitStr, Type,
 };
 
-use super::internal::{attrs_query_func, attrs_update_func};
+use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};
 
 pub trait Persist {
     fn untokenize(data: Data) -> Self;
@@ -215,22 +215,50 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
     let state_name = name.value();
     let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
     let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
-    let _get_vec_func = syn::Ident::new(&format!("_get_{}s", state_name), name.span());
-    let proxy_get_vec_func = syn::Ident::new(&format!("proxy_get_{}s", state_name), name.span());
+    let _get_vec_func_str = format!("_get_{}s", state_name);
+    let _get_vec_func = syn::Ident::new(&_get_vec_func_str, name.span());
+    let proxy_get_vec_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_{}s", state_name),
+        parse_quote! { Vec<#ty> },
+        None,
+        &_get_vec_func_str,
+    );
     let get_len_func = syn::Ident::new(&format!("{}s_len", state_name), name.span());
-    let _get_len_func = syn::Ident::new(&format!("_{}s_len", state_name), name.span());
-    let proxy_get_len_func = syn::Ident::new(&format!("proxy_{}s_len", state_name), name.span());
+    let _get_len_func_str = format!("_{}s_len", state_name);
+    let _get_len_func = syn::Ident::new(&_get_len_func_str, name.span());
+    let proxy_get_len_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_{}s_len", state_name),
+        parse_quote! { usize },
+        None,
+        &_get_len_func_str,
+    );
     let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
-    let _get_last_elem_func = syn::Ident::new(&format!("_get_last_{}", state_name), name.span());
-    let proxy_get_last_elem_func =
-        syn::Ident::new(&format!("proxy_get_last_{}", state_name), name.span());
+    let _get_last_elem_func_str = format!("_get_last_{}", state_name);
+    let _get_last_elem_func = syn::Ident::new(&_get_last_elem_func_str, name.span());
+    let proxy_get_last_elem_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_last_{}", state_name),
+        parse_quote! { #ty },
+        None,
+        &_get_last_elem_func_str,
+    );
     let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
-    let _get_top_elems_func = syn::Ident::new(&format!("_get_top_{}s", state_name), name.span());
-    let proxy_get_top_elems_func =
-        syn::Ident::new(&format!("proxy_get_top_{}s", state_name), name.span());
+    let _get_top_elems_func_str = format!("_get_top_{}s", state_name);
+    let _get_top_elems_func = syn::Ident::new(&_get_top_elems_func_str, name.span());
+    let proxy_get_top_elems_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_top_{}s", state_name),
+        parse_quote! { Vec<#ty> },
+        Some(parse_quote! { usize }),
+        &_get_top_elems_func_str,
+    );
     let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
-    let _get_elem_func = syn::Ident::new(&format!("_get_{}", state_name), name.span());
-    let proxy_get_elem_func = syn::Ident::new(&format!("proxy_get_{}", state_name), name.span());
+    let _get_elem_func_str = format!("_get_{}", state_name);
+    let _get_elem_func = syn::Ident::new(&_get_elem_func_str, name.span());
+    let proxy_get_elem_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_{}", state_name),
+        parse_quote! { #ty },
+        Some(parse_quote! { usize }),
+        &_get_elem_func_str,
+    );
     let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
 
     let getter_derives = if is_expose_getter.value {
@@ -255,15 +283,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
         }
 
         #update_derive
-        async fn #proxy_get_vec_func(input: Vec<u8>) -> Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<Vec<#ty>>::new(
-                proxy(),
-                #_get_vec_func,
-            )
-            .reply(input)
-            .await
-        }
+        #proxy_get_vec_func_quote
 
         #getter_derives
         fn #get_len_func() -> usize {
@@ -275,16 +295,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
         }
 
         #update_derive
-        async fn #proxy_get_len_func(input: Vec<u8>) -> Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<usize>::new(
-                proxy(),
-                #_get_len_func,
-            )
-            .reply(input)
-            .await
-        }
-
+        #proxy_get_len_func_quote
 
         #getter_derives
         fn #get_last_elem_func() -> #ty {
@@ -296,15 +307,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
         }
 
         #update_derive
-        async fn #proxy_get_last_elem_func(input: Vec<u8>) -> Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#ty>::new(
-                proxy(),
-                #_get_last_elem_func,
-            )
-            .reply(input)
-            .await
-        }
+        #proxy_get_last_elem_func_quote
 
 
         #getter_derives
@@ -317,16 +320,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
         }
 
         #update_derive
-        async fn #proxy_get_top_elems_func(input: Vec<u8>) -> Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<usize, Vec<#ty>>::new(
-                proxy(),
-                #_get_top_elems_func,
-            )
-            .reply(input)
-            .await
-        }
-
+        #proxy_get_top_elems_func_quote
 
         #getter_derives
         fn #get_elem_func(idx: usize) -> #ty {
@@ -338,15 +332,7 @@ fn manage_vec_state_internal(args: VecStateInput) -> proc_macro2::TokenStream {
         }
 
         #update_derive
-        async fn #proxy_get_elem_func(input: Vec<u8>) -> Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<usize, #ty>::new(
-                proxy(),
-                #_get_elem_func,
-            )
-            .reply(input)
-            .await
-        }
+        #proxy_get_elem_func_quote
 
         pub fn #add_elem_func(value: #ty) {
             #state_upper_name.with(|state| state.borrow_mut().push(value));
@@ -381,6 +367,7 @@ pub fn manage_map_state(input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(input as MapStateInput);
     manage_map_state_internal(args).into()
 }
+// todo: support functions to call proxy
 fn manage_map_state_internal(args: MapStateInput) -> proc_macro2::TokenStream {
     let MapStateInput {
         name,

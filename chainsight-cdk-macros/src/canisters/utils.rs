@@ -1,7 +1,8 @@
 use quote::quote;
 use std::path::PathBuf;
+use syn::parse_quote;
 
-use crate::internal::{attrs_query_func, attrs_update_func};
+use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};
 
 /// Convert camelCase String to snake_case
 pub fn camel_to_snake(val: &str) -> String {
@@ -21,6 +22,25 @@ pub fn generate_queries_without_timestamp(
 ) -> proc_macro2::TokenStream {
     let query_derives = attrs_query_func();
     let update_derives = attrs_update_func();
+
+    let proxy_get_last_elem_func_quote = gen_func_quote_to_call_proxy(
+        "proxy_get_last_snapshot_value",
+        parse_quote! { #return_type },
+        None,
+        "_get_last_snapshot_value",
+    );
+    let proxy_get_top_elems_func_quote = gen_func_quote_to_call_proxy(
+        "proxy_get_top_snapshot_values",
+        parse_quote! { Vec<#return_type> },
+        Some(parse_quote! { u64 }),
+        "_get_top_snapshot_values",
+    );
+    let proxy_get_elem_func_quote = gen_func_quote_to_call_proxy(
+        "proxy_get_snapshot_value",
+        parse_quote! { #return_type },
+        Some(parse_quote! { u64 }),
+        "_get_snapshot_value",
+    );
 
     quote! {
         fn _get_last_snapshot_value() -> #return_type {
@@ -51,37 +71,13 @@ pub fn generate_queries_without_timestamp(
         }
 
         #update_derives
-        pub async fn proxy_get_last_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProviderWithoutArgs::<#return_type>::new(
-                proxy(),
-                _get_last_snapshot_value,
-            )
-            .reply(input)
-            .await
-        }
+        pub #proxy_get_last_elem_func_quote
 
         #update_derives
-        pub async fn proxy_get_top_snapshot_values(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<#return_type>>::new(
-                proxy(),
-                _get_top_snapshot_values,
-            )
-            .reply(input)
-            .await
-        }
+        pub #proxy_get_top_elems_func_quote
 
         #update_derives
-        pub async fn proxy_get_snapshot_value(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
-            use chainsight_cdk::rpc::Receiver;
-            chainsight_cdk::rpc::ReceiverProvider::<u64, #return_type>::new(
-                proxy(),
-                _get_snapshot_value,
-            )
-            .reply(input)
-            .await
-        }
+        pub #proxy_get_elem_func_quote
     }
 }
 
