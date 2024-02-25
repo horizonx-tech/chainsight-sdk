@@ -1,7 +1,7 @@
 use chainsight_cdk_macros::def_algorithm_indexer_canister;
 mod app;
 mod example_canister; // NOTE: bindings
-use app::persist; // NOTE: logics
+use app::{persist,Transfer,OutputType1,OutputType2}; // NOTE: logics
 
 def_algorithm_indexer_canister!(
     "{
@@ -14,11 +14,20 @@ def_algorithm_indexer_canister!(
         },
         \"input\": {
             \"method_name\": \"get_list\",
-            \"response_type\": \"String\",
+            \"response_type\": \"Transfer\",
             \"source_type\": \"event_indexer\"
         },
         \"output\": {
-            \"types\": []
+            \"types\": [
+                {
+                    \"name\": \"OutputType1\",
+                    \"type_\": \"key_value\"
+                },
+                {
+                    \"name\": \"OutputType2\",
+                    \"type_\": \"key_values\"
+                }
+            ]
         }
     }"
 );

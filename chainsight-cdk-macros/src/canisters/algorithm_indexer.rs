@@ -41,6 +41,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         use chainsight_cdk::indexer::IndexingConfig;
         use chainsight_cdk_macros::{
             algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
+            generate_queries_for_key_value_store_struct, generate_queries_for_key_values_store_struct,
             timer_task_func, prepare_stable_structure, stable_memory_for_scalar, algorithm_indexer_source, StableMemoryStorable, CborSerde
         };
         use ic_stable_structures::writer::Writer;
