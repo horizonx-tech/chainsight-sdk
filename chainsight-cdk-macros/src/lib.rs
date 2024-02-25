@@ -152,10 +152,18 @@ pub fn persist_derive(input: TokenStream) -> TokenStream {
 pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
     storages::key_value_store_derive(input)
 }
+#[proc_macro]
+pub fn generate_queries_for_key_value_store_struct(input: TokenStream) -> TokenStream {
+    storages::generate_queries_for_key_value_store_struct(input)
+}
 
 #[proc_macro_derive(KeyValuesStore, attributes(memory_id))]
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
     storages::key_values_store_derive(input)
+}
+#[proc_macro]
+pub fn generate_queries_for_key_values_store_struct(input: TokenStream) -> TokenStream {
+    storages::generate_queries_for_key_values_store_struct(input)
 }
 
 #[proc_macro]
