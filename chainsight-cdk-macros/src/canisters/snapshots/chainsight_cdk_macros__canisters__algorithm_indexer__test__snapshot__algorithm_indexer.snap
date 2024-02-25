@@ -22,4 +22,6 @@ timer_task_func!("set_task", "index", 14);
 use example_canister::*;
 algorithm_indexer_source!();
 algorithm_indexer ! (HashMap < u64 , Vec < String >> , "get_list" , 15);
+generate_queries_for_key_value_store_struct!(OutputType1);
+generate_queries_for_key_values_store_struct!(OutputType2);
 
