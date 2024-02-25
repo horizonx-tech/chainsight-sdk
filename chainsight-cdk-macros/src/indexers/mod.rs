@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
     parse::{Parse, ParseStream},
-    parse_quote, parse_macro_input, LitInt, Type,
+    parse_macro_input, parse_quote, LitInt, Type,
 };
 
 use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};

@@ -292,10 +292,7 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
         name.span(),
     );
     let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
-    let _getter = syn::Ident::new(
-        &_getter_str,
-        name.span(),
-    );
+    let _getter = syn::Ident::new(&_getter_str, name.span());
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", name.to_string().to_lowercase()),
         parse_quote! { Option<#name> },
