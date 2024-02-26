@@ -38,11 +38,28 @@ pub struct CommonConfig {
     pub canister_name: String,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct AlgorithmIndexerInput {
     pub method_name: String,
     pub response_type: String,
     pub source_type: AlgorithmInputType,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct AlgorithmIndexerOutput {
+    pub types: Vec<AlgorithmIndexerOutputIdentifier>,
+}
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct AlgorithmIndexerOutputIdentifier {
+    pub name: String,
+    pub type_: AlgorithmOutputType,
+}
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub enum AlgorithmOutputType {
+    #[serde(rename = "key_value")]
+    KeyValue,
+    #[serde(rename = "key_values")]
+    KeyValues,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -78,6 +95,7 @@ pub struct AlgorithmIndexerConfig {
     pub common: CommonConfig,
     pub indexing: IndexingConfig,
     pub input: AlgorithmIndexerInput,
+    pub output: AlgorithmIndexerOutput,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]

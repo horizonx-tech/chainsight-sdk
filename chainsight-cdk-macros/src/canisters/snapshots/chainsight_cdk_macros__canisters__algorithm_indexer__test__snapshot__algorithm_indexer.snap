@@ -5,8 +5,9 @@ expression: formatted
 use candid::{CandidType, Decode, Encode};
 use chainsight_cdk::indexer::IndexingConfig;
 use chainsight_cdk_macros::{
-    algorithm_indexer, algorithm_indexer_source, chainsight_common, did_export, init_in,
-    manage_single_state, prepare_stable_structure, setup_func, stable_memory_for_scalar,
+    algorithm_indexer, algorithm_indexer_source, chainsight_common, did_export,
+    generate_queries_for_key_value_store_struct, generate_queries_for_key_values_store_struct,
+    init_in, manage_single_state, prepare_stable_structure, setup_func, stable_memory_for_scalar,
     timer_task_func, CborSerde, StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
@@ -22,4 +23,6 @@ timer_task_func!("set_task", "index", 14);
 use example_canister::*;
 algorithm_indexer_source!();
 algorithm_indexer ! (HashMap < u64 , Vec < String >> , "get_list" , 15);
+generate_queries_for_key_value_store_struct!(OutputType1);
+generate_queries_for_key_values_store_struct!(OutputType2);
 
