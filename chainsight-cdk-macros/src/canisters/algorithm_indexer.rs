@@ -1,4 +1,6 @@
-use chainsight_cdk::config::components::{AlgorithmIndexerConfig, AlgorithmInputType};
+use chainsight_cdk::config::components::{
+    AlgorithmIndexerConfig, AlgorithmInputType, AlgorithmOutputType,
+};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
@@ -15,10 +17,26 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         common,
         indexing: _,
         input,
+        output,
     } = config;
     let canister_name = common.canister_name.clone();
     let canister_name_ident = format_ident!("{}", common.canister_name);
     let input_ty = input_type_ident(input.response_type, input.source_type);
+    let outputs_quote = output
+        .types
+        .iter()
+        .map(|val| {
+            let name = format_ident!("{}", val.name);
+            match val.type_ {
+                AlgorithmOutputType::KeyValue => {
+                    quote! { generate_queries_for_key_value_store_struct!(#name) }
+                }
+                AlgorithmOutputType::KeyValues => {
+                    quote! { generate_queries_for_key_values_store_struct!(#name) }
+                }
+            }
+        })
+        .collect::<Vec<_>>();
 
     let method_name = input.method_name;
     quote! {
@@ -26,6 +44,7 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
         use chainsight_cdk::indexer::IndexingConfig;
         use chainsight_cdk_macros::{
             algorithm_indexer, chainsight_common, did_export, init_in, manage_single_state, setup_func,
+            generate_queries_for_key_value_store_struct, generate_queries_for_key_values_store_struct,
             timer_task_func, prepare_stable_structure, stable_memory_for_scalar, algorithm_indexer_source, StableMemoryStorable, CborSerde
         };
         use ic_stable_structures::writer::Writer;
@@ -45,6 +64,8 @@ fn algorithm_indexer_canister(config: AlgorithmIndexerConfig) -> proc_macro2::To
 
         algorithm_indexer_source!();
         algorithm_indexer!(#input_ty, #method_name, 15);
+
+        #(#outputs_quote;)*
     }
 }
 
@@ -81,7 +102,10 @@ pub fn input_type_ident(
 #[cfg(test)]
 mod test {
     use chainsight_cdk::{
-        config::components::{AlgorithmIndexerInput, CommonConfig},
+        config::components::{
+            AlgorithmIndexerInput, AlgorithmIndexerOutput, AlgorithmIndexerOutputIdentifier,
+            CommonConfig,
+        },
         indexer::IndexingConfig,
     };
     use insta::assert_snapshot;
@@ -103,6 +127,18 @@ mod test {
                 method_name: "get_list".to_string(),
                 response_type: "String".to_string(),
                 source_type: AlgorithmInputType::EventIndexer,
+            },
+            output: AlgorithmIndexerOutput {
+                types: vec![
+                    AlgorithmIndexerOutputIdentifier {
+                        name: "OutputType1".to_string(),
+                        type_: AlgorithmOutputType::KeyValue,
+                    },
+                    AlgorithmIndexerOutputIdentifier {
+                        name: "OutputType2".to_string(),
+                        type_: AlgorithmOutputType::KeyValues,
+                    },
+                ],
             },
         };
         let generated = algorithm_indexer_canister(config);

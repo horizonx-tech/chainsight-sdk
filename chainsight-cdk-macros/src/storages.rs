@@ -1,11 +1,15 @@
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
 use syn::{
     parse::Parse, parse_macro_input, parse_quote, DeriveInput, Expr, LitBool, LitInt, LitStr, Type,
 };
 
-use crate::internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy};
+use crate::{
+    canisters::utils::camel_to_snake,
+    internal::{attrs_query_func, attrs_update_func, gen_func_quote_to_call_proxy},
+};
 
 pub fn prepare_stable_structure(_input: TokenStream) -> TokenStream {
     prepare_stable_structure_internal().into()
@@ -185,81 +189,14 @@ fn mem_id(input: DeriveInput) -> u8 {
     memory_id
 }
 pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    key_values_store_derive_internal(syn::parse_macro_input!(input as syn::DeriveInput)).into()
+}
+fn key_values_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = input.clone().ident;
     let memory_id = mem_id(input);
-    let query = attrs_query_func();
-    let update = attrs_update_func();
-    let getter = syn::Ident::new(
-        &format!("get_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
-    let _getter = syn::Ident::new(&_getter_str, name.span());
-    let proxy_getter_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_get_{}", name.to_string().to_lowercase()),
-        parse_quote! { Vec<#name> },
-        Some(parse_quote! { String }),
-        &_getter_str,
-    );
-    let between = syn::Ident::new(
-        &format!("between_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _between_str = format!("_between_{}", name.to_string().to_lowercase());
-    let _between = syn::Ident::new(&_between_str, name.span());
-    let proxy_between_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_between_{}", name.to_string().to_lowercase()),
-        parse_quote! {  HashMap<String, Vec<#name>> },
-        Some(parse_quote! { (String, String) }),
-        &_between_str,
-    );
-    let last = syn::Ident::new(
-        &format!("last_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _last_str = format!("_last_{}", name.to_string().to_lowercase());
-    let _last = syn::Ident::new(&_last_str, name.span());
-    let proxy_last_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_last_{}", name.to_string().to_lowercase()),
-        parse_quote! {  HashMap<String, Vec<#name>> },
-        Some(parse_quote! { u64 }),
-        &_last_str,
-    );
 
     quote! {
-        #query
-        fn #getter(id: String) -> Vec<#name> {
-            #_getter(id)
-        }
-        fn #_getter(id: String) -> Vec<#name> {
-            #name::get(id.as_str())
-        }
-        #update
-        #proxy_getter_quote
-
-        #query
-        fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
-            #_between(a)
-        }
-        fn #_between(a: (String, String)) -> HashMap<String, Vec<#name>> {
-            #name::between(a.0.as_str(), a.1.as_str())
-        }
-
-        #update
-        #proxy_between_quote
-        #query
-        fn #last(n: u64) -> HashMap<String, Vec<#name>> {
-            #_last(n)
-        }
-        fn #_last(n: u64) -> HashMap<String, Vec<#name>> {
-            #name::last(n)
-        }
-        #update
-        #proxy_last_quote
-
         impl #name {
-
             pub fn get(id: &str) -> Vec<Self> {
                 Self::get_store().get(id)
             }
@@ -278,84 +215,91 @@ pub fn key_values_store_derive(input: TokenStream) -> TokenStream {
             }
         }
     }
-    .into()
 }
 
-pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(input as syn::DeriveInput);
-    let name = input.clone().ident;
-    let memory_id = mem_id(input);
-    let query = attrs_query_func();
-    let update = attrs_update_func();
-    let getter = syn::Ident::new(
-        &format!("get_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _getter_str = format!("_get_{}", name.to_string().to_lowercase());
-    let _getter = syn::Ident::new(&_getter_str, name.span());
+pub fn generate_queries_for_key_values_store_struct(input: TokenStream) -> TokenStream {
+    generate_queries_for_key_values_store_struct_internal(syn::parse_macro_input!(
+        input as syn::Type
+    ))
+    .into()
+}
+fn generate_queries_for_key_values_store_struct_internal(
+    name: syn::Type,
+) -> proc_macro2::TokenStream {
+    let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
+
+    let query_attrs = attrs_query_func();
+    let update_attrs = attrs_update_func();
+    let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
+    let _getter_str = format!("_get_{}", lowercase_name);
+    let _getter = syn::Ident::new(&_getter_str, Span::call_site());
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_get_{}", name.to_string().to_lowercase()),
-        parse_quote! { Option<#name> },
+        &format!("proxy_get_{}", lowercase_name),
+        parse_quote! { Vec<#name> },
         Some(parse_quote! { String }),
         &_getter_str,
     );
-    let between = syn::Ident::new(
-        &format!("between_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _between_str = format!("_between_{}", name.to_string().to_lowercase());
-    let _between = syn::Ident::new(&_between_str, name.span());
+    let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
+    let _between_str = format!("_between_{}", lowercase_name);
+    let _between = syn::Ident::new(&_between_str, Span::call_site());
     let proxy_between_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_between_{}", name.to_string().to_lowercase()),
-        parse_quote! {  Vec<(String, #name)> },
+        &format!("proxy_between_{}", lowercase_name),
+        parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { (String, String) }),
         &_between_str,
     );
-    let last = syn::Ident::new(
-        &format!("last_{}", name.to_string().to_lowercase()),
-        name.span(),
-    );
-    let _last_str = format!("_last_{}", name.to_string().to_lowercase());
-    let _last = syn::Ident::new(&_last_str, name.span());
+    let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
+    let _last_str = format!("_last_{}", lowercase_name);
+    let _last = syn::Ident::new(&_last_str, Span::call_site());
     let proxy_last_quote = gen_func_quote_to_call_proxy(
-        &format!("proxy_last_{}", name.to_string().to_lowercase()),
-        parse_quote! {  Vec<(String, #name)> },
+        &format!("proxy_last_{}", lowercase_name),
+        parse_quote! {  HashMap<String, Vec<#name>> },
         Some(parse_quote! { u64 }),
         &_last_str,
     );
 
     quote! {
-
-        #query
-        fn #getter(id: String) -> Option<#name> {
+        #query_attrs
+        fn #getter(id: String) -> Vec<#name> {
             #_getter(id)
         }
-        fn #_getter(id: String) -> Option<#name> {
+        fn #_getter(id: String) -> Vec<#name> {
             #name::get(id.as_str())
         }
-        #update
+        #update_attrs
         #proxy_getter_quote
 
-        #query
-        fn #between(a:(String, String)) -> Vec<(String, #name)> {
+        #query_attrs
+        fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
             #_between(a)
         }
-        fn #_between(a:(String, String)) -> Vec<(String, #name)> {
+        fn #_between(a: (String, String)) -> HashMap<String, Vec<#name>> {
             #name::between(a.0.as_str(), a.1.as_str())
         }
-        #update
-        #proxy_between_quote
 
-        #query
-        fn #last(n: u64) -> Vec<(String, #name)> {
+        #update_attrs
+        #proxy_between_quote
+        #query_attrs
+        fn #last(n: u64) -> HashMap<String, Vec<#name>> {
             #_last(n)
         }
-        fn #_last(n: u64) -> Vec<(String, #name)> {
+        fn #_last(n: u64) -> HashMap<String, Vec<#name>> {
             #name::last(n)
         }
-        #update
+        #update_attrs
         #proxy_last_quote
 
+    }
+}
+
+pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
+    key_value_store_derive_internal(syn::parse_macro_input!(input as syn::DeriveInput)).into()
+}
+pub fn key_value_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::TokenStream {
+    let name = input.clone().ident;
+    let memory_id = mem_id(input);
+
+    quote! {
         impl #name {
             pub fn get(id: &str) -> Option<Self> {
                 Self::get_store().get(id)
@@ -374,7 +318,78 @@ pub fn key_value_store_derive(input: TokenStream) -> TokenStream {
             }
         }
     }
+}
+pub fn generate_queries_for_key_value_store_struct(input: TokenStream) -> TokenStream {
+    generate_queries_for_key_value_store_struct_internal(syn::parse_macro_input!(
+        input as syn::Type
+    ))
     .into()
+}
+fn generate_queries_for_key_value_store_struct_internal(
+    name: syn::Type,
+) -> proc_macro2::TokenStream {
+    let lowercase_name = camel_to_snake(&quote! { #name }.to_string());
+
+    let query_attrs = attrs_query_func();
+    let update_attrs = attrs_update_func();
+    let getter = syn::Ident::new(&format!("get_{}", lowercase_name), Span::call_site());
+    let _getter_str = format!("_get_{}", lowercase_name);
+    let _getter = syn::Ident::new(&_getter_str, Span::call_site());
+    let proxy_getter_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_{}", lowercase_name),
+        parse_quote! { Option<#name> },
+        Some(parse_quote! { String }),
+        &_getter_str,
+    );
+    let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
+    let _between_str = format!("_between_{}", lowercase_name);
+    let _between = syn::Ident::new(&_between_str, Span::call_site());
+    let proxy_between_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_between_{}", lowercase_name),
+        parse_quote! {  Vec<(String, #name)> },
+        Some(parse_quote! { (String, String) }),
+        &_between_str,
+    );
+    let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
+    let _last_str = format!("_last_{}", lowercase_name);
+    let _last = syn::Ident::new(&_last_str, Span::call_site());
+    let proxy_last_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_last_{}", lowercase_name),
+        parse_quote! {  Vec<(String, #name)> },
+        Some(parse_quote! { u64 }),
+        &_last_str,
+    );
+    quote! {
+        #query_attrs
+        fn #getter(id: String) -> Option<#name> {
+            #_getter(id)
+        }
+        fn #_getter(id: String) -> Option<#name> {
+            #name::get(id.as_str())
+        }
+        #update_attrs
+        #proxy_getter_quote
+
+        #query_attrs
+        fn #between(a:(String, String)) -> Vec<(String, #name)> {
+            #_between(a)
+        }
+        fn #_between(a:(String, String)) -> Vec<(String, #name)> {
+            #name::between(a.0.as_str(), a.1.as_str())
+        }
+        #update_attrs
+        #proxy_between_quote
+
+        #query_attrs
+        fn #last(n: u64) -> Vec<(String, #name)> {
+            #_last(n)
+        }
+        fn #_last(n: u64) -> Vec<(String, #name)> {
+            #name::last(n)
+        }
+        #update_attrs
+        #proxy_last_quote
+    }
 }
 
 struct StableMemoryForVecInput {
@@ -605,5 +620,69 @@ mod test {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__stable_memory_for_vec", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_key_values_store_derive() {
+        let input = quote! {
+            #[memory_id(1)]
+            struct Account {
+                pub id: String,
+                pub token: String,
+                pub balance: u64,
+            }
+        };
+        let input: syn::DeriveInput = syn::parse2(input).unwrap();
+        let generated = key_values_store_derive_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__key_values_store_derive", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_key_value_store_derive() {
+        let input = quote! {
+            #[memory_id(1)]
+            struct Account {
+                pub id: String,
+                pub token: String,
+                pub balance: u64,
+            }
+        };
+        let input: syn::DeriveInput = syn::parse2(input).unwrap();
+        let generated = key_value_store_derive_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__key_value_store_derive", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_generate_queries_for_key_values_store_struct() {
+        let input = quote! { Account };
+        let input: syn::Type = syn::parse2(input).unwrap();
+        let generated = generate_queries_for_key_values_store_struct_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__generate_queries_for_key_values_store_struct_internal",
+            formatted
+        );
+    }
+
+    #[test]
+    fn test_snapshot_generate_queries_for_key_value_store_struct() {
+        let input = quote! { Account };
+        let input: syn::Type = syn::parse2(input).unwrap();
+        let generated = generate_queries_for_key_value_store_struct_internal(input);
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!(
+            "snapshot__generate_queries_for_key_value_store_struct_internal",
+            formatted
+        );
     }
 }

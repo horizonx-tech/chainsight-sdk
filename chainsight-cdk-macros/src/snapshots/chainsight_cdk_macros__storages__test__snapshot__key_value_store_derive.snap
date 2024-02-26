@@ -1,0 +1,22 @@
+---
+source: chainsight-cdk-macros/src/storages.rs
+expression: formatted
+---
+impl Account {
+    pub fn get(id: &str) -> Option<Self> {
+        Self::get_store().get(id)
+    }
+    pub fn put(&self, id: &str) {
+        Self::get_store().set(id, self.clone())
+    }
+    pub fn between(from: &str, to: &str) -> Vec<(String, Self)> {
+        Self::get_store().between(from, to)
+    }
+    pub fn last(n: u64) -> Vec<(String, Self)> {
+        Self::get_store().last(n)
+    }
+    fn get_store() -> chainsight_cdk::storage::KeyValueStore {
+        chainsight_cdk::storage::KeyValueStore::new(1u8)
+    }
+}
+
