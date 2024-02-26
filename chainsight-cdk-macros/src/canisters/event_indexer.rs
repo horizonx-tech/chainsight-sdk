@@ -123,7 +123,7 @@ fn custom_code(config: EventIndexerConfig) -> proc_macro2::TokenStream {
                 ).#call_func_ident(from, to, call_options).await;
                 match res {
                     Ok(logs) => {
-                        ic_cdk::println!(format!("from: {}, to: {}, logs: {:?}", from, to, &logs));
+                        ic_cdk::println!("from: {}, to: {}, logs: {:?}", from, to, &logs);
                         Ok(logs)
                     },
                     Err(e) => Err(chainsight_cdk::indexer::Error::OtherError(e.to_string())),
