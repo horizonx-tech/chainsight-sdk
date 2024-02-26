@@ -65,7 +65,10 @@ fn get_logs(
         .event_transfer(from, to, call_options)
         .await;
         match res {
-            Ok(logs) => Ok(logs),
+            Ok(logs) => {
+                ic_cdk::println!(format!("from: {}, to: {}, logs: {:?}", from, to, &logs));
+                Ok(logs)
+            }
             Err(e) => Err(chainsight_cdk::indexer::Error::OtherError(e.to_string())),
         }
     }
