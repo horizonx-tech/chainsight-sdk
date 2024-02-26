@@ -65,6 +65,7 @@ impl AlgorithmLogFinder {
         Args: serde::Serialize,
         Reply: serde::de::DeserializeOwned,
     {
+        ic_cdk::println!("AlgorithmLogFinder::get_logs");
         let result = CallProvider::new()
             .call(Message::new::<Args>(args, self.target, &self.method).unwrap())
             .await
@@ -105,6 +106,7 @@ where
     Args: serde::Serialize + Clone + Send + Sync,
 {
     async fn index(&self, _cfg: IndexingConfig) -> Result<(), Error> {
+        ic_cdk::println!("AlgorithmIndexerWithArgs<T, Args>");
         let result = self.finder.find::<Args, T>(self.args.clone()).await?;
         (self.persister.persist)(result);
         Ok(())
@@ -117,6 +119,7 @@ where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
     async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        ic_cdk::println!("AlgorithmIndexer<HashMap<u64, Vec<T>>>::index");
         let last_indexed = cfg.start_from;
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
@@ -145,6 +148,7 @@ where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
     async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        ic_cdk::println!("AlgorithmIndexer<HashMap<String, Vec<T>>>::index");
         let last_indexed = cfg.start_from;
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
@@ -172,6 +176,7 @@ where
     T: CandidType + Send + Sync + Clone + DeserializeOwned + 'static,
 {
     async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
+        ic_cdk::println!("AlgorithmIndexer<Vec<T>>::index");
         let last_indexed = cfg.start_from;
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);

@@ -138,6 +138,10 @@ where
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
         let elements = self.finder().find((from, to)).await?;
+        ic_cdk::println!("check Web3Indexer::index");
+        for (id, logs) in elements.clone().iter() {
+            ic_cdk::println!("{}: {:?}", id, logs.len());
+        }
         self.on_update(elements);
         Ok(())
     }
