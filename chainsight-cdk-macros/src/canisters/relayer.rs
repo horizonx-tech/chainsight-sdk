@@ -41,6 +41,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         abi_file_path,
         lens_parameter,
         conversion_parameter,
+        filtering_parameter,
         method_name,
         ..
     } = config;
@@ -54,6 +55,30 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         inter_canister_call_args_ident(canister_name_ident.clone(), lens_parameter.clone());
     let source_ident = source_ident(&source_method_name, lens_parameter.clone());
     let proxy_method_name = "proxy_".to_string() + &source_method_name;
+
+    let (filtering_func_quote, storage_for_filtering_quote) =
+        if let Some(param) = filtering_parameter {
+            let number_of_stored_data = param.number_of_stored_data;
+            (
+                quote! {
+                    filter(
+                        &datum,
+                        get_top_relaying_values(#number_of_stored_data.into())
+                    )
+                },
+                quote! {
+                    use chainsight_cdk_macros::stable_memory_for_vec;
+                    stable_memory_for_vec!("relaying_value", CallCanisterResponse, 8, false);
+                },
+            )
+        } else {
+            (
+                quote! {
+                    filter(&datum)
+                },
+                quote! {},
+            )
+        };
 
     let (extracted_datum_ident, converted_datum_ident) =
         if let Some(conversion_parameter) = conversion_parameter {
@@ -106,6 +131,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         ic_solidity_bindgen::contract_abi!(#abi_file_path);
         use #canister_name_ident::{CallCanisterResponse, filter};
         #call_args_ident
+        #storage_for_filtering_quote
         #source_ident
         #[ic_cdk::update]
         #[candid::candid_method(update)]
@@ -126,7 +152,7 @@ fn custom_code(config: RelayerConfig) -> proc_macro2::TokenStream {
 
             let datum = call_result.reply::<CallCanisterResponse>().expect("failed to get reply");
             ic_cdk::println!("response from canister = {:?}", datum.clone());
-            if !filter(&datum) {
+            if !#filtering_func_quote {
                 return;
             }
             let datum = #extracted_datum_ident;
@@ -401,6 +427,7 @@ mod test {
             abi_file_path: "__interfaces/Uint256Oracle.json".to_string(),
             method_name: "update_state".to_string(),
             conversion_parameter: None,
+            filtering_parameter: None,
             lens_parameter: None,
         }
     }
