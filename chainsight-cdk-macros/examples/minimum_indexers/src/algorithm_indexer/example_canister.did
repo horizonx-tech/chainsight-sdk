@@ -18,6 +18,8 @@ type InitError = variant {
   InvalidContent : text;
   InvalidRequest : text;
 };
+type OutputType1 = record { address : text };
+type OutputType2 = record { id : text; balance : nat64 };
 type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
 type SourceType = variant { evm; https; chainsight };
@@ -28,11 +30,27 @@ type Sources = record {
   source_type : SourceType;
 };
 service : {
+  between_output_type_1 : (record { text; text }) -> (
+      vec record { text; OutputType1 },
+    ) query;
+  between_output_type_2 : (record { text; text }) -> (
+      vec record { text; vec OutputType2 },
+    ) query;
   event_source : () -> (principal) query;
+  get_output_type_1 : (text) -> (opt OutputType1) query;
+  get_output_type_2 : (text) -> (vec OutputType2) query;
   get_proxy : () -> (principal);
   get_sources : () -> (vec Sources) query;
   index : () -> ();
   init_in : (Env, CycleManagements) -> (Result);
+  last_output_type_1 : (nat64) -> (vec record { text; OutputType1 }) query;
+  last_output_type_2 : (nat64) -> (vec record { text; vec OutputType2 }) query;
+  proxy_between_output_type_1 : (vec nat8) -> (vec nat8);
+  proxy_between_output_type_2 : (vec nat8) -> (vec nat8);
+  proxy_get_output_type_1 : (vec nat8) -> (vec nat8);
+  proxy_get_output_type_2 : (vec nat8) -> (vec nat8);
+  proxy_last_output_type_1 : (vec nat8) -> (vec nat8);
+  proxy_last_output_type_2 : (vec nat8) -> (vec nat8);
   set_task : (nat32, nat32) -> ();
   setup : (text, IndexingConfig) -> (Result_1);
 }
