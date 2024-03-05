@@ -2,7 +2,7 @@ use std::{borrow::Borrow, str::FromStr as _};
 
 use anyhow::Error;
 use chainsight_cdk::config::components::{CommonConfig, SnapshotIndexerEVMConfig};
-use ic_web3_rs::ethabi::ParamType;
+use ic_web3_rs::ethabi::{ParamType, StateMutability};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::{format_ident, quote, ToTokens as _};
@@ -102,6 +102,12 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
 
     let method_ident_str = camel_to_snake(name);
     let method_ident = format_ident!("{}", method_ident_str);
+    let method_quote = match function.state_mutability {
+        StateMutability::Pure | StateMutability::View => quote! { #method_ident },
+        StateMutability::NonPayable | StateMutability::Payable => {
+            quote! { static_call.#method_ident }
+        }
+    };
 
     let contract_struct_ident =
         format_ident!("{}", extract_contract_name_from_path(&abi_file_path));
@@ -169,7 +175,7 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
             let res = #contract_struct_ident::new(
                 Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
                 &web3_ctx().expect("Failed to get web3_ctx"),
-            ).#method_ident(#(#request_arg_tokens,)*None).await.expect("Failed to call contract");
+            ).#method_quote(#(#request_arg_tokens,)*None).await.expect("Failed to call contract");
 
             let datum = Snapshot {
                 value: #response_values,
