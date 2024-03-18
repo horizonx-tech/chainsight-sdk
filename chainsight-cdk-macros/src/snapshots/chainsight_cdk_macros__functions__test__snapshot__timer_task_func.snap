@@ -5,14 +5,15 @@ expression: formatted
 manage_single_state!("indexing_interval", u32, false);
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-pub async fn set_task(task_interval_secs: u32, delay_secs: u32) {
+pub async fn set_task(task_interval_secs: u32, delay_secs: u32, is_rounded_start_time: bool) {
     set_indexing_interval(task_interval_secs);
-    let res = ic_cdk::api::call::call::<(u32, u32, String, Vec<u8>), ()>(
+    let res = ic_cdk::api::call::call::<(u32, u32, bool, String, Vec<u8>), ()>(
         proxy(),
         "start_indexing",
         (
             task_interval_secs,
             delay_secs,
+            is_rounded_start_time,
             "HELLO".to_string(),
             Vec::<u8>::new(),
         ),
