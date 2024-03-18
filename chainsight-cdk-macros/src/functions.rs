@@ -221,12 +221,12 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
 
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        pub async fn #func_name_ident(task_interval_secs: u32, delay_secs: u32) {
+        pub async fn #func_name_ident(task_interval_secs: u32, delay_secs: u32, is_rounded_start_time: bool) {
             set_indexing_interval(task_interval_secs);
-            let res = ic_cdk::api::call::call::<(u32, u32, String, Vec<u8>), ()>(
+            let res = ic_cdk::api::call::call::<(u32, u32, bool, String, Vec<u8>), ()>(
                 proxy(),
                 "start_indexing",
-                (task_interval_secs, delay_secs, #called_func_name_str.to_string(), Vec::<u8>::new()),
+                (task_interval_secs, delay_secs, is_rounded_start_time, #called_func_name_str.to_string(), Vec::<u8>::new()),
             )
             .await;
             match res {
