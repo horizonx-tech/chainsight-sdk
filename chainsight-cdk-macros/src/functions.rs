@@ -225,7 +225,7 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
             set_indexing_interval(task_interval_secs);
             let res = ic_cdk::api::call::call::<(u32, u32, bool, String, Vec<u8>), ()>(
                 proxy(),
-                "start_indexing",
+                "start_indexing_with_is_rounded",
                 (task_interval_secs, delay_secs, is_rounded_start_time, #called_func_name_str.to_string(), Vec::<u8>::new()),
             )
             .await;

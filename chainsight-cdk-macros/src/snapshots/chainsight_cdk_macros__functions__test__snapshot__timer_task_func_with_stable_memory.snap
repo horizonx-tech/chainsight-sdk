@@ -9,7 +9,7 @@ pub async fn set_task(task_interval_secs: u32, delay_secs: u32, is_rounded_start
     set_indexing_interval(task_interval_secs);
     let res = ic_cdk::api::call::call::<(u32, u32, bool, String, Vec<u8>), ()>(
         proxy(),
-        "start_indexing",
+        "start_indexing_with_is_rounded",
         (
             task_interval_secs,
             delay_secs,
