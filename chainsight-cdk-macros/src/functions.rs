@@ -216,12 +216,22 @@ fn timer_task_func_internal(args: TimerTaskArgs) -> proc_macro2::TokenStream {
         }
     };
 
+    let func_name_ident_with_rounded = format_ident!("{}_with_rounded", func_name.value());
+
     quote! {
         #storage_quote
 
+        // Note: This function is for backward compatibility
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        pub async fn #func_name_ident(task_interval_secs: u32, delay_secs: u32, is_rounded_start_time: bool) {
+        pub async fn #func_name_ident(task_interval_secs: u32, delay_secs: u32) {
+            // No rounding of execution timing as default
+            #func_name_ident_with_rounded(task_interval_secs, delay_secs, false).await;
+        }
+
+        #[ic_cdk::update]
+        #[candid::candid_method(update)]
+        pub async fn #func_name_ident_with_rounded(task_interval_secs: u32, delay_secs: u32, is_rounded_start_time: bool) {
             set_indexing_interval(task_interval_secs);
             let res = ic_cdk::api::call::call::<(u32, u32, bool, String, Vec<u8>), ()>(
                 proxy(),
