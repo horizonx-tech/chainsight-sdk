@@ -51,6 +51,7 @@ service : {
   proxy_get_output_type_2 : (vec nat8) -> (vec nat8);
   proxy_last_output_type_1 : (vec nat8) -> (vec nat8);
   proxy_last_output_type_2 : (vec nat8) -> (vec nat8);
-  set_task : (nat32, nat32, bool) -> ();
+  set_task : (nat32, nat32) -> ();
+  set_task_with_rounded : (nat32, nat32, bool) -> ();
   setup : (text, IndexingConfig) -> (Result_1);
 }
