@@ -163,6 +163,8 @@ pub struct RelayerConfig {
     pub method_name: String,
     /// Optional: Parameters for conversion
     pub conversion_parameter: Option<RelayerConversionParameter>,
+    /// Optional: Parameters for filtering
+    pub filtering_parameter: Option<RelayerFilteringParameter>,
     /// Optional: Parameters for using Lens as data source
     pub lens_parameter: Option<LensParameter>,
 }
@@ -175,6 +177,11 @@ pub struct RelayerConversionParameter {
     pub destination_type_to_convert: Option<String>,
     /// Optional: Set exponent for power10, this is N when value * 10^N
     pub exponent_of_power10: Option<u32>,
+}
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct RelayerFilteringParameter {
+    /// Number of historical data stored for filtering
+    pub number_of_stored_data: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "src/relayer",
+    "src/relayer_with_filtering_parameter",
     "src/relayer_with_lens",
     "src/relayer_with_lens_with_args",
     "src/event_indexer",
