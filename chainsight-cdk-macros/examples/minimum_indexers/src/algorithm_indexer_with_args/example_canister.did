@@ -59,6 +59,6 @@ service : {
   proxy_last_balance : (vec nat8) -> (vec nat8);
   proxy_last_total_supply : (vec nat8) -> (vec nat8);
   set_args : (record { principal; text; text }) -> ();
-  set_task : (nat32, nat32) -> ();
+  set_task : (nat32, nat32, bool) -> ();
   setup : (text, IndexingConfig) -> (Result_1);
 }
