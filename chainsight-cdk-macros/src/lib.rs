@@ -195,3 +195,13 @@ pub fn snapshot_indexer_icp_source(input: TokenStream) -> TokenStream {
 pub fn relayer_source(input: TokenStream) -> TokenStream {
     indexers::sources::relayer_source(input)
 }
+
+#[proc_macro_attribute]
+pub fn only_controller(_attr: proc_macro::TokenStream, item: TokenStream) -> TokenStream {
+    canisters::attributes::only_controller(_attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn only_proxy(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    canisters::attributes::only_proxy(_attr, item)
+}
