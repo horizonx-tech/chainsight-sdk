@@ -179,6 +179,36 @@ fn define_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStrea
     }
 }
 
+pub fn define_relayer_web3_ctx(input: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(input as DefineWeb3CtxArgs);
+    define_relayer_web3_ctx_internal(args).into()
+}
+fn define_relayer_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStream {
+    let storage_quote = if let Some(memory_id) = input.stable_memory_id {
+        quote! {
+            stable_memory_for_scalar!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, #memory_id, false);
+        }
+    } else {
+        quote! {
+            manage_single_state!("web3_ctx_param", chainsight_cdk::web3::Web3CtxParam, false);
+        }
+    };
+
+    quote! {
+        #storage_quote
+        pub async fn relayer_web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
+            let param = get_web3_ctx_param();
+            let from = ethereum_address(get_env().ecdsa_key_name()).await?;
+            ic_solidity_bindgen::Web3Context::new(
+                &param.url,
+                from,
+                param.chain_id,
+                param.env.ecdsa_key_name(),
+            )
+        }
+    }
+}
+
 pub fn define_get_ethereum_address(_input: TokenStream) -> TokenStream {
     define_get_ethereum_address_internal().into()
 }
