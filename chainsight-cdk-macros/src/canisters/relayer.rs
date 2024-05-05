@@ -232,7 +232,7 @@ fn method_call(
             quote! {
                 let result = #oracle_ident::new(
                     Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-                    &web3_ctx().expect("Failed to get web3_ctx")
+                    &relayer_web3_ctx().await.expect("Failed to get web3_ctx")
                 ).#oracle_func_ident(call_option).await.expect("Failed to call update_state for oracle");
             }
         }
@@ -249,7 +249,7 @@ fn method_call(
             quote! {
                 let result = #oracle_ident::new(
                     Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-                    &web3_ctx().expect("Failed to get web3_ctx")
+                    &relayer_web3_ctx().await.expect("Failed to get web3_ctx")
                 ).#oracle_func_ident(#data, call_option).await.expect("Failed to call update_state for oracle");
                 ic_cdk::println!("value_to_sync={:?}", result);
             }
@@ -264,7 +264,7 @@ fn method_call(
                 let value =  #canister_name_ident::convert(&datum.clone());
                 let result = #oracle_ident::new(
                     Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-                    &web3_ctx().expect("Failed to get web3_ctx")
+                    &relayer_web3_ctx().await.expect("Failed to get web3_ctx")
                 ).#oracle_func_ident(#(value.#args_ident),*, call_option).await.expect("Failed to call update_state for oracle");
             }
         }
@@ -317,7 +317,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use candid::{Decode, Encode};
         use ic_cdk::api::call::result;
         use std::str::FromStr;
-        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, stable_memory_for_scalar, StableMemoryStorable, CborSerde, relayer_source};
+        use chainsight_cdk_macros::{manage_single_state, setup_func, init_in, timer_task_func, define_web3_ctx, define_relayer_web3_ctx, define_transform_for_web3, define_get_ethereum_address, chainsight_common, did_export, prepare_stable_structure, stable_memory_for_scalar, StableMemoryStorable, CborSerde, relayer_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use chainsight_cdk::web3::Encoder;
         use chainsight_cdk::convert::scalar::{Convertible, Scalable};
@@ -325,7 +325,7 @@ fn common_code(config: RelayerConfig) -> proc_macro2::TokenStream {
         use ic_web3_rs::types::{Address, U256};
         did_export!(#canister_name);  // NOTE: need to be declared before query, update
         chainsight_common!();
-        define_web3_ctx!(2);
+        define_relayer_web3_ctx!(2);
         define_transform_for_web3!();
         stable_memory_for_scalar!("target_addr", String, 3, false);
         define_get_ethereum_address!();

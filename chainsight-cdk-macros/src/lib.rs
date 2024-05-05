@@ -134,6 +134,11 @@ pub fn define_web3_ctx(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn define_relayer_web3_ctx(input: TokenStream) -> TokenStream {
+    web3::define_relayer_web3_ctx(input)
+}
+
+#[proc_macro]
 pub fn define_get_ethereum_address(input: TokenStream) -> TokenStream {
     web3::define_get_ethereum_address(input)
 }

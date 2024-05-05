@@ -7,9 +7,10 @@ use chainsight_cdk::convert::scalar::{Convertible, Scalable};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk::web3::Encoder;
 use chainsight_cdk_macros::{
-    chainsight_common, define_get_ethereum_address, define_transform_for_web3, define_web3_ctx,
-    did_export, init_in, manage_single_state, prepare_stable_structure, relayer_source, setup_func,
-    stable_memory_for_scalar, timer_task_func, CborSerde, StableMemoryStorable,
+    chainsight_common, define_get_ethereum_address, define_relayer_web3_ctx,
+    define_transform_for_web3, define_web3_ctx, did_export, init_in, manage_single_state,
+    prepare_stable_structure, relayer_source, setup_func, stable_memory_for_scalar,
+    timer_task_func, CborSerde, StableMemoryStorable,
 };
 use ic_cdk::api::call::result;
 use ic_stable_structures::writer::Writer;
@@ -17,7 +18,7 @@ use ic_web3_rs::types::{Address, U256};
 use std::str::FromStr;
 did_export!("relayer");
 chainsight_common!();
-define_web3_ctx!(2);
+define_relayer_web3_ctx!(2);
 define_transform_for_web3!();
 stable_memory_for_scalar!("target_addr", String, 3, false);
 define_get_ethereum_address!();
@@ -79,7 +80,7 @@ async fn index() {
         .expect("Failed to build call_option");
     let result = Uint256Oracle::new(
         Address::from_str(&get_target_addr()).expect("Failed to parse target addr to Address"),
-        &web3_ctx().expect("Failed to get web3_ctx"),
+        &relayer_web3_ctx().await.expect("Failed to get web3_ctx"),
     )
     .update_state(
         chainsight_cdk::web3::abi::EthAbiEncoder.encode(datum.clone()),
