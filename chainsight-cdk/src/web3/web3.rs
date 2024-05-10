@@ -102,7 +102,7 @@ where
                 acc
             }))
     }
-    fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
+    pub fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
         logs.iter().for_each(|(block_number, logs)| {
             let tokens: Vec<E> = logs
                 .iter()
