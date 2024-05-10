@@ -118,12 +118,12 @@ where
     }
 
     pub fn get_last_indexed(&self) -> Result<u64, Error> {
-        Ok(self
-            .storage
-            .last(1)
-            .last()
-            .map(|(block_number, _)| block_number.parse::<u64>().unwrap())
-            .unwrap_or_default())
+        let last = self.storage.last();
+        if let Some(last) = last {
+            Ok(last.0.parse::<u64>().unwrap())
+        } else {
+            Err(Error::OtherError("No last indexed".to_string()))
+        }
     }
 }
 

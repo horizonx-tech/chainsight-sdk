@@ -17,7 +17,7 @@ pub trait Persist {
     fn tokenize(&self) -> Data;
 }
 
-#[derive(Deserialize, CandidType, Clone)]
+#[derive(Deserialize, CandidType, Clone, Debug)]
 pub struct Values(Vec<Data>);
 #[derive(Deserialize, CandidType, Clone, Debug)]
 pub struct Data(HashMap<String, Token>);
@@ -234,19 +234,50 @@ impl KeyValuesStore {
                 })
         })
     }
-    pub fn last(&self, n: u64) -> Vec<(String, Values)> {
+
+    pub fn last(&self) -> Option<(String, Values)> {
+        let last = self.store.with(|m| m.borrow().last_key_value());
+        if let Some(last) = last {
+            Some((last.0.clone().0, last.1.clone()))
+        } else {
+            None
+        }
+    }
+
+    pub fn last_n(&self, n: u64) -> Vec<(String, Values)> {
         let length = self.store.with(|m| m.borrow().len());
-        let skip = if length <= n { 0 } else { length - n };
-        self.store
-            .with(|m| {
+        let last = self.last();
+        if last.is_none() {
+            return vec![];
+        }
+        let (last_key_str, last_values) = last.unwrap();
+        if n == 1 {
+            return vec![(last_key_str, last_values)];
+        }
+
+        let res = if let Ok(last_key) = last_key_str.parse::<u64>() {
+            let from_key = if last_key < n { 0 } else { last_key - n };
+            self.store.with(|m| {
                 m.borrow()
-                    .iter()
-                    .skip(skip as usize)
+                    .range(Id(from_key.to_string())..Id(last_key_str.clone()))
                     .map(|(k, v)| (k.clone().0, v.clone()))
                     .collect::<Vec<_>>()
             })
-            .into_iter()
-            .collect()
+        } else {
+            let skip = if length <= n { 0 } else { length - n };
+            self.store
+                .with(|m| {
+                    m.borrow()
+                        .iter()
+                        .skip(skip as usize)
+                        .map(|(k, v)| (k.clone().0, v.clone()))
+                        .collect::<Vec<_>>()
+                })
+                .into_iter()
+                .collect()
+        };
+
+        res
     }
 
     pub fn last_elems<T>(&self, n: u64) -> HashMap<String, Vec<T>>
