@@ -216,6 +216,7 @@ impl KeyValuesStore {
             m.borrow_mut().insert(Id(id), Values(values));
         })
     }
+    // note: targets of acquisition is `from <= item < to` to get by BTreeMap#range
     pub fn between<T>(&self, from: u64, to: u64) -> HashMap<u64, Vec<T>>
     where
         T: Persist,

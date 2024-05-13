@@ -96,8 +96,8 @@ fn event_indexer_common(
         #storage_quote
 
         #attrs_query
-        pub fn events_from_to(from:u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
-            _events_from_to((from,to))
+        pub fn events_from_to(from: u64, to: u64) -> HashMap<u64, Vec<#out_type>> {
+            _events_from_to((from, to + 1)) // note: +1 to include the last indexed
         }
         #attrs_update
         pub async fn proxy_events_from_to(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
@@ -106,8 +106,8 @@ fn event_indexer_common(
 
         #_proxy_events_from_to_quote
 
-        fn _events_from_to(input: (u64,  u64)) -> HashMap<u64, Vec<#out_type>> {
-            indexer().between(input.0,input.1).unwrap()
+        fn _events_from_to(input: (u64, u64)) -> HashMap<u64, Vec<#out_type>> {
+            indexer().between(input.0, input.1).unwrap()
         }
 
         #attrs_query
@@ -120,7 +120,7 @@ fn event_indexer_common(
 
         fn _events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
             let last_indexed = indexer().get_last_indexed().unwrap();
-            _events_from_to((last_indexed - n, last_indexed + 1)) // note: +1 to include the last indexed
+            _events_from_to((last_indexed - n + 1, last_indexed + 1)) // note: +1 to include the last indexed
         }
 
 
