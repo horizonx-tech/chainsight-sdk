@@ -86,14 +86,14 @@ pub fn input_type_ident(
             // HashMap<String, event_struct>
             let source_ident = format_ident!("{}", &"HashMap".to_string());
             quote! {
-                #source_ident<String, #event_struct>
+                #source_ident<u64, #event_struct>
             }
         }
         AlgorithmInputType::KeyValues => {
             // HashMap<String, Vec<event_struct>>
             let source_ident = format_ident!("{}", &"HashMap".to_string());
             quote! {
-                #source_ident<String, Vec<#event_struct>>
+                #source_ident<u64, Vec<#event_struct>>
             }
         }
     }

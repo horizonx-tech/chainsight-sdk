@@ -1,37 +1,36 @@
 ---
 source: chainsight-cdk-macros/src/storages.rs
-assertion_line: 683
 expression: formatted
 ---
 #[ic_cdk::query]
 #[candid::candid_method(query)]
-fn get_account(id: String) -> Option<Account> {
+fn get_account(id: u64) -> Option<Account> {
     _get_account(id)
 }
-fn _get_account(id: String) -> Option<Account> {
-    Account::get(id.as_str())
+fn _get_account(id: u64) -> Option<Account> {
+    Account::get(id)
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn proxy_get_account(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
-    chainsight_cdk::rpc::ReceiverProvider::<String, Option<Account>>::new(proxy(), _get_account)
+    chainsight_cdk::rpc::ReceiverProvider::<u64, Option<Account>>::new(proxy(), _get_account)
         .reply(input)
         .await
 }
 #[ic_cdk::query]
 #[candid::candid_method(query)]
-fn between_account(a: (String, String)) -> Vec<(String, Account)> {
+fn between_account(a: (u64, u64)) -> Vec<(u64, Account)> {
     _between_account(a)
 }
-fn _between_account(a: (String, String)) -> Vec<(String, Account)> {
-    Account::between(a.0.as_str(), a.1.as_str())
+fn _between_account(a: (u64, u64)) -> Vec<(u64, Account)> {
+    Account::between(a.0, a.1)
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn proxy_between_account(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
-    chainsight_cdk::rpc::ReceiverProvider::<(String, String), Vec<(String, Account)>>::new(
+    chainsight_cdk::rpc::ReceiverProvider::<(u64, u64), Vec<(u64, Account)>>::new(
         proxy(),
         _between_account,
     )
@@ -40,21 +39,18 @@ async fn proxy_between_account(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
 }
 #[ic_cdk::query]
 #[candid::candid_method(query)]
-fn last_account(n: u64) -> Vec<(String, Account)> {
+fn last_account(n: u64) -> Vec<(u64, Account)> {
     _last_account(n)
 }
-fn _last_account(n: u64) -> Vec<(String, Account)> {
+fn _last_account(n: u64) -> Vec<(u64, Account)> {
     Account::last(n)
 }
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn proxy_last_account(input: std::vec::Vec<u8>) -> std::vec::Vec<u8> {
     use chainsight_cdk::rpc::Receiver;
-    chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<(String, Account)>>::new(
-        proxy(),
-        _last_account,
-    )
-    .reply(input)
-    .await
+    chainsight_cdk::rpc::ReceiverProvider::<u64, Vec<(u64, Account)>>::new(proxy(), _last_account)
+        .reply(input)
+        .await
 }
 
