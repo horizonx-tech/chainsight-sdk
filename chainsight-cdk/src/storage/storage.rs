@@ -37,18 +37,16 @@ impl fmt::Display for Id {
 
 impl Storable for Id {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap())
+        self.0.to_bytes()
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
+        Self(u64::from_bytes(bytes))
     }
 }
-
-// todo: calculate and specify max size
 impl BoundedStorable for Id {
-    const MAX_SIZE: u32 = 100_000;
-    const IS_FIXED_SIZE: bool = false;
+    const MAX_SIZE: u32 = 8;
+    const IS_FIXED_SIZE: bool = true;
 }
 
 impl Data {
@@ -216,7 +214,7 @@ impl KeyValuesStore {
             m.borrow_mut().insert(Id(id), Values(values));
         })
     }
-    // note: targets of acquisition is `from <= item < to` to get by BTreeMap#range
+    // note: to get by BTreeMap#range, targets of acquisition is `from <= item < to`
     pub fn between<T>(&self, from: u64, to: u64) -> HashMap<u64, Vec<T>>
     where
         T: Persist,
