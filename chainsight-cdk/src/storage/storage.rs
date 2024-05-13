@@ -23,9 +23,9 @@ pub struct Values(Vec<Data>);
 pub struct Data(HashMap<String, Token>);
 
 #[derive(Deserialize, CandidType, Clone, Hash, Debug, PartialEq, PartialOrd, Eq, Ord)]
-pub struct Id(String);
+pub struct Id(u64);
 impl Id {
-    pub fn new(id: String) -> Self {
+    pub fn new(id: u64) -> Self {
         Self(id)
     }
 }
@@ -45,6 +45,7 @@ impl Storable for Id {
     }
 }
 
+// todo: calculate and specify max size
 impl BoundedStorable for Id {
     const MAX_SIZE: u32 = 100_000;
     const IS_FIXED_SIZE: bool = false;
@@ -192,13 +193,13 @@ impl KeyValuesStore {
             _ => panic!("Invalid store id"),
         }
     }
-    pub fn get<T>(&self, id: &str) -> Vec<T>
+    pub fn get<T>(&self, id: u64) -> Vec<T>
     where
         T: Persist,
     {
         self.store.with(|m| {
             m.borrow()
-                .get(&Id(id.to_string()))
+                .get(&Id(id))
                 .map(|v| {
                     let elems: Vec<T> = v.0.iter().map(|e| T::untokenize(e.clone())).collect();
                     elems
@@ -206,22 +207,22 @@ impl KeyValuesStore {
                 .unwrap_or_default()
         })
     }
-    pub fn set<T>(&self, id: &str, values: Vec<T>)
+    pub fn set<T>(&self, id: u64, values: Vec<T>)
     where
         T: Persist,
     {
         let values: Vec<Data> = values.into_iter().map(|v| v.tokenize()).collect();
         self.store.with(|m| {
-            m.borrow_mut().insert(Id(id.to_string()), Values(values));
+            m.borrow_mut().insert(Id(id), Values(values));
         })
     }
-    pub fn between<T>(&self, from: &str, to: &str) -> HashMap<String, Vec<T>>
+    pub fn between<T>(&self, from: u64, to: u64) -> HashMap<u64, Vec<T>>
     where
         T: Persist,
     {
         self.store.with(|m| {
             m.borrow()
-                .range(Id(from.to_string())..Id(to.to_string()))
+                .range(Id(from)..Id(to))
                 .map(|(k, v)| {
                     (
                         k.clone(),
@@ -235,7 +236,7 @@ impl KeyValuesStore {
         })
     }
 
-    pub fn last(&self) -> Option<(String, Values)> {
+    pub fn last(&self) -> Option<(u64, Values)> {
         let last = self.store.with(|m| m.borrow().last_key_value());
         if let Some(last) = last {
             Some((last.0.clone().0, last.1.clone()))
@@ -244,43 +245,27 @@ impl KeyValuesStore {
         }
     }
 
-    pub fn last_n(&self, n: u64) -> Vec<(String, Values)> {
+    pub fn last_n(&self, n: u64) -> Vec<(u64, Values)> {
         let length = self.store.with(|m| m.borrow().len());
         let last = self.last();
         if last.is_none() {
             return vec![];
         }
-        let (last_key_str, last_values) = last.unwrap();
+        let (last_key, last_values) = last.unwrap();
         if n == 1 {
-            return vec![(last_key_str, last_values)];
+            return vec![(last_key, last_values)];
         }
 
-        let res = if let Ok(last_key) = last_key_str.parse::<u64>() {
-            let from_key = if last_key < n { 0 } else { last_key - n };
-            self.store.with(|m| {
-                m.borrow()
-                    .range(Id(from_key.to_string())..Id(last_key_str.clone()))
-                    .map(|(k, v)| (k.clone().0, v.clone()))
-                    .collect::<Vec<_>>()
-            })
-        } else {
-            let skip = if length <= n { 0 } else { length - n };
-            self.store
-                .with(|m| {
-                    m.borrow()
-                        .iter()
-                        .skip(skip as usize)
-                        .map(|(k, v)| (k.clone().0, v.clone()))
-                        .collect::<Vec<_>>()
-                })
-                .into_iter()
-                .collect()
-        };
-
-        res
+        let from_key = if last_key < n { 0 } else { last_key - n };
+        self.store.with(|m| {
+            m.borrow()
+                .range(Id(from_key)..Id(last_key))
+                .map(|(k, v)| (k.clone().0, v.clone()))
+                .collect::<Vec<_>>()
+        })
     }
 
-    pub fn last_elems<T>(&self, n: u64) -> HashMap<String, Vec<T>>
+    pub fn last_elems<T>(&self, n: u64) -> HashMap<u64, Vec<T>>
     where
         T: Persist,
     {
@@ -347,33 +332,33 @@ impl KeyValueStore {
             _ => panic!("Invalid store id"),
         }
     }
-    pub fn get<T>(&self, id: &str) -> Option<T>
+    pub fn get<T>(&self, id: u64) -> Option<T>
     where
         T: Persist,
     {
         self.store
-            .with(|m| m.borrow().get(&Id(id.to_string())).map(T::untokenize))
+            .with(|m| m.borrow().get(&Id(id)).map(T::untokenize))
     }
-    pub fn set<T>(&self, id: &str, data: T)
+    pub fn set<T>(&self, id: u64, data: T)
     where
         T: Persist,
     {
         self.store.with(|m| {
-            m.borrow_mut().insert(Id(id.to_string()), data.tokenize());
+            m.borrow_mut().insert(Id(id), data.tokenize());
         })
     }
-    pub fn between<T>(&self, from: &str, to: &str) -> Vec<(String, T)>
+    pub fn between<T>(&self, from: u64, to: u64) -> Vec<(u64, T)>
     where
         T: Persist,
     {
         self.store.with(|m| {
             m.borrow()
-                .range(Id(from.to_string())..Id(to.to_string()))
+                .range(Id(from)..Id(to))
                 .map(|(k, v)| (k.clone().0, T::untokenize(v.clone())))
                 .collect()
         })
     }
-    pub fn last<T>(&self, n: u64) -> Vec<(String, T)>
+    pub fn last<T>(&self, n: u64) -> Vec<(u64, T)>
     where
         T: Persist,
     {
@@ -422,6 +407,6 @@ mod tests {
     #[test]
     fn test_kvs_between_empty() {
         let kvs = KeyValueStore::new(1);
-        _ = kvs.between::<SampleStruct>("", "");
+        _ = kvs.between::<SampleStruct>(0, 10);
     }
 }
