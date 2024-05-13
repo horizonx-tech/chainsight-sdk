@@ -120,7 +120,7 @@ fn event_indexer_common(
 
         fn _events_latest_n(n: u64) -> HashMap<u64, Vec<#out_type>> {
             let last_indexed = indexer().get_last_indexed().unwrap();
-            _events_from_to((last_indexed - n, last_indexed))
+            _events_from_to((last_indexed - n, last_indexed + 1)) // note: +1 to include the last indexed
         }
 
 

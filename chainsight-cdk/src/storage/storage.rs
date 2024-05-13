@@ -246,7 +246,6 @@ impl KeyValuesStore {
     }
 
     pub fn last_n(&self, n: u64) -> Vec<(u64, Values)> {
-        let length = self.store.with(|m| m.borrow().len());
         let last = self.last();
         if last.is_none() {
             return vec![];
@@ -257,9 +256,10 @@ impl KeyValuesStore {
         }
 
         let from_key = if last_key < n { 0 } else { last_key - n };
+        let key_range = Id(from_key)..Id(last_key + 1); // note: to include the last item in the retrieval
         self.store.with(|m| {
             m.borrow()
-                .range(Id(from_key)..Id(last_key))
+                .range(key_range)
                 .map(|(k, v)| (k.clone().0, v.clone()))
                 .collect::<Vec<_>>()
         })
