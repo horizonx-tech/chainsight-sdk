@@ -131,7 +131,7 @@ where
     E: Event<EventLog> + Persist,
 {
     async fn index(&self, cfg: IndexingConfig) -> Result<(), Error> {
-        let last_indexed = self.get_last_indexed()?;
+        let last_indexed = self.get_last_indexed().unwrap_or(0);
         let chunk_size = cfg.chunk_size.unwrap_or(500);
         let from = cfg.start_from.max(last_indexed + 1);
         let to = from + chunk_size;
