@@ -3,16 +3,16 @@ source: chainsight-cdk-macros/src/storages.rs
 expression: formatted
 ---
 impl Account {
-    pub fn get(id: &str) -> Option<Self> {
+    pub fn get(id: u64) -> Option<Self> {
         Self::get_store().get(id)
     }
-    pub fn put(&self, id: &str) {
+    pub fn put(&self, id: u64) {
         Self::get_store().set(id, self.clone())
     }
-    pub fn between(from: &str, to: &str) -> Vec<(String, Self)> {
+    pub fn between(from: u64, to: u64) -> Vec<(u64, Self)> {
         Self::get_store().between(from, to)
     }
-    pub fn last(n: u64) -> Vec<(String, Self)> {
+    pub fn last(n: u64) -> Vec<(u64, Self)> {
         Self::get_store().last(n)
     }
     fn get_store() -> chainsight_cdk::storage::KeyValueStore {

@@ -197,17 +197,17 @@ fn key_values_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::Tok
 
     quote! {
         impl #name {
-            pub fn get(id: &str) -> Vec<Self> {
+            pub fn get(id: u64) -> Vec<Self> {
                 Self::get_store().get(id)
             }
 
-            pub fn put(id: &str, e: Vec<Self>) {
+            pub fn put(id: u64, e: Vec<Self>) {
                 Self::get_store().set(id, e)
             }
-            pub fn between(from:&str, to: &str) -> HashMap<String, Vec<Self>> {
+            pub fn between(from: u64, to: u64) -> HashMap<u64, Vec<Self>> {
                 Self::get_store().between(from, to)
             }
-            pub fn last(n: u64) -> HashMap<String, Vec<Self>> {
+            pub fn last(n: u64) -> HashMap<u64, Vec<Self>> {
                 Self::get_store().last_elems(n)
             }
             fn get_store() -> chainsight_cdk::storage::KeyValuesStore {
@@ -236,7 +236,7 @@ fn generate_queries_for_key_values_store_struct_internal(
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", lowercase_name),
         parse_quote! { Vec<#name> },
-        Some(parse_quote! { String }),
+        Some(parse_quote! { u64 }),
         &_getter_str,
     );
     let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
@@ -244,8 +244,8 @@ fn generate_queries_for_key_values_store_struct_internal(
     let _between = syn::Ident::new(&_between_str, Span::call_site());
     let proxy_between_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_between_{}", lowercase_name),
-        parse_quote! {  HashMap<String, Vec<#name>> },
-        Some(parse_quote! { (String, String) }),
+        parse_quote! {  HashMap<u64, Vec<#name>> },
+        Some(parse_quote! { (u64, u64) }),
         &_between_str,
     );
     let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
@@ -253,37 +253,37 @@ fn generate_queries_for_key_values_store_struct_internal(
     let _last = syn::Ident::new(&_last_str, Span::call_site());
     let proxy_last_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_last_{}", lowercase_name),
-        parse_quote! {  HashMap<String, Vec<#name>> },
+        parse_quote! {  HashMap<u64, Vec<#name>> },
         Some(parse_quote! { u64 }),
         &_last_str,
     );
 
     quote! {
         #query_attrs
-        fn #getter(id: String) -> Vec<#name> {
+        fn #getter(id: u64) -> Vec<#name> {
             #_getter(id)
         }
-        fn #_getter(id: String) -> Vec<#name> {
-            #name::get(id.as_str())
+        fn #_getter(id: u64) -> Vec<#name> {
+            #name::get(id)
         }
         #update_attrs
         #proxy_getter_quote
 
         #query_attrs
-        fn #between(a: (String, String)) -> HashMap<String, Vec<#name>> {
+        fn #between(a: (u64, u64)) -> HashMap<u64, Vec<#name>> {
             #_between(a)
         }
-        fn #_between(a: (String, String)) -> HashMap<String, Vec<#name>> {
-            #name::between(a.0.as_str(), a.1.as_str())
+        fn #_between(a: (u64, u64)) -> HashMap<u64, Vec<#name>> {
+            #name::between(a.0, a.1)
         }
 
         #update_attrs
         #proxy_between_quote
         #query_attrs
-        fn #last(n: u64) -> HashMap<String, Vec<#name>> {
+        fn #last(n: u64) -> HashMap<u64, Vec<#name>> {
             #_last(n)
         }
-        fn #_last(n: u64) -> HashMap<String, Vec<#name>> {
+        fn #_last(n: u64) -> HashMap<u64, Vec<#name>> {
             #name::last(n)
         }
         #update_attrs
@@ -301,16 +301,16 @@ pub fn key_value_store_derive_internal(input: syn::DeriveInput) -> proc_macro2::
 
     quote! {
         impl #name {
-            pub fn get(id: &str) -> Option<Self> {
+            pub fn get(id: u64) -> Option<Self> {
                 Self::get_store().get(id)
             }
-            pub fn put(&self, id: &str) {
+            pub fn put(&self, id: u64) {
                 Self::get_store().set(id, self.clone())
             }
-            pub fn between(from:&str, to: &str) -> Vec<(String, Self)> {
+            pub fn between(from:u64, to: u64) -> Vec<(u64, Self)> {
                 Self::get_store().between(from, to)
             }
-            pub fn last(n: u64) -> Vec<(String, Self)> {
+            pub fn last(n: u64) -> Vec<(u64, Self)> {
                 Self::get_store().last(n)
             }
             fn get_store() -> chainsight_cdk::storage::KeyValueStore {
@@ -338,7 +338,7 @@ fn generate_queries_for_key_value_store_struct_internal(
     let proxy_getter_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_get_{}", lowercase_name),
         parse_quote! { Option<#name> },
-        Some(parse_quote! { String }),
+        Some(parse_quote! { u64 }),
         &_getter_str,
     );
     let between = syn::Ident::new(&format!("between_{}", lowercase_name), Span::call_site());
@@ -346,8 +346,8 @@ fn generate_queries_for_key_value_store_struct_internal(
     let _between = syn::Ident::new(&_between_str, Span::call_site());
     let proxy_between_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_between_{}", lowercase_name),
-        parse_quote! {  Vec<(String, #name)> },
-        Some(parse_quote! { (String, String) }),
+        parse_quote! {  Vec<(u64, #name)> },
+        Some(parse_quote! { (u64, u64) }),
         &_between_str,
     );
     let last = syn::Ident::new(&format!("last_{}", lowercase_name), Span::call_site());
@@ -355,36 +355,36 @@ fn generate_queries_for_key_value_store_struct_internal(
     let _last = syn::Ident::new(&_last_str, Span::call_site());
     let proxy_last_quote = gen_func_quote_to_call_proxy(
         &format!("proxy_last_{}", lowercase_name),
-        parse_quote! {  Vec<(String, #name)> },
+        parse_quote! {  Vec<(u64, #name)> },
         Some(parse_quote! { u64 }),
         &_last_str,
     );
     quote! {
         #query_attrs
-        fn #getter(id: String) -> Option<#name> {
+        fn #getter(id: u64) -> Option<#name> {
             #_getter(id)
         }
-        fn #_getter(id: String) -> Option<#name> {
-            #name::get(id.as_str())
+        fn #_getter(id: u64) -> Option<#name> {
+            #name::get(id)
         }
         #update_attrs
         #proxy_getter_quote
 
         #query_attrs
-        fn #between(a:(String, String)) -> Vec<(String, #name)> {
+        fn #between(a:(u64, u64)) -> Vec<(u64, #name)> {
             #_between(a)
         }
-        fn #_between(a:(String, String)) -> Vec<(String, #name)> {
-            #name::between(a.0.as_str(), a.1.as_str())
+        fn #_between(a:(u64, u64)) -> Vec<(u64, #name)> {
+            #name::between(a.0, a.1)
         }
         #update_attrs
         #proxy_between_quote
 
         #query_attrs
-        fn #last(n: u64) -> Vec<(String, #name)> {
+        fn #last(n: u64) -> Vec<(u64, #name)> {
             #_last(n)
         }
-        fn #_last(n: u64) -> Vec<(String, #name)> {
+        fn #_last(n: u64) -> Vec<(u64, #name)> {
             #name::last(n)
         }
         #update_attrs

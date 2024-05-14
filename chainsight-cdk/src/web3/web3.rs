@@ -92,17 +92,15 @@ where
             .unwrap()
     }
     pub fn between(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<E>>, Error> {
-        Ok(self
-            .storage
-            .between(from.to_string().as_str(), to.to_string().as_str())
-            .into_iter()
-            .map(|(block_number, tokens)| (block_number.parse::<u64>().unwrap(), tokens))
-            .fold(HashMap::new(), |mut acc, (block_number, tokens)| {
+        Ok(self.storage.between(from, to).into_iter().fold(
+            HashMap::new(),
+            |mut acc, (block_number, tokens)| {
                 acc.insert(block_number, tokens);
                 acc
-            }))
+            },
+        ))
     }
-    fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
+    pub fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
         logs.iter().for_each(|(block_number, logs)| {
             let tokens: Vec<E> = logs
                 .iter()
@@ -113,17 +111,17 @@ where
                     })
                 })
                 .collect();
-            self.storage.set(block_number.to_string().as_str(), tokens)
+            self.storage.set(*block_number, tokens)
         })
     }
 
     pub fn get_last_indexed(&self) -> Result<u64, Error> {
-        Ok(self
-            .storage
-            .last(1)
-            .last()
-            .map(|(block_number, _)| block_number.parse::<u64>().unwrap())
-            .unwrap_or_default())
+        let last = self.storage.last();
+        if let Some(last) = last {
+            Ok(last.0)
+        } else {
+            Err(Error::OtherError("No last indexed".to_string()))
+        }
     }
 }
 

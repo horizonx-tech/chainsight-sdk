@@ -2,9 +2,9 @@ use candid::{CandidType, Decode, Encode, Principal};
 use chainsight_cdk::{indexer::IndexingConfig, storage::Data};
 use chainsight_cdk_macros::{
     algorithm_indexer_source, algorithm_indexer_with_args, chainsight_common, did_export,
-    generate_queries_for_key_value_store_struct, generate_queries_for_key_values_store_struct, init_in,
-    manage_single_state, setup_func, timer_task_func, KeyValueStore, KeyValuesStore, Persist,
-    StableMemoryStorable,
+    generate_queries_for_key_value_store_struct, generate_queries_for_key_values_store_struct,
+    init_in, manage_single_state, setup_func, timer_task_func, KeyValueStore, KeyValuesStore,
+    Persist, StableMemoryStorable,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
