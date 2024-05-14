@@ -92,15 +92,13 @@ where
             .unwrap()
     }
     pub fn between(&self, from: u64, to: u64) -> Result<HashMap<u64, Vec<E>>, Error> {
-        Ok(self
-            .storage
-            .between(from, to)
-            .into_iter()
-            .map(|(block_number, tokens)| (block_number, tokens))
-            .fold(HashMap::new(), |mut acc, (block_number, tokens)| {
+        Ok(self.storage.between(from, to).into_iter().fold(
+            HashMap::new(),
+            |mut acc, (block_number, tokens)| {
                 acc.insert(block_number, tokens);
                 acc
-            }))
+            },
+        ))
     }
     pub fn on_update(&self, logs: HashMap<u64, Vec<EventLog>>) {
         logs.iter().for_each(|(block_number, logs)| {
