@@ -3,13 +3,14 @@ members = ["chainsight-cdk", "chainsight-cdk-macros"]
 
 [workspace.dependencies]
 anyhow = "1.0.75"
-candid = { version = "0.9.6", features = ["parser"] }
+candid = "^0.10.4"
+candid_parser = "^0.1.4"
 ethabi = "18.0.0"
 futures = "0.3.28"
 hex = "0.4.3"
-ic-cdk = "0.11.3"
-ic-web3-rs = "0.1.6"
-ic-solidity-bindgen = "0.1.15"
+ic-cdk = "0.13.2"
+ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs.git", branch = "deps/ic-cdk-0.13.2" }
+ic-solidity-bindgen = { git = "https://github.com/horizonx-tech/ic-solidity-bindgen.git", branch = "deps/ic-cdk-0.13.2" }
 ic-stable-structures = "0.5.5"
 regex = "1.8.4"
 serde = "1.0.163"
