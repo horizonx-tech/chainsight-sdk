@@ -2,11 +2,15 @@ use std::{cmp::max, fs, ops::Deref, path::Path};
 
 use anyhow::Ok;
 use candid::{
-    bindings::rust::{compile, Target},
-    check_prog,
-    parser::types::IDLType,
     types::{Type, TypeInner},
-    IDLProg, TypeEnv,
+    TypeEnv,
+};
+use candid_parser::{
+    bindings::rust::{compile, Config, Target},
+    check_prog,
+    types::IDLType,
+    typing::ast_to_type,
+    IDLProg,
 };
 use regex::Regex;
 
@@ -54,10 +58,10 @@ impl CanisterMethodIdentifier {
     pub fn compile(&self) -> anyhow::Result<String> {
         anyhow::ensure!(self.compilable(), "Not compilable IDLProg");
 
-        let mut config = candid::bindings::rust::Config::new();
-        // // Update the structure derive to chainsight's own settings
-        config.type_attributes = "#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string();
-        config.target = Target::CanisterStub;
+        let mut config = Config::new();
+        // Update the structure derive to chainsight's own settings
+        config.set_type_attributes("#[derive(Clone, Debug, candid :: CandidType, candid :: Deserialize, serde :: Serialize, chainsight_cdk_macros :: StableMemoryStorable)]".to_string());
+        config.set_target(Target::CanisterStub);
         let contents = compile(&config, &self.type_env, &None);
 
         let mut lines = contents
@@ -273,7 +277,7 @@ fn exclude_service_from_did_string(data: &mut String) -> String {
 pub fn get_candid_type_from_str(s: &str) -> anyhow::Result<Type> {
     let env = TypeEnv::new();
     let ast = s.parse::<IDLType>()?;
-    let res = env.ast_to_type(&ast)?;
+    let res = ast_to_type(&env, &ast)?;
     Ok(res)
 }
 
