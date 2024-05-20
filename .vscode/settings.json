@@ -4,9 +4,8 @@
   "rust-analyzer.procMacro.attributes.enable": true,
   "rust-analyzer.trace.server": "verbose",
   "rust-analyzer.linkedProjects": [
-    "./chainsight-cdk-macros/examples/minimum_indexers/src/event_indexer/Cargo.toml",
-    "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_indexer/Cargo.toml",
+    "./Cargo.toml",
     "./chainsight-cdk/Cargo.toml",
-    "./chainsight-cdk-macros/examples/minimum_indexers/src/algorithm_lens/Cargo.toml"
+    "./chainsight-cdk-macros/Cargo.toml",
   ]
 }
