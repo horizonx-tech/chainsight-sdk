@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use candid::Nat;
 use ic_cdk::api::management_canister::http_request::{
     HttpResponse, TransformArgs, TransformContext, TransformFunc,
 };
@@ -130,7 +129,7 @@ pub trait TransformProcessor {
             status: raw.response.status.clone(),
             ..Default::default()
         };
-        if res.status == Nat::from(200u8) {
+        if res.status == 200u8 {
             res.body = self.process_body(&raw.response.body);
         } else {
             ic_cdk::api::print(format!(
