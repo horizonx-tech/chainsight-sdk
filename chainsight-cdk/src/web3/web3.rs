@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use candid::{CandidType, Decode, Encode};
 use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
 use ic_solidity_bindgen::types::EventLog;
-use ic_stable_structures::{BoundedStorable, Storable};
+use ic_stable_structures::{storable::Bound, Storable};
 use ic_web3_rs::{
     futures::future::BoxFuture,
     transports::ic_http_client::{CallOptions, CallOptionsBuilder},
@@ -39,10 +39,11 @@ impl Storable for Web3CtxParam {
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
         Decode!(bytes.as_ref(), Self).unwrap()
     }
-}
-impl BoundedStorable for Web3CtxParam {
-    const MAX_SIZE: u32 = 128;
-    const IS_FIXED_SIZE: bool = false;
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 128,
+        is_fixed_size: false,
+    };
 }
 
 #[derive(Clone)]
