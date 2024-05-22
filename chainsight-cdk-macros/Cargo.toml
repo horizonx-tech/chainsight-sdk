@@ -11,6 +11,7 @@ proc-macro = true
 [dependencies]
 anyhow.workspace = true
 candid.workspace = true
+candid_parser.workspace = true
 ethabi.workspace = true
 futures.workspace = true
 hex.workspace = true
@@ -25,8 +26,8 @@ syn.workspace = true
 
 chainsight-cdk = { path = "../chainsight-cdk" }
 darling = "0.20.1"
-ic-cdk-timers = "0.5.0"
-ic-cdk-macros = "0.8.1"
+ic-cdk-timers = "0.7.0"
+ic-cdk-macros = "0.13.2"
 Inflector = "0.11.4"
 proc-macro2 = "1.0.58"
 quote = "1.0.27"

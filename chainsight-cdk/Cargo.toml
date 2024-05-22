@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 candid.workspace = true
+candid_parser.workspace = true
 ethabi.workspace = true
 futures.workspace = true
 hex.workspace = true
@@ -23,7 +24,6 @@ syn.workspace = true
 async-trait = "0.1.68"
 combine-proc-macro = "0.3.1"
 derive_more = "0.99.17"
-ic-stable-memory = "0.4.4"
 lazy_static = "1.4.0"
 primitive-types = "0.12.1"
 Inflector = "0.11.4"

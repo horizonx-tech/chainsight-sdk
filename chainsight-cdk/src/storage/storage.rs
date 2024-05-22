@@ -3,10 +3,9 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap};
 
 use candid::{CandidType, Decode, Encode};
 use ic_stable_structures::memory_manager::{MemoryId, VirtualMemory};
+use ic_stable_structures::storable::Bound;
 use ic_stable_structures::StableBTreeMap;
-use ic_stable_structures::{
-    memory_manager::MemoryManager, BoundedStorable, DefaultMemoryImpl, Storable,
-};
+use ic_stable_structures::{memory_manager::MemoryManager, DefaultMemoryImpl, Storable};
 use serde::Deserialize;
 
 use super::token::Token;
@@ -43,10 +42,11 @@ impl Storable for Id {
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
         Self(u64::from_bytes(bytes))
     }
-}
-impl BoundedStorable for Id {
-    const MAX_SIZE: u32 = 8;
-    const IS_FIXED_SIZE: bool = true;
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 8,
+        is_fixed_size: true,
+    };
 }
 
 impl Data {
@@ -62,10 +62,11 @@ impl Storable for Data {
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
         Decode!(bytes.as_ref(), Self).unwrap()
     }
-}
-impl BoundedStorable for Data {
-    const MAX_SIZE: u32 = 100_000;
-    const IS_FIXED_SIZE: bool = false;
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 100_000,
+        is_fixed_size: false,
+    };
 }
 impl Storable for Values {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
@@ -75,10 +76,11 @@ impl Storable for Values {
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
         Decode!(bytes.as_ref(), Self).unwrap()
     }
-}
-impl BoundedStorable for Values {
-    const MAX_SIZE: u32 = 100_000;
-    const IS_FIXED_SIZE: bool = false;
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 100_000,
+        is_fixed_size: false,
+    };
 }
 
 impl Values {

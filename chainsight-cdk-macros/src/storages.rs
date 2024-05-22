@@ -51,6 +51,8 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
 
     let struct_name = &input.ident;
+    let max_size = opts.max_size.unwrap_or(100000);
+    let is_fixed_size = opts.is_fixed_size.unwrap_or(false);
 
     let storable_impl = quote! {
         impl ic_stable_structures::Storable for #struct_name {
@@ -61,22 +63,16 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
             fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
                 Decode!(bytes.as_ref(), Self).unwrap()
             }
-        }
-    };
 
-    let max_size = opts.max_size.unwrap_or(100000);
-    let is_fixed_size = opts.is_fixed_size.unwrap_or(false);
-
-    let bounded_storable_impl = quote! {
-        impl ic_stable_structures::BoundedStorable for #struct_name {
-            const MAX_SIZE: u32 = #max_size;
-            const IS_FIXED_SIZE: bool = #is_fixed_size;
+            const BOUND: ic_stable_structures::storable::Bound = ic_stable_structures::storable::Bound::Bounded {
+                max_size: #max_size,
+                is_fixed_size: #is_fixed_size,
+            };
         }
     };
 
     let output = quote! {
         #storable_impl
-        #bounded_storable_impl
     };
 
     output.into()

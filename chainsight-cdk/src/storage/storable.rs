@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use ic_stable_structures::{BoundedStorable, Storable};
+use ic_stable_structures::{storable::Bound, Storable};
 
 #[derive(
     Debug,
@@ -28,10 +28,11 @@ impl Storable for StorableBool {
             _ => panic!("Invalid bool encoding: expected 0 or 1, found {}", num),
         }
     }
-}
-impl BoundedStorable for StorableBool {
-    const MAX_SIZE: u32 = 1;
-    const IS_FIXED_SIZE: bool = true;
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 1,
+        is_fixed_size: true,
+    };
 }
 impl From<StorableBool> for bool {
     fn from(wrapper: StorableBool) -> Self {
@@ -89,11 +90,11 @@ impl Storable for StorableStrings {
 
         Self(result)
     }
-}
 
-impl BoundedStorable for StorableStrings {
-    const MAX_SIZE: u32 = 8192;
-    const IS_FIXED_SIZE: bool = false;
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 8192,
+        is_fixed_size: false,
+    };
 }
 
 impl From<StorableStrings> for Vec<String> {

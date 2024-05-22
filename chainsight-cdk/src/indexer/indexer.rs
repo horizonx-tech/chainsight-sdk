@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use candid::{CandidType, Decode, Encode};
 use derive_more::Display;
+use ic_stable_structures::storable::Bound;
 use serde::Deserialize;
 
 use crate::storage::{Data, Persist};
@@ -32,10 +33,11 @@ impl ic_stable_structures::Storable for IndexingConfig {
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
         Decode!(bytes.as_ref(), Self).unwrap()
     }
-}
-impl ic_stable_structures::BoundedStorable for IndexingConfig {
-    const MAX_SIZE: u32 = 100; // temp
-    const IS_FIXED_SIZE: bool = false; // temp
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 100,        // temp
+        is_fixed_size: false, // temp
+    };
 }
 
 pub trait Event<T>: CandidType + Send + Sync + Clone + From<T> + Persist + 'static {
