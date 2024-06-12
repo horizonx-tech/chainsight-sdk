@@ -26,7 +26,6 @@ pub fn init_in_env(input: TokenStream) -> TokenStream {
 fn init_in_env_internal(input: InitInEnvArgs) -> proc_macro2::TokenStream {
     let struct_quote = quote! {
         #[derive(Debug, Clone, Default, PartialEq, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
-        #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
         pub struct InitializingState {
             pub initialized: bool,
             pub proxy: String,

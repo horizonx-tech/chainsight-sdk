@@ -73,7 +73,7 @@ pub fn prepare_stable_structure(input: TokenStream) -> TokenStream {
     storages::prepare_stable_structure(input)
 }
 
-#[proc_macro_derive(StableMemoryStorable, attributes(stable_mem_storable_opts))]
+#[proc_macro_derive(StableMemoryStorable)]
 pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     storages::derive_storable_in_stable_memory(input)
 }

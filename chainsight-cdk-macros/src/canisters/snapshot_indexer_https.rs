@@ -81,7 +81,6 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
         snapshot_indexer_https_source!();
 
         #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
-        #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
         pub struct Snapshot {
             pub value: SnapshotValue,
             pub timestamp: u64,

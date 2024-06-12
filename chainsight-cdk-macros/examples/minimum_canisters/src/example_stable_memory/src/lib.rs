@@ -1,10 +1,7 @@
 use candid::{Decode, Encode};
 use chainsight_cdk_macros::{
-    prepare_stable_structure,
-    stable_memory_for_scalar,
-    stable_memory_for_vec,
+    did_export, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_vec,
     StableMemoryStorable,
-    did_export
 };
 
 prepare_stable_structure!();
@@ -14,18 +11,12 @@ stable_memory_for_vec!("year", u16, 2, true);
 stable_memory_for_vec!("score", u128, 3, true);
 
 #[derive(
-    Clone,
-    Debug,
-    candid::CandidType,
-    candid::Deserialize,
-    serde :: Serialize,
-    StableMemoryStorable
+    Clone, Debug, candid::CandidType, candid::Deserialize, serde :: Serialize, StableMemoryStorable,
 )]
-#[stable_mem_storable_opts(max_size = 100, is_fixed_size = false)]
 pub struct UserData {
     name: String,
     age: i32,
-    is_student: bool
+    is_student: bool,
 }
 stable_memory_for_vec!("user", UserData, 4, true);
 
