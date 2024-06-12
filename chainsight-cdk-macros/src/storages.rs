@@ -1,4 +1,3 @@
-use darling::FromDeriveInput;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
@@ -36,23 +35,9 @@ fn prepare_stable_structure_internal() -> proc_macro2::TokenStream {
     }
 }
 
-#[derive(FromDeriveInput, Default)]
-#[darling(
-    default,
-    attributes(stable_mem_storable_opts),
-    forward_attrs(allow, doc, cfg)
-)]
-struct StableMemoryStorableOpts {
-    max_size: Option<u32>,
-    is_fixed_size: Option<bool>,
-}
 pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
-
     let struct_name = &input.ident;
-    let max_size = opts.max_size.unwrap_or(100000);
-    let is_fixed_size = opts.is_fixed_size.unwrap_or(false);
 
     let storable_impl = quote! {
         impl ic_stable_structures::Storable for #struct_name {
@@ -64,10 +49,7 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
                 Decode!(bytes.as_ref(), Self).unwrap()
             }
 
-            const BOUND: ic_stable_structures::storable::Bound = ic_stable_structures::storable::Bound::Bounded {
-                max_size: #max_size,
-                is_fixed_size: #is_fixed_size,
-            };
+            const BOUND: ic_stable_structures::storable::Bound = ic_stable_structures::storable::Bound::Unbounded;
         }
     };
 
