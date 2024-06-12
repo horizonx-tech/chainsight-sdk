@@ -25,7 +25,6 @@ snapshot_indexer_https_source!();
     serde :: Serialize,
     StableMemoryStorable,
 )]
-#[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
 pub struct Snapshot {
     pub value: SnapshotValue,
     pub timestamp: u64,

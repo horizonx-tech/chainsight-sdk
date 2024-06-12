@@ -30,7 +30,6 @@ timer_task_func!("set_task", "index", 6);
     serde :: Serialize,
     StableMemoryStorable,
 )]
-#[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)]
 pub struct Snapshot {
     pub value: SnapshotValue,
     pub timestamp: u64,
