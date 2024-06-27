@@ -1,4 +1,3 @@
-type Result = variant { Ok; Err : text };
 type UserData = record { age : int32; name : text; is_student : bool };
 service : {
   get_last_score : () -> (nat) query;
@@ -15,12 +14,27 @@ service : {
   get_users : () -> (vec UserData) query;
   get_year : (nat64) -> (nat16) query;
   get_years : () -> (vec nat16) query;
-  insert_score : (nat) -> (Result);
-  insert_user : (UserData) -> (Result);
-  insert_year : (nat16) -> (Result);
+  insert_score : (nat) -> ();
+  insert_user : (UserData) -> ();
+  insert_year : (nat16) -> ();
+  proxy_get_last_score : (blob) -> (blob);
+  proxy_get_last_user : (blob) -> (blob);
+  proxy_get_last_year : (blob) -> (blob);
+  proxy_get_score : (blob) -> (blob);
+  proxy_get_scores : (blob) -> (blob);
+  proxy_get_top_scores : (blob) -> (blob);
+  proxy_get_top_users : (blob) -> (blob);
+  proxy_get_top_years : (blob) -> (blob);
+  proxy_get_user : (blob) -> (blob);
+  proxy_get_users : (blob) -> (blob);
+  proxy_get_year : (blob) -> (blob);
+  proxy_get_years : (blob) -> (blob);
+  proxy_scores_len : (blob) -> (blob);
+  proxy_users_len : (blob) -> (blob);
+  proxy_years_len : (blob) -> (blob);
   scores_len : () -> (nat64) query;
-  update_price : (nat) -> (Result);
-  update_timestamp : (nat64) -> (Result);
+  update_price : (nat) -> ();
+  update_timestamp : (nat64) -> ();
   users_len : () -> (nat64) query;
   years_len : () -> (nat64) query;
 }

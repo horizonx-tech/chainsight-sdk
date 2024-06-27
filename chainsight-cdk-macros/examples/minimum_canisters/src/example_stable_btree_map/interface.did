@@ -1,0 +1,13 @@
+type Snapshot = record { value : text; timestamp : nat64 };
+service : {
+  get_last_snapshot : () -> (Snapshot) query;
+  get_snapshot : (nat64) -> (Snapshot) query;
+  get_snapshots : () -> (vec Snapshot) query;
+  get_top_snapshots : (nat64) -> (vec Snapshot) query;
+  proxy_get_last_snapshot : (blob) -> (blob);
+  proxy_get_snapshot : (blob) -> (blob);
+  proxy_get_snapshots : (blob) -> (blob);
+  proxy_get_top_snapshots : (blob) -> (blob);
+  proxy_snapshots_len : (blob) -> (blob);
+  snapshots_len : () -> (nat64) query;
+}

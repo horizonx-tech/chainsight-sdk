@@ -1,5 +1,9 @@
 [workspace]
-members = ["src/example_state", "src/example_stable_memory"]
+members = [
+    "src/example_state",
+    "src/example_stable_memory",
+    "src/example_stable_btree_map",
+]
 
 [workspace.dependencies]
 candid = "^0.10.4"
