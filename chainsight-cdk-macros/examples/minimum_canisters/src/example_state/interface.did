@@ -1,3 +1,4 @@
+type CanisterMetricsSnapshot = record { cycles : nat; timestamp : nat64 };
 type Parameter = record { a : nat64; b : nat64 };
 type Result = variant { Ok; Err : text };
 service : {
@@ -9,17 +10,9 @@ service : {
   get_solutions : () -> (vec nat64) query;
   get_top_solution_tss : (nat64) -> (vec nat64) query;
   get_top_solutions : (nat64) -> (vec nat64) query;
-  proxy_get_last_solution : (blob) -> (blob);
-  proxy_get_last_solution_ts : (blob) -> (blob);
-  proxy_get_solution : (blob) -> (blob);
-  proxy_get_solution_ts : (blob) -> (blob);
-  proxy_get_solution_tss : (blob) -> (blob);
-  proxy_get_solutions : (blob) -> (blob);
-  proxy_get_top_solution_tss : (blob) -> (blob);
-  proxy_get_top_solutions : (blob) -> (blob);
-  proxy_solution_tss_len : (blob) -> (blob);
-  proxy_solutions_len : (blob) -> (blob);
-  set_task : (nat32, nat32, bool) -> ();
+  metric : () -> (CanisterMetricsSnapshot) query;
+  metrics : (nat64) -> (vec CanisterMetricsSnapshot) query;
+  set_task : (nat32, nat32) -> ();
   setup : (Parameter) -> (Result);
   solution_tss_len : () -> (nat64) query;
   solutions_len : () -> (nat64) query;

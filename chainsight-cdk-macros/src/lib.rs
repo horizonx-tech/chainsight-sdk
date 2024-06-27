@@ -122,10 +122,6 @@ pub fn def_snapshot_indexer_icp_canister(input: TokenStream) -> TokenStream {
 pub fn stable_memory_for_vec(input: TokenStream) -> TokenStream {
     storages::stable_memory_for_vec(input)
 }
-#[proc_macro]
-pub fn stable_memory_for_btree_map(input: TokenStream) -> TokenStream {
-    storages::stable_memory_for_btree_map(input)
-}
 
 #[proc_macro]
 pub fn define_transform_for_web3(input: TokenStream) -> TokenStream {
