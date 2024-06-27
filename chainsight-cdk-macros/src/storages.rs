@@ -580,6 +580,213 @@ fn stable_memory_for_vec_internal(args: StableMemoryForVecInput) -> proc_macro2:
     }
 }
 
+struct StableMemoryForBTreeMapInput {
+    name: LitStr,
+    ty: Type,
+    memory_id: u8,
+    is_expose_getter: LitBool,
+}
+impl syn::parse::Parse for StableMemoryForBTreeMapInput {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let name = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let ty = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let lit_memory_id: LitInt = input.parse()?;
+        let memory_id = lit_memory_id.base10_parse::<u8>().unwrap();
+        input.parse::<syn::Token![,]>()?;
+        let is_expose_getter: LitBool = input.parse()?;
+        Ok(StableMemoryForBTreeMapInput {
+            name,
+            ty,
+            memory_id,
+            is_expose_getter,
+        })
+    }
+}
+pub fn stable_memory_for_btree_map(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as StableMemoryForBTreeMapInput);
+    stable_memory_for_btree_map_internal(args).into()
+}
+fn stable_memory_for_btree_map_internal(
+    args: StableMemoryForBTreeMapInput,
+) -> proc_macro2::TokenStream {
+    let StableMemoryForBTreeMapInput {
+        name,
+        ty,
+        memory_id,
+        is_expose_getter,
+    } = args;
+
+    let state_name = name.value();
+    let state_upper_name = syn::Ident::new(&format!("{}S", state_name.to_uppercase()), name.span());
+    let get_vec_func = syn::Ident::new(&format!("get_{}s", state_name), name.span());
+    let _get_vec_func_str = format!("_get_{}s", state_name);
+    let _get_vec_func = syn::Ident::new(&_get_vec_func_str, name.span());
+    let proxy_get_vec_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_{}s", state_name),
+        parse_quote! { Vec<#ty> },
+        None,
+        &_get_vec_func_str,
+    );
+    let get_len_func = syn::Ident::new(&format!("{}s_len", state_name), name.span());
+    let _get_len_func_str = format!("_{}s_len", state_name);
+    let _get_len_func = syn::Ident::new(&_get_len_func_str, name.span());
+    let proxy_get_len_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_{}s_len", state_name),
+        parse_quote! { u64 },
+        None,
+        &_get_len_func_str,
+    );
+    let get_last_elem_func = syn::Ident::new(&format!("get_last_{}", state_name), name.span());
+    let _get_last_elem_func_str = format!("_get_last_{}", state_name);
+    let _get_last_elem_func = syn::Ident::new(&_get_last_elem_func_str, name.span());
+    let proxy_get_last_elem_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_last_{}", state_name),
+        parse_quote! { #ty },
+        None,
+        &_get_last_elem_func_str,
+    );
+    let get_top_elems_func = syn::Ident::new(&format!("get_top_{}s", state_name), name.span());
+    let _get_top_elems_func_str = format!("_get_top_{}s", state_name);
+    let _get_top_elems_func = syn::Ident::new(&_get_top_elems_func_str, name.span());
+    let proxy_get_top_elems_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_top_{}s", state_name),
+        parse_quote! { Vec<#ty> },
+        Some(parse_quote! { u64 }),
+        &_get_top_elems_func_str,
+    );
+    let get_elem_func = syn::Ident::new(&format!("get_{}", state_name), name.span());
+    let _get_elem_func_str = format!("_get_{}", state_name);
+    let _get_elem_func = syn::Ident::new(&_get_elem_func_str, name.span());
+    let proxy_get_elem_func_quote = gen_func_quote_to_call_proxy(
+        &format!("proxy_get_{}", state_name),
+        parse_quote! { #ty },
+        Some(parse_quote! { u64 }),
+        &_get_elem_func_str,
+    );
+
+    let range_func = syn::Ident::new(&format!("range_{}", state_name), name.span());
+
+    let add_elem_func = syn::Ident::new(&format!("add_{}", state_name), name.span());
+    let add_elem_func_internal =
+        syn::Ident::new(&format!("add_{}_internal", state_name), name.span());
+
+    let getter_derives = if is_expose_getter.value {
+        attrs_query_func()
+    } else {
+        quote! {}
+    };
+    let update_derives = attrs_update_func();
+
+    // todo: functions for BTreeMap
+    quote! {
+        thread_local! {
+            static #state_upper_name: std::cell::RefCell<ic_stable_structures::StableBTreeMap<u64, #ty, MemoryType>> = std::cell::RefCell::new(
+                ic_stable_structures::StableBTreeMap::init(
+                    MEMORY_MANAGER.with(|mm| mm.borrow().get(
+                        ic_stable_structures::memory_manager::MemoryId::new(#memory_id)
+                    ))
+                )
+            );
+        }
+
+        #getter_derives
+        fn #get_vec_func() -> Vec<#ty> {
+            #_get_vec_func()
+        }
+
+        pub fn #_get_vec_func() -> Vec<#ty> {
+            let data_len = #_get_len_func();
+            if data_len > 0 {
+                #range_func(0, data_len)
+            } else {
+                vec![]
+            }
+        }
+
+        #update_derives
+        #proxy_get_vec_func_quote
+
+        #getter_derives
+        fn #get_len_func() -> u64 {
+            #_get_len_func()
+        }
+
+        pub fn #_get_len_func() -> u64 {
+            #state_upper_name.with(|mem| mem.borrow().len())
+        }
+
+        #update_derives
+        #proxy_get_len_func_quote
+
+        #getter_derives
+        fn #get_last_elem_func() -> #ty {
+           #_get_last_elem_func()
+        }
+
+        pub fn #_get_last_elem_func() -> #ty {
+            #state_upper_name.with(|mem| {
+                let (_, value) = mem.borrow().last_key_value().unwrap(); // temp: unwrap to not return opt
+                value.clone()
+            })
+        }
+
+        #update_derives
+        #proxy_get_last_elem_func_quote
+
+        #getter_derives
+        pub fn #get_top_elems_func(n: u64) -> Vec<#ty> {
+            #_get_top_elems_func(n)
+        }
+
+        pub fn #_get_top_elems_func(n: u64) -> Vec<#ty> {
+            let data_len = #_get_len_func();
+            if data_len == 0 {
+                return vec![];
+            }
+            let from = if n > data_len { 0 } else { data_len - n };
+            #range_func(from, data_len)
+        }
+
+        #update_derives
+        #proxy_get_top_elems_func_quote
+
+        #getter_derives
+        fn #get_elem_func(idx: u64) -> #ty {
+            #_get_elem_func(idx)
+        }
+
+        pub fn #_get_elem_func(idx: u64) -> #ty {
+            #state_upper_name.with(|mem| mem.borrow().get(&idx)).unwrap() // temp: unwrap to not return opt
+        }
+
+        #update_derives
+        #proxy_get_elem_func_quote
+
+        pub fn #range_func(from: u64, to: u64) -> Vec<#ty> {
+            #state_upper_name.with(|mem| {
+                mem.borrow()
+                    .range(from..to)
+                    .into_iter()
+                    .map(|(_, v)| v)
+                    .collect()
+            })
+        }
+
+        // NOTE: consistency with macro return value for heap (not return Result)
+        pub fn #add_elem_func(value: #ty) {
+            #add_elem_func_internal(value).unwrap()
+        }
+
+        pub fn #add_elem_func_internal(value: #ty) -> Result<(), String> {
+            let new_key = #_get_len_func();
+            #state_upper_name.with(|mem| mem.borrow_mut().insert(new_key, value));
+            Ok(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
