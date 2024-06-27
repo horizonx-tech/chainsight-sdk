@@ -826,6 +826,17 @@ mod test {
     }
 
     #[test]
+    fn test_stable_memory_for_btree_map() {
+        let input = quote! {"timestamp", u64, 0, true};
+        let args: syn::Result<StableMemoryForBTreeMapInput> = syn::parse2(input);
+        let generated = stable_memory_for_btree_map_internal(args.unwrap());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__stable_memory_for_btree_map", formatted);
+    }
+
+    #[test]
     fn test_snapshot_key_values_store_derive() {
         let input = quote! {
             #[memory_id(1)]
