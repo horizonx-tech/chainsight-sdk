@@ -6,7 +6,7 @@ use candid::{Decode, Encode};
 use chainsight_cdk::rpc::{CallProvider, Caller, Message};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, manage_single_state, prepare_stable_structure,
-    setup_func, snapshot_indexer_icp_source, stable_memory_for_scalar, stable_memory_for_vec,
+    setup_func, snapshot_indexer_icp_source, stable_memory_for_btree_map, stable_memory_for_scalar,
     timer_task_func, CborSerde, StableMemoryStorable,
 };
 use ic_stable_structures::writer::Writer;
@@ -17,7 +17,7 @@ chainsight_common!();
 stable_memory_for_scalar!("target_canister", String, 3, false);
 setup_func ! ({ target_canister : String , lens_targets : Vec < String > } , 5);
 prepare_stable_structure!();
-stable_memory_for_vec!("snapshot", Snapshot, 1, true);
+stable_memory_for_btree_map!("snapshot", Snapshot, 1, true);
 timer_task_func!("set_task", "index", 6);
 #[derive(
     Clone,

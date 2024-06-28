@@ -32,7 +32,7 @@ fn generate_use_idents(id: &str) -> proc_macro2::TokenStream {
         use chainsight_cdk::core::HttpsSnapshotIndexerSourceAttrs;
         use chainsight_cdk::web2::{HttpsSnapshotParam, Web2HttpsSnapshotIndexer};
         use chainsight_cdk_macros::{
-            chainsight_common, did_export, init_in, prepare_stable_structure, manage_single_state, stable_memory_for_scalar, stable_memory_for_vec,
+            chainsight_common, did_export, init_in, prepare_stable_structure, manage_single_state, stable_memory_for_scalar, stable_memory_for_btree_map,
             timer_task_func, CborSerde, snapshot_indexer_https_source, StableMemoryStorable,
         };
         use candid::{Decode, Encode};
@@ -87,7 +87,7 @@ fn custom_code(config: SnapshotIndexerHTTPSConfig) -> proc_macro2::TokenStream {
             pub timestamp: u64,
         }
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
+        stable_memory_for_btree_map!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index", 3);
 
         const URL : &str = #url;

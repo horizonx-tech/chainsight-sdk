@@ -37,7 +37,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
 
     quote! {
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_vec, StableMemoryStorable, timer_task_func, chainsight_common, did_export, CborSerde, snapshot_indexer_icp_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_btree_map, StableMemoryStorable, timer_task_func, chainsight_common, did_export, CborSerde, snapshot_indexer_icp_source};
         use chainsight_cdk::rpc::{CallProvider, Caller, Message};
         use ic_stable_structures::writer::Writer;
 
@@ -55,7 +55,7 @@ fn common_code(config: &CommonConfig, with_lens: bool) -> proc_macro2::TokenStre
         }, 5);
 
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
+        stable_memory_for_btree_map!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index", 6);
     }
 }
