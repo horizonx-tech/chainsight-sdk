@@ -34,7 +34,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
     quote! {
         use std::str::FromStr;
         use candid::{Decode, Encode};
-        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_vec, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
+        use chainsight_cdk_macros::{init_in, manage_single_state, setup_func, prepare_stable_structure, stable_memory_for_scalar, stable_memory_for_btree_map, StableMemoryStorable, timer_task_func, define_transform_for_web3, define_web3_ctx, chainsight_common, did_export, CborSerde, snapshot_indexer_web3_source};
         use ic_stable_structures::writer::Writer;
         use ic_web3_rs::types::Address;
 
@@ -52,7 +52,7 @@ fn common_code(config: &CommonConfig) -> proc_macro2::TokenStream {
         }, 5);
 
         prepare_stable_structure!();
-        stable_memory_for_vec!("snapshot", Snapshot, 1, true);
+        stable_memory_for_btree_map!("snapshot", Snapshot, 1, true);
         timer_task_func!("set_task", "index", 6);
     }
 }
