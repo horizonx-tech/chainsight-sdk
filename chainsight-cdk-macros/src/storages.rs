@@ -50,10 +50,26 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let opts = StableMemoryStorableOpts::from_derive_input(&input).unwrap();
 
-    let struct_name = &input.ident;
-    let max_size = opts.max_size.unwrap_or(100000);
-    let is_fixed_size = opts.is_fixed_size.unwrap_or(false);
+    let bounded = if let Some(max_size) = opts.max_size {
+        let is_fixed_size = opts
+            .is_fixed_size
+            .expect("is_fixed_size is required if max_size is set (and Bound is Bounded)");
+        quote! {
+            ic_stable_structures::storable::Bound::Bounded {
+                max_size: #max_size,
+                is_fixed_size: #is_fixed_size,
+            }
+        }
+    } else {
+        if opts.is_fixed_size.is_some() {
+            panic!("is_fixed_size is not allowed without max_size (So, Bound is Unbounded)");
+        }
+        quote! {
+            ic_stable_structures::storable::Bound::Unbounded
+        }
+    };
 
+    let struct_name = &input.ident;
     let storable_impl = quote! {
         impl ic_stable_structures::Storable for #struct_name {
             fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
@@ -64,10 +80,7 @@ pub fn derive_storable_in_stable_memory(input: TokenStream) -> TokenStream {
                 Decode!(bytes.as_ref(), Self).unwrap()
             }
 
-            const BOUND: ic_stable_structures::storable::Bound = ic_stable_structures::storable::Bound::Bounded {
-                max_size: #max_size,
-                is_fixed_size: #is_fixed_size,
-            };
+            const BOUND: ic_stable_structures::storable::Bound = #bounded;
         }
     };
 
