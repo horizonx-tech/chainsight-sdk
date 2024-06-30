@@ -146,7 +146,6 @@ fn custom_code(config: SnapshotIndexerEVMConfig) -> proc_macro2::TokenStream {
     let (snapshot_idents, queries_expect_timestamp) = (
         quote! {
             #[derive(Debug, Clone, candid::CandidType, candid::Deserialize, serde::Serialize, StableMemoryStorable)]
-            #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = false)] // temp: max_size
             pub struct Snapshot {
                 pub value: SnapshotValue,
                 pub timestamp: u64,
