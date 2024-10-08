@@ -29,13 +29,14 @@ use ic_cdk::api::management_canister::{
 async fn init_in(
     env: chainsight_cdk::core::Env,
     cycles: CycleManagements,
+    subnet: Option<candid::Principal>,
 ) -> Result<(), chainsight_cdk::initializer::InitError> {
     assert!(!is_initialized(), "Already initialized");
     let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
         chainsight_cdk::initializer::InitConfig { env: env.clone() },
     );
     let deployer = ic_cdk::caller();
-    let init_result = initializer.initialize(&deployer, &cycles).await?;
+    let init_result = initializer.initialize(&deployer, &cycles, &subnet).await?;
     let proxy = init_result.proxy;
     set_initializing_state(InitializingState {
         initialized: true,
@@ -58,4 +59,3 @@ fn is_initialized() -> bool {
 fn get_proxy() -> candid::Principal {
     proxy()
 }
-
