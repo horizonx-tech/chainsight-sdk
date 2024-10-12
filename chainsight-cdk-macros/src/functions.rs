@@ -51,14 +51,14 @@ fn init_in_env_internal(input: InitInEnvArgs) -> proc_macro2::TokenStream {
         use ic_cdk::api::management_canister::{provisional::{CanisterIdRecord, CanisterSettings}, main::{update_settings, UpdateSettingsArgument}};
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements) -> Result<(), chainsight_cdk::initializer::InitError> {
+        async fn init_in(env: chainsight_cdk::core::Env, cycles: CycleManagements, subnet: Option<candid::Principal>) -> Result<(), chainsight_cdk::initializer::InitError> {
             assert!(!is_initialized(), "Already initialized");
 
             let initializer = chainsight_cdk::initializer::ChainsightInitializer::new(
                 chainsight_cdk::initializer::InitConfig { env: env.clone() },
             );
             let deployer = ic_cdk::caller();
-            let init_result = initializer.initialize(&deployer, &cycles).await?;
+            let init_result = initializer.initialize(&deployer, &cycles, &subnet).await?;
             let proxy = init_result.proxy;
 
             set_initializing_state(InitializingState {

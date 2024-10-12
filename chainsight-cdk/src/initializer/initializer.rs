@@ -63,6 +63,7 @@ pub trait Initializer {
         &self,
         deployer: &Principal,
         cycles: &CycleManagements,
+        subnet: &Option<Principal>,
     ) -> Result<InitResult, InitError>;
 }
 pub struct InitConfig {

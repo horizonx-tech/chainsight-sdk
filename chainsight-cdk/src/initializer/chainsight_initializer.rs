@@ -27,11 +27,12 @@ impl Initializer for ChainsightInitializer {
         &self,
         deployer: &Principal,
         cycles: &CycleManagements,
+        subnet: &Option<Principal>,
     ) -> Result<InitResult, InitError> {
         let res: CallResult<(InitializeOutput,)> = ic_cdk::api::call::call_with_payment128(
             self.config.env.initializer(),
             "initialize",
-            (deployer, cycles),
+            (deployer, cycles, subnet),
             msg_cycles_accept128(cycles.initial_supply()),
         )
         .await;
