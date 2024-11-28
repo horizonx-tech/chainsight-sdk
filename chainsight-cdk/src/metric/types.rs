@@ -41,6 +41,28 @@ pub struct DataPoint {
     pub metrics: Vec<Metric>,
     pub from_timestamp: u64,
 }
+
+impl Default for DataPoint {
+    fn default() -> Self {
+        Self {
+            metrics: vec![
+                Metric {
+                    metric_type: MetricType::TimeMax,
+                    value: 0.0,
+                },
+                Metric {
+                    metric_type: MetricType::TimeMin,
+                    value: f64::MAX,
+                },
+                Metric {
+                    metric_type: MetricType::Count,
+                    value: 0.0,
+                },
+            ],
+            from_timestamp: TimeStamper::now_sec(),
+        }
+    }
+}
 struct MetricCollector {
     data: HashMap<MetricId, Vec<DataPoint>>,
 }
@@ -162,26 +184,7 @@ fn _last(id: MetricId) -> Option<DataPoint> {
 pub fn metric(id: MetricId, duration: TaskDuration) {
     _clean();
     _enqueue(id.clone());
-    let mut last = match _last(id.clone()) {
-        Some(data) => data,
-        None => DataPoint {
-            metrics: vec![
-                Metric {
-                    metric_type: MetricType::TimeMax,
-                    value: 0.0,
-                },
-                Metric {
-                    metric_type: MetricType::TimeMin,
-                    value: f64::MAX,
-                },
-                Metric {
-                    metric_type: MetricType::Count,
-                    value: 0.0,
-                },
-            ],
-            from_timestamp: TimeStamper::now_sec(),
-        },
-    };
+    let mut last = match _last(id.clone()).unwrap_or_default();
     let task_dur = (duration.to_nanosec - duration.from_nanosec) as f64;
     let new_metrics = last
         .metrics
