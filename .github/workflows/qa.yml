@@ -71,12 +71,12 @@ jobs:
       - id: test
         name: Run tests
         run: cargo +nightly test --all --all-features
-      - id: coverage
-        name: Generate Coverage Report
-        uses: alekitto/grcov@v0.2
-
-      - name: Coveralls upload
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ${{ steps.coverage.outputs.report }}
+     # - id: coverage
+     #   name: Generate Coverage Report
+     #   uses: alekitto/grcov@v0.2
+     #
+     # - name: Coveralls upload
+     #   uses: coverallsapp/github-action@master
+     #   with:
+     #     github-token: ${{ secrets.GITHUB_TOKEN }}
+     #     path-to-lcov: ${{ steps.coverage.outputs.report }}
