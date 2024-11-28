@@ -184,7 +184,7 @@ fn _last(id: MetricId) -> Option<DataPoint> {
 pub fn metric(id: MetricId, duration: TaskDuration) {
     _clean();
     _enqueue(id.clone());
-    let mut last = match _last(id.clone()).unwrap_or_default();
+    let mut last = _last(id.clone()).unwrap_or_default();
     let task_dur = (duration.to_nanosec - duration.from_nanosec) as f64;
     let new_metrics = last
         .metrics
