@@ -68,17 +68,13 @@ jobs:
         with:
           toolchain: nightly
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: --all-features --no-fail-fast
-        env:
-          CARGO_INCREMENTAL: "0"
-          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
-          RUSTDOCFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
-      - uses: actions-rs/grcov@v0.1
-        id: coverage
+      - id: test
+        name: Run tests
+        run: cargo test --all --all-features
+      - id: coverage
+        name: Generate Coverage Report
+        uses: alekitto/grcov@v0.2
+
       - name: Coveralls upload
         uses: coverallsapp/github-action@master
         with:
