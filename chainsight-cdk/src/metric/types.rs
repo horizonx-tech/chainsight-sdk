@@ -91,7 +91,7 @@ fn metrics(id: String, count: u8) -> Vec<DataPoint> {
         if let Some(data) = collector.borrow().data.get(&id) {
             return data.iter().rev().take(count as usize).cloned().collect();
         }
-        return vec![];
+        vec![]
     })
 }
 
@@ -105,7 +105,7 @@ fn metrics_between(id: String, from: u64, to: u64) -> Vec<DataPoint> {
                 .cloned()
                 .collect();
         }
-        return vec![];
+        vec![]
     })
 }
 
@@ -169,7 +169,7 @@ fn _first(id: MetricId) -> Option<DataPoint> {
         if let Some(data) = collector.borrow().data.get(&id) {
             return data.first().cloned();
         }
-        return None;
+        None
     })
 }
 
@@ -178,7 +178,7 @@ fn _last(id: MetricId) -> Option<DataPoint> {
         if let Some(data) = collector.borrow().data.get(&id) {
             return data.last().cloned();
         }
-        return None;
+        None
     })
 }
 pub fn metric(id: MetricId, duration: TaskDuration) {
