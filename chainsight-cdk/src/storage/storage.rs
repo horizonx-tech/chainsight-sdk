@@ -154,7 +154,7 @@ thread_local! {
             MANAGER.with(|m|m.borrow().get(MemoryId::new(10))),
         )
     );
-    static LAST_KEY_STORE: RefCell<String> = RefCell::new(String::new());
+    static LAST_KEY_STORE: RefCell<String> = const { RefCell::new(String::new()) }
 
 }
 

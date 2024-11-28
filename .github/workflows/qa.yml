@@ -5,7 +5,7 @@ on:
     branches:
       - main
 env:
-  RUST_VERSION: 1.76.0
+  RUST_VERSION: 1.79.0
 jobs:
   format:
     runs-on: ubuntu-latest
@@ -68,19 +68,15 @@ jobs:
         with:
           toolchain: nightly
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: --all-features --no-fail-fast
-        env:
-          CARGO_INCREMENTAL: "0"
-          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
-          RUSTDOCFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
-      - uses: actions-rs/grcov@v0.1
-        id: coverage
-      - name: Coveralls upload
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ${{ steps.coverage.outputs.report }}
+      - id: test
+        name: Run tests
+        run: cargo +nightly test --all --all-features
+     # - id: coverage
+     #   name: Generate Coverage Report
+     #   uses: alekitto/grcov@v0.2
+     #
+     # - name: Coveralls upload
+     #   uses: coverallsapp/github-action@master
+     #   with:
+     #     github-token: ${{ secrets.GITHUB_TOKEN }}
+     #     path-to-lcov: ${{ steps.coverage.outputs.report }}

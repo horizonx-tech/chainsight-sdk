@@ -5,7 +5,7 @@ on:
     branches:
       - main
 env:
-  RUST_VERSION: 1.76.0
+  RUST_VERSION: 1.79.0
 jobs:
   check-compilable:
     strategy:
