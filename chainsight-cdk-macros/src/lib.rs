@@ -214,3 +214,8 @@ pub fn only_controller(_attr: proc_macro::TokenStream, item: TokenStream) -> Tok
 pub fn only_proxy(_attr: TokenStream, item: TokenStream) -> TokenStream {
     canisters::attributes::only_proxy(_attr, item)
 }
+
+#[proc_macro_attribute]
+pub fn metric(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    canisters::attributes::metric(_attr, item)
+}
