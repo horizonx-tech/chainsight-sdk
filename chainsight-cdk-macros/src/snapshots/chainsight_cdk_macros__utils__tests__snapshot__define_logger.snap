@@ -1,0 +1,23 @@
+---
+source: chainsight-cdk-macros/src/utils.rs
+expression: formatted
+---
+#[candid::candid_method(query)]
+#[ic_cdk::query]
+fn tail_logs(rows: usize) -> Vec<String> {
+    LoggerImpl::new().tail(rows)
+}
+#[candid::candid_method(update)]
+#[ic_cdk::update]
+#[chainsight_cdk_macros::only_controller]
+fn drain_logs(rows: usize) -> Vec<String> {
+    LoggerImpl::new().drain(rows)
+}
+#[ic_cdk::post_upgrade]
+fn schedule_cleanup() {
+    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(86400u64), || {
+        ic_cdk::spawn(async {
+            LoggerImpl::new().sweep(7u8);
+        })
+    });
+}
