@@ -33,6 +33,12 @@ impl Logger for LoggerImpl {
     }
 }
 
+impl Default for LoggerImpl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LoggerImpl {
     pub fn new() -> Self {
         LoggerImpl
@@ -53,7 +59,7 @@ impl LoggerImpl {
                     break;
                 }
                 let logs = logs.get(key).unwrap();
-                let tail_from = logs.len().checked_sub(rows - res.len()).unwrap_or(0);
+                let tail_from = logs.len().saturating_sub(rows - res.len());
                 let mut logs = logs[tail_from..].to_vec();
                 logs.extend(res.clone());
                 res = logs;
