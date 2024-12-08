@@ -1,0 +1,41 @@
+---
+source: chainsight-cdk-macros/src/utils.rs
+expression: formatted
+---
+use chainsight_cdk::log::{Logger, LoggerImpl};
+#[candid::candid_method(query)]
+#[ic_cdk::query]
+fn tail_logs(rows: usize) -> Vec<String> {
+    _logger().tail(rows)
+}
+#[candid::candid_method(update)]
+#[ic_cdk::update]
+#[chainsight_cdk_macros::only_controller]
+fn drain_logs(rows: usize) -> Vec<String> {
+    _logger().drain(rows)
+}
+#[ic_cdk::init]
+fn init_logger() {
+    schedule_cleanup();
+}
+#[ic_cdk::post_upgrade]
+fn post_upgrade_logger() {
+    schedule_cleanup();
+}
+fn schedule_cleanup() {
+    ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(86400u64), || {
+        ic_cdk::spawn(async {
+            _logger().sweep(7u8);
+        })
+    });
+    _logger().info(
+        format!(
+            "cleanup sheduled: interval = {} sec. retention days = {}",
+            86400u64, 7u8
+        )
+        .as_str(),
+    );
+}
+fn _logger() -> LoggerImpl {
+    LoggerImpl::new(Some("Logger"))
+}
