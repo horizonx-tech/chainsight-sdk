@@ -9,7 +9,10 @@ thread_local! {
     static LOGS: std::cell::RefCell<HashMap<u64,Vec<String>>> = std::cell::RefCell::new(HashMap::new());
 }
 
-pub struct LoggerImpl;
+#[derive(Default)]
+pub struct LoggerImpl {
+    ctx: String,
+}
 
 impl Logger for LoggerImpl {
     fn info(&self, s: &str) {
@@ -33,15 +36,15 @@ impl Logger for LoggerImpl {
     }
 }
 
-impl Default for LoggerImpl {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LoggerImpl {
-    pub fn new() -> Self {
-        LoggerImpl
+    pub fn new(ctx: Option<&str>) -> Self {
+        if let Some(ctx) = ctx {
+            Self {
+                ctx: format!("[{}] ", ctx),
+            }
+        } else {
+            Self::default()
+        }
     }
 
     pub fn drain(&self, rows: usize) -> Vec<String> {
@@ -116,12 +119,18 @@ impl LoggerImpl {
                 logs.insert(key, Vec::new());
             }
             let log = logs.get_mut(&key).unwrap();
-            log.push(LoggerImpl::format_log(level, s, ts));
+            log.push(self.format_log(level, s, ts));
         });
     }
 
-    fn format_log(level: &LogLevel, s: &str, ts: u64) -> String {
-        format!("[{}]: [{}] {}", Self::format_timestamp(ts), level, s)
+    fn format_log(&self, level: &LogLevel, s: &str, ts: u64) -> String {
+        format!(
+            "[{}]: [{}] {}{}",
+            Self::format_timestamp(ts),
+            level,
+            self.ctx,
+            s
+        )
     }
 
     fn format_timestamp(ts: u64) -> String {
@@ -164,8 +173,17 @@ mod test {
     fn test_format() {
         let ts = i64::MAX as u64;
         assert_eq!(
-            LoggerImpl::format_log(&LogLevel::Info, "test", ts),
+            LoggerImpl::default().format_log(&LogLevel::Info, "test", ts),
             "[2262-04-11 23:47:16.854775807 UTC]: [INFO] test"
+        );
+    }
+
+    #[test]
+    fn test_format_with_ctx() {
+        let ts = i64::MAX as u64;
+        assert_eq!(
+            LoggerImpl::new(Some("Test")).format_log(&LogLevel::Info, "test", ts),
+            "[2262-04-11 23:47:16.854775807 UTC]: [INFO] [Test] test"
         );
     }
 
@@ -183,7 +201,7 @@ mod test {
 
     #[test]
     fn test_log() {
-        let logger = LoggerImpl::new();
+        let logger = LoggerImpl::default();
         let ts = i64::MAX as u64;
         logger.log(&LogLevel::Error, "test", ts);
         LOGS.with(|log| {
@@ -200,7 +218,7 @@ mod test {
 
     #[test]
     fn test_drain() {
-        let logger = LoggerImpl::new();
+        let logger = LoggerImpl::default();
         logger.log(&LogLevel::Info, "test", 1);
         logger.log(&LogLevel::Info, "test", 2);
         logger.log(&LogLevel::Info, "test", DAY_IN_NANOS);
@@ -229,7 +247,7 @@ mod test {
 
     #[test]
     fn test_drain_overflow() {
-        let logger = LoggerImpl::new();
+        let logger = LoggerImpl::default();
         logger.log(&LogLevel::Info, "test", 1);
         logger.log(&LogLevel::Info, "test", 2);
 
@@ -242,7 +260,7 @@ mod test {
 
     #[test]
     fn test_tail() {
-        let logger = LoggerImpl::new();
+        let logger = LoggerImpl::default();
         logger.log(&LogLevel::Info, "test", 1);
         logger.log(&LogLevel::Info, "test", 2);
         logger.log(&LogLevel::Info, "test", 3);
@@ -258,7 +276,7 @@ mod test {
 
     #[test]
     fn test_sweep() {
-        let logger = LoggerImpl::new();
+        let logger = LoggerImpl::default();
         logger.log(&LogLevel::Info, "test", 1);
         logger.log(&LogLevel::Info, "test", 2);
         logger.log(&LogLevel::Info, "test", 3);

@@ -54,26 +54,34 @@ fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
     let retention_days = args.retention_days.unwrap_or(7);
     let cleanup_interval = args.cleanup_interval_days.unwrap_or(1) as u64 * 86400;
     quote! {
+        use chainsight_cdk::log::{Logger, LoggerImpl};
+
         #[candid::candid_method(query)]
         #[ic_cdk::query]
         fn tail_logs(rows: usize) -> Vec<String> {
-            LoggerImpl::new().tail(rows)
+            _logger().tail(rows)
         }
 
         #[candid::candid_method(update)]
         #[ic_cdk::update]
         #[chainsight_cdk_macros::only_controller]
         fn drain_logs(rows: usize) -> Vec<String> {
-            LoggerImpl::new().drain(rows)
+            _logger().drain(rows)
+        }
         }
 
         #[ic_cdk::post_upgrade]
         fn schedule_cleanup() {
             ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#cleanup_interval), || {
                 ic_cdk::spawn(async {
-                    LoggerImpl::new().sweep(#retention_days);
+                    _logger().sweep(#retention_days);
                 })
             });
+            _logger().info(format!("cleanup sheduled: interval = {} sec. retention days = {}", #cleanup_interval, #retention_days).as_str());
+        }
+
+        fn _logger() -> LoggerImpl {
+            LoggerImpl::new(Some("Logger"))
         }
     }
 }
