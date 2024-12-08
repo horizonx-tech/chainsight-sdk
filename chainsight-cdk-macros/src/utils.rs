@@ -68,9 +68,17 @@ fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
         fn drain_logs(rows: usize) -> Vec<String> {
             _logger().drain(rows)
         }
+
+        #[ic_cdk::init]
+        fn init_logger() {
+            schedule_cleanup();
         }
 
         #[ic_cdk::post_upgrade]
+        fn post_upgrade_logger() {
+            schedule_cleanup();
+        }
+
         fn schedule_cleanup() {
             ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#cleanup_interval), || {
                 ic_cdk::spawn(async {

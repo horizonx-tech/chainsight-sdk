@@ -49,7 +49,7 @@ impl LoggerImpl {
 
     pub fn drain(&self, rows: usize) -> Vec<String> {
         let exported = self._drain(rows);
-        self.info(format!("Exported {} logs", exported.len()).as_str());
+        self.info(format!("Drained {} logs.", exported.len()).as_str());
         exported
     }
 
@@ -92,6 +92,7 @@ impl LoggerImpl {
         }
         drained
     }
+
     fn _sweep(&self, until: u64) {
         let keys = Self::keys();
         let key = Self::key(until);
