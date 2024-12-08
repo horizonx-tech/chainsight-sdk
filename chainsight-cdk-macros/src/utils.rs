@@ -19,29 +19,29 @@ fn chainsight_common_internal() -> proc_macro2::TokenStream {
 
 #[derive(Default)]
 struct DefineLoggerArgs {
-    cleanup_interval_secs: Option<u64>,
     retention_days: Option<u8>,
+    cleanup_interval_days: Option<u8>,
 }
 impl Parse for DefineLoggerArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
             return Ok(DefineLoggerArgs {
-                cleanup_interval_secs: None,
                 retention_days: None,
-            });
-        }
-        let cleanup_interval_secs: Option<LitInt> = input.parse()?;
-        let cleanup_interval_secs = cleanup_interval_secs.map(|x| x.base10_parse::<u64>().unwrap());
-        if input.parse::<syn::Token![,]>().is_err() {
-            return Ok(DefineLoggerArgs {
-                cleanup_interval_secs,
-                retention_days: None,
+                cleanup_interval_days: None,
             });
         }
         let retention_days: Option<LitInt> = input.parse()?;
+        let retention_days = retention_days.map(|x| x.base10_parse::<u8>().unwrap());
+        if input.parse::<syn::Token![,]>().is_err() {
+            return Ok(DefineLoggerArgs {
+                retention_days,
+                cleanup_interval_days: None,
+            });
+        }
+        let cleanup_interval_days: Option<LitInt> = input.parse()?;
         Ok(DefineLoggerArgs {
-            cleanup_interval_secs,
-            retention_days: retention_days.map(|x| x.base10_parse().unwrap()),
+            retention_days,
+            cleanup_interval_days: cleanup_interval_days.map(|x| x.base10_parse().unwrap()),
         })
     }
 }
@@ -51,8 +51,8 @@ pub fn define_logger(input: TokenStream) -> TokenStream {
 }
 
 fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
-    let cleanup_interval = args.cleanup_interval_secs.unwrap_or(86400);
     let retention_days = args.retention_days.unwrap_or(7);
+    let cleanup_interval = args.cleanup_interval_days.unwrap_or(1) as u64 * 86400;
     quote! {
         #[candid::candid_method(query)]
         #[ic_cdk::query]
