@@ -5,6 +5,7 @@ pub mod core;
 pub mod indexer;
 pub mod initializer;
 pub mod lens;
+pub mod log;
 pub mod metric;
 pub mod rpc;
 pub mod storage;

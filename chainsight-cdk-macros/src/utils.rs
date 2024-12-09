@@ -1,6 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{
+    parse::{Parse, ParseStream},
+    parse_macro_input, DeriveInput, LitInt, Result,
+};
 
 pub fn chainsight_common(_input: TokenStream) -> TokenStream {
     chainsight_common_internal().into()
@@ -10,6 +13,83 @@ fn chainsight_common_internal() -> proc_macro2::TokenStream {
         async fn _get_target_proxy(target: candid::Principal) -> candid::Principal {
             let out: ic_cdk::api::call::CallResult<(candid::Principal,)> = ic_cdk::api::call::call(target, "get_proxy", ()).await;
             out.unwrap().0
+        }
+    }
+}
+
+#[derive(Default)]
+struct DefineLoggerArgs {
+    retention_days: Option<u8>,
+    cleanup_interval_days: Option<u8>,
+}
+impl Parse for DefineLoggerArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Ok(DefineLoggerArgs {
+                retention_days: None,
+                cleanup_interval_days: None,
+            });
+        }
+        let retention_days: Option<LitInt> = input.parse()?;
+        let retention_days = retention_days.map(|x| x.base10_parse::<u8>().unwrap());
+        if input.parse::<syn::Token![,]>().is_err() {
+            return Ok(DefineLoggerArgs {
+                retention_days,
+                cleanup_interval_days: None,
+            });
+        }
+        let cleanup_interval_days: Option<LitInt> = input.parse()?;
+        Ok(DefineLoggerArgs {
+            retention_days,
+            cleanup_interval_days: cleanup_interval_days.map(|x| x.base10_parse().unwrap()),
+        })
+    }
+}
+pub fn define_logger(input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(input as DefineLoggerArgs);
+    define_logger_internal(args).into()
+}
+
+fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
+    let retention_days = args.retention_days.unwrap_or(7);
+    let cleanup_interval = args.cleanup_interval_days.unwrap_or(1) as u64 * 86400;
+    quote! {
+        use chainsight_cdk::log::{Logger, LoggerImpl};
+
+        #[candid::candid_method(query)]
+        #[ic_cdk::query]
+        fn tail_logs(rows: usize) -> Vec<String> {
+            _logger().tail(rows)
+        }
+
+        #[candid::candid_method(update)]
+        #[ic_cdk::update]
+        #[chainsight_cdk_macros::only_controller]
+        fn drain_logs(rows: usize) -> Vec<String> {
+            _logger().drain(rows)
+        }
+
+        #[ic_cdk::init]
+        fn init_logger() {
+            schedule_cleanup();
+        }
+
+        #[ic_cdk::post_upgrade]
+        fn post_upgrade_logger() {
+            schedule_cleanup();
+        }
+
+        fn schedule_cleanup() {
+            ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#cleanup_interval), || {
+                ic_cdk::spawn(async {
+                    _logger().sweep(#retention_days);
+                })
+            });
+            _logger().info(format!("cleanup sheduled: interval = {} sec. retention days = {}", #cleanup_interval, #retention_days).as_str());
+        }
+
+        fn _logger() -> LoggerImpl {
+            LoggerImpl::new(Some("Logger"))
         }
     }
 }
@@ -74,6 +154,15 @@ mod tests {
             .format_str(generated.to_string())
             .expect("rustfmt failed");
         assert_snapshot!("snapshot__chainsight_common", formatted);
+    }
+
+    #[test]
+    fn test_snapshot_define_logger() {
+        let generated = define_logger_internal(Default::default());
+        let formatted = RustFmt::default()
+            .format_str(generated.to_string())
+            .expect("rustfmt failed");
+        assert_snapshot!("snapshot__define_logger", formatted);
     }
 
     #[test]
