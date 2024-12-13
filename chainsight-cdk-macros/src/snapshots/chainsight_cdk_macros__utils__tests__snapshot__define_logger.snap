@@ -18,10 +18,6 @@ fn drain_logs(rows: usize) -> Vec<String> {
 fn init_logger() {
     schedule_cleanup();
 }
-#[ic_cdk::post_upgrade]
-fn post_upgrade_logger() {
-    schedule_cleanup();
-}
 fn schedule_cleanup() {
     ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(86400u64), || {
         ic_cdk::spawn(async {
@@ -38,4 +34,8 @@ fn schedule_cleanup() {
 }
 fn _logger() -> LoggerImpl {
     LoggerImpl::new(Some("Logger"))
+}
+#[ic_cdk::post_upgrade]
+fn post_upgrade_logger() {
+    schedule_cleanup();
 }
