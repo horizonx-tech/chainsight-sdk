@@ -244,8 +244,16 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
     quote! {
         #[ic_cdk::update]
         #[candid::candid_method(update)]
-        #[only_controller]
+        #[chainsight_cdk_macros::only_controller]
         async fn withdraw_balance(to_address_str: String, amount_str: Option<String>) -> Result<String, String> {
+            use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
+            use ic_web3_rs::{
+                api::{Accounts, Eth},
+                ic::KeyInfo,
+                transports::{ICHttp, ic_http::CallOptionsBuilder},
+                types::{Address, CallRequest, TransactionParameters, U256},
+            };
+
             let w3_ctx_param = get_web3_ctx_param();
             let from_address_str = get_ethereum_address().await;
             let from_address = Address::from_str(&from_address_str).map_err(|e| format!("Failed to parse from_address: {:?}", e))?;
@@ -257,7 +265,7 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
             let from_address_balance = eth.balance(
                 from_address,
                 None,
-                CallOptions::default(),
+                Default::default(),
             ).await.map_err(|e| format!("Failed to get balance: {:?}", e))?;
 
             if from_address_balance.is_zero() {
@@ -268,7 +276,7 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
             let nonce = eth.transaction_count(
                 from_address,
                 None,
-                CallOptions::default(),
+                Default::default(),
             ).await.map_err(|e| format!("Failed to get nonce: {:?}", e))?;
 
             // Calculate gas cost
@@ -280,11 +288,11 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
                     ..Default::default()
                 },
                 None,
-                CallOptions::default(),
+                Default::default(),
             ).await.map_err(|e| format!("Failed to estimate gas: {:?}", e))?;
 
             let gas_price = eth.gas_price(
-                CallOptions::default()
+                Default::default()
             ).await.map_err(|e| format!("Failed to get gas price: {:?}", e))?;
 
             let gas_cost = gas.checked_mul(gas_price).ok_or("Overflow occurred during gas cost calculation")?;
@@ -318,7 +326,7 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
 
             // Sign the transaction
             let derivation_path = vec![ic_cdk::id().as_slice().to_vec()];
-            let key_info = ic::KeyInfo { derivation_path, key_name: w3_ctx_param.env.ecdsa_key_name(), ecdsa_sign_cycles: None };
+            let key_info = KeyInfo { derivation_path, key_name: w3_ctx_param.env.ecdsa_key_name(), ecdsa_sign_cycles: None };
             let accounts = Accounts::new(transport);
             let signed_tx = accounts.sign_transaction(tx_params, from_address_str.clone(), key_info, w3_ctx_param.chain_id)
                 .await
