@@ -1,16 +1,21 @@
 ---
 source: chainsight-cdk-macros/src/web3.rs
-assertion_line: 406
 expression: formatted
-snapshot_kind: text
 ---
 #[ic_cdk::update]
 #[candid::candid_method(update)]
-#[only_controller]
+#[chainsight_cdk_macros::only_controller]
 async fn withdraw_balance(
     to_address_str: String,
     amount_str: Option<String>,
 ) -> Result<String, String> {
+    use ic_cdk::api::management_canister::http_request::{TransformContext, TransformFunc};
+    use ic_web3_rs::{
+        api::{Accounts, Eth},
+        ic::KeyInfo,
+        transports::{ic_http::CallOptionsBuilder, ICHttp},
+        types::{Address, CallRequest, TransactionParameters, U256},
+    };
     let w3_ctx_param = get_web3_ctx_param();
     let from_address_str = get_ethereum_address().await;
     let from_address = Address::from_str(&from_address_str)
@@ -21,14 +26,14 @@ async fn withdraw_balance(
         .map_err(|e| format!("Failed to create transport: {:?}", e))?;
     let eth = Eth::new(transport.clone());
     let from_address_balance = eth
-        .balance(from_address, None, CallOptions::default())
+        .balance(from_address, None, Default::default())
         .await
         .map_err(|e| format!("Failed to get balance: {:?}", e))?;
     if from_address_balance.is_zero() {
         return Err("No balance to withdraw".to_string());
     }
     let nonce = eth
-        .transaction_count(from_address, None, CallOptions::default())
+        .transaction_count(from_address, None, Default::default())
         .await
         .map_err(|e| format!("Failed to get nonce: {:?}", e))?;
     let gas = eth
@@ -40,12 +45,12 @@ async fn withdraw_balance(
                 ..Default::default()
             },
             None,
-            CallOptions::default(),
+            Default::default(),
         )
         .await
         .map_err(|e| format!("Failed to estimate gas: {:?}", e))?;
     let gas_price = eth
-        .gas_price(CallOptions::default())
+        .gas_price(Default::default())
         .await
         .map_err(|e| format!("Failed to get gas price: {:?}", e))?;
     let gas_cost = gas
@@ -77,7 +82,7 @@ async fn withdraw_balance(
     };
     ic_cdk::println!("withdraw_balance with: {:?}", tx_params);
     let derivation_path = vec![ic_cdk::id().as_slice().to_vec()];
-    let key_info = ic::KeyInfo {
+    let key_info = KeyInfo {
         derivation_path,
         key_name: w3_ctx_param.env.ecdsa_key_name(),
         ecdsa_sign_cycles: None,
