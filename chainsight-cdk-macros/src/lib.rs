@@ -148,6 +148,11 @@ pub fn define_get_ethereum_address(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn define_withdraw_balance(input: TokenStream) -> TokenStream {
+    web3::define_withdraw_balance(input)
+}
+
+#[proc_macro]
 pub fn define_logger(input: TokenStream) -> TokenStream {
     utils::define_logger(input)
 }
