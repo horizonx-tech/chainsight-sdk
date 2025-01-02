@@ -14,6 +14,6 @@ pub fn web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error>
         from,
         param.chain_id,
         param.env.ecdsa_key_name(),
+        None,
     )
 }
-
