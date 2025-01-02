@@ -261,7 +261,7 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
             let from_address = Address::from_str(&from_address_str).map_err(|e| format!("Failed to parse from_address: {:?}", e))?;
             let to_address = Address::from_str(&to_address_str).map_err(|e| format!("Failed to parse to_address: {:?}", e))?;
 
-            let transport = ICHttp::new(&w3_ctx_param.url, None).map_err(|e| format!("Failed to create transport: {:?}", e))?;
+            let transport = ICHttp::new(&w3_ctx_param.url, Some(10_000)).map_err(|e| format!("Failed to create transport: {:?}", e))?;
             let eth = Eth::new(transport.clone());
 
             let from_address_balance = eth.balance(
