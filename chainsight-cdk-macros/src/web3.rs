@@ -174,6 +174,7 @@ fn define_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStrea
                 from,
                 param.chain_id,
                 param.env.ecdsa_key_name(),
+                None,
             )
         }
     }
@@ -204,6 +205,7 @@ fn define_relayer_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::To
                 from,
                 param.chain_id,
                 param.env.ecdsa_key_name(),
+                Some(10_000),
             )
         }
     }
