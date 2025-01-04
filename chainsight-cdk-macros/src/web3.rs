@@ -1,7 +1,7 @@
 use chainsight_cdk::web3::ContractFunction;
 use ethabi::Param;
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
     LitInt, Result,
@@ -131,18 +131,28 @@ fn define_transform_for_web3_internal() -> proc_macro2::TokenStream {
     }
 }
 
+#[derive(Default)]
 struct DefineWeb3CtxArgs {
     stable_memory_id: Option<LitInt>,
+    max_resp: Option<LitInt>,
 }
 impl Parse for DefineWeb3CtxArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let stable_memory_id = if !input.is_empty() {
-            let parsed: LitInt = input.parse()?;
-            Some(parsed)
-        } else {
-            None
-        };
-        Ok(DefineWeb3CtxArgs { stable_memory_id })
+        if input.is_empty() {
+            return Ok(DefineWeb3CtxArgs::default());
+        }
+        let stable_memory_id = input.parse()?;
+        if input.parse::<syn::Token![,]>().is_err() {
+            return Ok(DefineWeb3CtxArgs {
+                stable_memory_id,
+                ..Default::default()
+            });
+        }
+        let max_resp = input.parse()?;
+        Ok(DefineWeb3CtxArgs {
+            stable_memory_id,
+            max_resp,
+        })
     }
 }
 pub fn define_web3_ctx(input: TokenStream) -> TokenStream {
@@ -160,6 +170,11 @@ fn define_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStrea
         }
     };
 
+    let max_resp = if let Some(max_resp) = input.max_resp {
+        format_ident!("Some({})", max_resp.base10_parse::<u64>().unwrap())
+    } else {
+        format_ident!("None")
+    };
     quote! {
         #storage_quote
 
@@ -174,7 +189,7 @@ fn define_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::TokenStrea
                 from,
                 param.chain_id,
                 param.env.ecdsa_key_name(),
-                None,
+                #max_resp,
             )
         }
     }
@@ -195,6 +210,12 @@ fn define_relayer_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::To
         }
     };
 
+    let max_resp = if let Some(max_resp) = input.max_resp {
+        let ident = max_resp.base10_parse::<u64>().unwrap();
+        quote! { Some(#ident) }
+    } else {
+        quote! { None }
+    };
     quote! {
         #storage_quote
         pub async fn relayer_web3_ctx() -> Result<ic_solidity_bindgen::Web3Context, ic_web3_rs::Error> {
@@ -205,8 +226,13 @@ fn define_relayer_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::To
                 from,
                 param.chain_id,
                 param.env.ecdsa_key_name(),
-                Some(10_000),
+                #max_resp,
             )
+        }
+
+        fn new_transport() -> ICHttp {
+            let w3_ctx_param = get_web3_ctx_param();
+            ICHttp::new(&w3_ctx_param.url, #max_resp).expect("Failed to create transport")
         }
     }
 }
@@ -261,7 +287,7 @@ fn define_withdraw_balance_internal() -> proc_macro2::TokenStream {
             let from_address = Address::from_str(&from_address_str).map_err(|e| format!("Failed to parse from_address: {:?}", e))?;
             let to_address = Address::from_str(&to_address_str).map_err(|e| format!("Failed to parse to_address: {:?}", e))?;
 
-            let transport = ICHttp::new(&w3_ctx_param.url, Some(10_000)).map_err(|e| format!("Failed to create transport: {:?}", e))?;
+            let transport = new_transport();
             let eth = Eth::new(transport.clone());
 
             let from_address_balance = eth.balance(
