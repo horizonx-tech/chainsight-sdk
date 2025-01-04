@@ -1,3 +1,4 @@
+use anyhow::Result;
 use async_trait::async_trait;
 use ic_cdk::api::management_canister::http_request::{
     HttpResponse, TransformArgs, TransformContext, TransformFunc,
@@ -9,10 +10,10 @@ use ic_web3_rs::{
         ic_http_client::{CallOptions, CallOptionsBuilder},
         ICHttp,
     },
-    types::U64,
+    types::{Address, U64},
     Transport, Web3,
 };
-use std::future::Future;
+use std::{future::Future, ops::Add};
 
 use serde_json::{json, Value};
 
@@ -23,17 +24,32 @@ pub trait TransactionOptionBuilder {
 }
 
 pub struct EVMTransactionOptionBuilder {
-    pub url: String,
+    pub transport: ICHttp,
     pub chain_id: u64,
     pub key_name: String,
+    pub sender_address: Option<Address>,
 }
 
 impl EVMTransactionOptionBuilder {
     pub fn new(url: String, chain_id: u64, key_name: String) -> Self {
         Self {
-            url,
+            transport: ICHttp::new(&url, None).unwrap(),
             chain_id,
             key_name,
+            sender_address: None,
+        }
+    }
+    pub fn new_with_transport_and_address(
+        transport: ICHttp,
+        chain_id: u64,
+        key_name: String,
+        sender_address: Address,
+    ) -> Self {
+        Self {
+            transport,
+            chain_id,
+            key_name,
+            sender_address: Some(sender_address),
         }
     }
 
@@ -57,7 +73,6 @@ impl EVMTransactionOptionBuilder {
     }
     async fn supports_eip1559(&self) -> anyhow::Result<bool> {
         let processor = EIP1559SupportProcessor;
-        let http = ICHttp::new(&self.url, None)?;
         let include_txs = self.serialize(&false)?;
         let block_num = self.serialize(&ic_web3_rs::types::BlockNumber::Latest)?;
         let call_options = CallOptionsBuilder::default()
@@ -65,7 +80,8 @@ impl EVMTransactionOptionBuilder {
             .cycles(None)
             .transform(Some(processor.context()))
             .build()?;
-        let execution = http
+        let execution = self
+            .transport
             .execute(
                 "eth_getBlockByNumber",
                 vec![block_num, include_txs],
@@ -85,9 +101,23 @@ impl EVMTransactionOptionBuilder {
     }
 
     fn eth(&self) -> Eth<ICHttp> {
-        let http = ICHttp::new(&self.url, None).unwrap();
-        let web3 = Web3::new(http);
+        let web3 = Web3::new(self.transport.clone());
         web3.eth()
+    }
+
+    async fn get_ethereum_address(&self) -> anyhow::Result<Address> {
+        if let Some(address) = self.sender_address {
+            return Ok(address);
+        }
+        let public_key = ic_web3_rs::ic::get_public_key(
+            None,
+            vec![ic_cdk::id().as_slice().to_vec()],
+            self.key_name.clone(),
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to get public key: {}", e))?;
+        ic_web3_rs::ic::pubkey_to_address(&public_key)
+            .map_err(|e| anyhow::anyhow!("Failed to pubkey to address: {}", e))
     }
 }
 
@@ -101,14 +131,7 @@ impl TransactionOptionBuilder for EVMTransactionOptionBuilder {
         let gas_price = self
             .with_retry(|| self.eth().gas_price(CallOptions::default()))
             .await?;
-        let public_key = ic_web3_rs::ic::get_public_key(
-            None,
-            vec![ic_cdk::id().as_slice().to_vec()],
-            self.key_name.clone(),
-        )
-        .await
-        .unwrap();
-        let ethereum_address = ic_web3_rs::ic::pubkey_to_address(&public_key).unwrap();
+        let ethereum_address = self.get_ethereum_address().await?;
         let nonce = self
             .with_retry(|| {
                 self.eth()
