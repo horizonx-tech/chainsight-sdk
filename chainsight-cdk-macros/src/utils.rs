@@ -21,7 +21,7 @@ fn chainsight_common_internal() -> proc_macro2::TokenStream {
 struct DefineLoggerArgs {
     retention_days: Option<u8>,
     cleanup_interval_days: Option<u8>,
-    disable_post_upgrade: bool,
+    disable_init_post_upgrade: bool,
 }
 impl Parse for DefineLoggerArgs {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -45,11 +45,13 @@ impl Parse for DefineLoggerArgs {
                 ..Default::default()
             });
         }
-        let disable_post_upgrade: Option<LitBool> = input.parse()?;
+        let disable_init_post_upgrade: Option<LitBool> = input.parse()?;
         Ok(DefineLoggerArgs {
             retention_days,
             cleanup_interval_days,
-            disable_post_upgrade: disable_post_upgrade.map(|x| x.value).unwrap_or_default(),
+            disable_init_post_upgrade: disable_init_post_upgrade
+                .map(|x| x.value)
+                .unwrap_or_default(),
         })
     }
 }
@@ -77,11 +79,6 @@ fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
             _logger().drain(rows)
         }
 
-        #[ic_cdk::init]
-        fn init_logger() {
-            schedule_cleanup();
-        }
-
         fn schedule_cleanup() {
             ic_cdk_timers::set_timer_interval(std::time::Duration::from_secs(#cleanup_interval), || {
                 ic_cdk::spawn(async {
@@ -91,25 +88,29 @@ fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
             _logger().info(format!("cleanup sheduled: interval = {} sec. retention days = {}", #cleanup_interval, #retention_days).as_str());
         }
 
+        fn _init_logger() {
+            schedule_cleanup();
+        }
+        fn _post_upgrade_logger() {
+            schedule_cleanup();
+        }
         fn _logger() -> LoggerImpl {
             LoggerImpl::new(Some("Logger"))
         }
     };
-    if args.disable_post_upgrade {
-        quote! {
-            #code
-
-            fn post_upgrade_logger() {
-                schedule_cleanup();
-            }
-        }
+    if args.disable_init_post_upgrade {
+        code
     } else {
         quote! {
             #code
 
+            #[ic_cdk::init]
+            fn init() {
+                _init_logger();
+            }
             #[ic_cdk::post_upgrade]
-            fn post_upgrade_logger() {
-                schedule_cleanup();
+            fn post_upgrade() {
+                _post_upgrade_logger();
             }
         }
     }
