@@ -2,11 +2,11 @@
 source: chainsight-cdk-macros/src/utils.rs
 expression: formatted
 ---
-use chainsight_cdk::log::{Logger, LoggerImpl};
+use chainsight_cdk::log::{Logger, LoggerImpl, TailCursor, TailResponse};
 #[candid::candid_method(query)]
 #[ic_cdk::query]
-fn tail_logs(rows: usize) -> Vec<String> {
-    _logger().tail(rows)
+fn tail_logs(rows: usize, cursor: Option<TailCursor>) -> TailResponse {
+    _logger().tail(rows, cursor)
 }
 #[candid::candid_method(update)]
 #[ic_cdk::update]

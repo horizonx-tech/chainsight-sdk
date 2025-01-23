@@ -64,12 +64,12 @@ fn define_logger_internal(args: DefineLoggerArgs) -> proc_macro2::TokenStream {
     let retention_days = args.retention_days.unwrap_or(7);
     let cleanup_interval = args.cleanup_interval_days.unwrap_or(1) as u64 * 86400;
     let code = quote! {
-        use chainsight_cdk::log::{Logger, LoggerImpl};
+        use chainsight_cdk::log::{Logger, LoggerImpl, TailResponse, TailCursor};
 
         #[candid::candid_method(query)]
         #[ic_cdk::query]
-        fn tail_logs(rows: usize) -> Vec<String> {
-            _logger().tail(rows)
+        fn tail_logs(rows: usize, cursor: Option<TailCursor>) -> TailResponse {
+            _logger().tail(rows, cursor)
         }
 
         #[candid::candid_method(update)]
