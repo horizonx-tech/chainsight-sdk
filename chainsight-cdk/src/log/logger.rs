@@ -1,9 +1,10 @@
 use super::types::{LogLevel, Logger};
 use anyhow::Error;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::{max, min},
     collections::HashMap,
+    u64,
 };
 
 const DAY_IN_NANOS: u64 = 86400 * 1_000_000_000;
@@ -21,35 +22,50 @@ pub struct LoggerImpl {
 pub struct TailResponse {
     pub logs: Vec<String>,
     pub range: TailRange,
-    pub next: Option<TailCursor>,
+    pub next_from: Option<TailCursor>,
 }
 
-#[derive(Debug, Default, Serialize, candid::CandidType, candid::Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, candid::CandidType, Deserialize, Clone)]
 pub struct TailRange {
     from: Option<TailCursor>,
     to: Option<TailCursor>,
 }
-#[derive(Debug, Serialize, candid::CandidType, candid::Deserialize, Clone, Eq, PartialEq)]
-pub struct TailCursor(pub u64, pub usize);
+#[cfg(test)]
+impl TailRange {
+    fn new(from: Option<TailCursor>, to: Option<TailCursor>) -> Self {
+        Self { from, to }
+    }
+}
+
+#[derive(Debug, Serialize, candid::CandidType, Deserialize, Clone, Eq, PartialEq)]
+pub struct TailCursor {
+    pub key: u64,
+    pub idx: usize,
+}
 
 impl TailCursor {
-    fn update(&mut self, key: u64, index: usize) {
-        *self = Self(key, index);
+    fn new(key: u64, idx: usize) -> Self {
+        Self { key, idx }
     }
     fn older_than(&self, cursor: &TailCursor) -> bool {
-        self.0 < cursor.0 || (self.0 == cursor.0 && self.1 < cursor.1)
+        self.key < cursor.key || (self.key == cursor.key && self.idx < cursor.idx)
     }
     fn older_than_or_eq(&self, cursor: &TailCursor) -> bool {
         self.older_than(cursor) || self == cursor
     }
-    fn next(&self, oldest_key: u64, to: &Option<TailCursor>) -> Option<TailCursor> {
-        if to.as_ref().is_some_and(|to| self.older_than_or_eq(to)) {
-            return None;
+
+    const MIN: TailCursor = TailCursor { key: 0, idx: 0 };
+    const MAX: TailCursor = TailCursor {
+        key: u64::MAX,
+        idx: usize::MAX,
+    };
+}
+impl From<u64> for TailCursor {
+    fn from(key: u64) -> Self {
+        Self {
+            key,
+            idx: usize::MAX,
         }
-        if self.0 <= oldest_key && self.1 == 0 {
-            return None;
-        }
-        Some(Self(self.0, self.1))
     }
 }
 
@@ -93,60 +109,53 @@ impl LoggerImpl {
     }
 
     pub fn tail(&self, rows: usize, option: Option<TailRange>) -> TailResponse {
-        let keys = Self::keys();
-        if keys.is_empty() {
-            return TailResponse::default();
-        }
+        let range = option.unwrap_or_default();
+        let to = range.to.clone().unwrap_or(TailCursor::MIN);
+        let from = range
+            .from
+            .as_ref()
+            .map(|f| TailCursor::new(f.key, f.idx + 1))
+            .unwrap_or(TailCursor::MAX);
 
         let mut res = Vec::new();
-        let range = option.unwrap_or_default();
-        let to = range.to.clone().unwrap_or(TailCursor(0, 0));
-        let mut range_from = None;
-        let mut cursor = range
-            .from
-            .unwrap_or(TailCursor(*keys.last().unwrap_or(&u64::MAX), usize::MAX));
+        let mut tailed: TailRange = TailRange::default();
         LOGS.with_borrow(|logs| {
-            for key in keys.iter().rev() {
-                if cursor.older_than(&to) || res.len() >= rows {
+            for key in Self::keys()
+                .iter()
+                .filter(|k| from.key >= **k && **k >= to.key)
+                .rev()
+            {
+                if res.len() >= rows || tailed.to.as_ref().is_some_and(|t| t.older_than(&to)) {
                     break;
-                }
-                if key > &cursor.0 {
-                    continue;
                 }
                 let logs = logs.get(key).unwrap();
 
-                let tail_to = if cursor.0 > *key {
-                    logs.len()
+                let idx_to = if from.key == *key {
+                    min(from.idx, logs.len())
                 } else {
-                    min(cursor.1, logs.len())
+                    logs.len()
                 };
 
-                let mut tail_from = tail_to.saturating_sub(rows - res.len());
-                if key == &to.0 {
-                    if tail_to <= to.1 {
-                        tail_from = tail_to;
-                    } else {
-                        tail_from = max(tail_from, to.1);
-                    }
-                }
+                let idx_from = if key == &to.key {
+                    max(idx_to.saturating_sub(rows - res.len()), min(idx_to, to.idx))
+                } else {
+                    idx_to.saturating_sub(rows - res.len())
+                };
 
-                let mut logs = logs[tail_from..tail_to].to_vec();
+                let mut logs = logs[idx_from..idx_to].to_vec();
                 logs.extend(res.clone());
                 res = logs;
 
-                if range_from.is_none() {
-                    range_from = Some(TailCursor(*key, tail_to));
+                if tailed.from.is_none() {
+                    tailed.from = Some(TailCursor::new(*key, idx_to - 1));
                 }
-                cursor.update(*key, tail_from);
+                tailed.to = Some(TailCursor::new(*key, idx_from));
             }
         });
         TailResponse {
             logs: res,
-            next: cursor.next(*keys.first().unwrap_or(&u64::MAX), &range.to),
-            range: TailRange {
-                from: range_from,
-                to: Some(cursor),
-            },
+            next_from: self.next(&tailed.to, &range.to),
+            range: tailed,
         }
     }
 
@@ -154,6 +163,31 @@ impl LoggerImpl {
         let until = (ic_cdk::api::time() / DAY_IN_NANOS - retention_days as u64) * DAY_IN_NANOS;
         self._sweep(until);
         self.info(format!("Sweeped logs before {}.", Self::format_timestamp(until)).as_str());
+    }
+
+    fn next(&self, cursor: &Option<TailCursor>, to: &Option<TailCursor>) -> Option<TailCursor> {
+        if cursor.is_none() {
+            return None;
+        }
+        let cursor = cursor.as_ref().unwrap();
+        if to.as_ref().is_some_and(|t| cursor.older_than_or_eq(t)) {
+            return None;
+        }
+        if cursor.idx > 0 {
+            return Some(TailCursor::new(cursor.key, cursor.idx - 1));
+        }
+
+        let key = Self::keys().into_iter().find(|k| cursor.key > *k);
+        if key.is_none() {
+            return None;
+        };
+        let key = key.unwrap();
+        LOGS.with_borrow(|logs| {
+            if let Some(logs) = logs.get(&key) {
+                return Some(TailCursor::new(key, logs.len().saturating_sub(1)));
+            };
+            None
+        })
     }
 
     fn _drain(&self, rows: usize) -> Vec<String> {
@@ -358,9 +392,9 @@ mod test {
             res.logs[5],
             "[1970-01-02 00:00:00.000000000 UTC]: [INFO] test"
         );
-        assert_eq!(res.next, None);
-        assert_eq!(res.range.from, Some(TailCursor(1, 1)));
-        assert_eq!(res.range.to, Some(TailCursor(0, 0)));
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, Some(TailCursor::new(1, 0)));
+        assert_eq!(res.range.to, Some(TailCursor::new(0, 0)));
     }
 
     #[test]
@@ -380,29 +414,19 @@ mod test {
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-02 00:00:00.000000001 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next.clone().unwrap(), TailCursor(1, 1));
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: res.next,
-                to: None,
-            }),
-        );
+        assert_eq!(res.next_from.clone().unwrap(), TailCursor::new(1, 0));
+
+        let res = logger.tail(3, Some(TailRange::new(res.next_from, None)));
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000004 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000000 UTC]: [INFO] t");
-        assert_eq!(res.next.clone().unwrap(), TailCursor(0, 3));
-        let res = logger.tail(
-            4,
-            Some(TailRange {
-                from: res.next,
-                to: None,
-            }),
-        );
+        assert_eq!(res.next_from.clone().unwrap(), TailCursor::new(0, 2));
+
+        let res = logger.tail(4, Some(TailRange::new(res.next_from, None)));
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000001 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-01 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
     }
 
     #[test]
@@ -422,31 +446,21 @@ mod test {
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-02 00:00:00.000000001 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next.clone().unwrap(), TailCursor(1, 1));
+        assert_eq!(res.next_from.clone().unwrap(), TailCursor::new(1, 0));
+
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS + 4);
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: res.next,
-                to: None,
-            }),
-        );
+        let res = logger.tail(3, Some(TailRange::new(res.next_from, None)));
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000004 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000000 UTC]: [INFO] t");
-        assert_eq!(res.next.clone().unwrap(), TailCursor(0, 3));
-        let res = logger.tail(
-            4,
-            Some(TailRange {
-                from: res.next,
-                to: None,
-            }),
-        );
+        assert_eq!(res.next_from.clone().unwrap(), TailCursor::new(0, 2));
+
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS * 2);
+        let res = logger.tail(4, Some(TailRange::new(res.next_from, None)));
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000001 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-01 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
     }
 
     #[test]
@@ -462,41 +476,29 @@ mod test {
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS + 2);
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS + 3);
 
-        let to = TailCursor(0, 2);
+        let to = TailCursor::new(0, 2);
         let res = logger.tail(3, None);
         assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-02 00:00:00.000000001 UTC]: [INFO] t");
         assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next.clone(), Some(TailCursor(1, 1)));
-        assert_eq!(res.range.from, Some(TailCursor(1, 4)));
-        assert_eq!(res.range.to, Some(TailCursor(1, 1)));
+        assert_eq!(res.next_from.clone(), Some(TailCursor::new(1, 0)));
+        assert_eq!(res.range.from, Some(TailCursor::new(1, 3)));
+        assert_eq!(res.range.to, Some(TailCursor::new(1, 1)));
 
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: res.next,
-                to: Some(to.clone()),
-            }),
-        );
-        assert_eq!(res.logs.len(), 3);
-        assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000004 UTC]: [INFO] t");
-        assert_eq!(res.logs[2], "[1970-01-02 00:00:00.000000000 UTC]: [INFO] t");
-        assert_eq!(res.next.clone(), Some(TailCursor(0, 3)));
-        assert_eq!(res.range.from, Some(TailCursor(1, 1)));
-        assert_eq!(res.range.to, Some(TailCursor(0, 3)));
-
-        let res = logger.tail(
-            4,
-            Some(TailRange {
-                from: res.next,
-                to: Some(to.clone()),
-            }),
-        );
+        let res = logger.tail(1, Some(TailRange::new(res.next_from, Some(to.clone()))));
         assert_eq!(res.logs.len(), 1);
+        assert_eq!(res.logs[0], "[1970-01-02 00:00:00.000000000 UTC]: [INFO] t");
+        assert_eq!(res.next_from.clone(), Some(TailCursor::new(0, 4)));
+        assert_eq!(res.range.from, Some(TailCursor::new(1, 0)));
+        assert_eq!(res.range.to, Some(TailCursor::new(1, 0)));
+
+        let res = logger.tail(4, Some(TailRange::new(res.next_from, Some(to.clone()))));
+        assert_eq!(res.logs.len(), 3);
         assert_eq!(res.logs[0], "[1970-01-01 00:00:00.000000003 UTC]: [INFO] t");
-        assert_eq!(res.next, None);
-        assert_eq!(res.range.from, Some(TailCursor(0, 3)));
-        assert_eq!(res.range.to, Some(TailCursor(0, 2)));
+        assert_eq!(res.logs[2], "[1970-01-01 00:00:00.000000005 UTC]: [INFO] t");
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, Some(TailCursor::new(0, 4)));
+        assert_eq!(res.range.to, Some(TailCursor::new(0, 2)));
     }
 
     #[test]
@@ -505,29 +507,17 @@ mod test {
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS);
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS * 2);
 
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: Some(TailCursor(2, 2)),
-                to: None,
-            }),
-        );
+        let res = logger.tail(3, Some(TailRange::new(Some(TailCursor::new(2, 2)), None)));
         assert_eq!(res.logs.len(), 2);
-        assert_eq!(res.next, None);
-        assert_eq!(res.range.from, Some(TailCursor(2, 1)));
-        assert_eq!(res.range.to, Some(TailCursor(1, 0)));
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, Some(TailCursor::new(2, 0)));
+        assert_eq!(res.range.to, Some(TailCursor::new(1, 0)));
 
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: Some(TailCursor(3, 0)),
-                to: None,
-            }),
-        );
+        let res = logger.tail(3, Some(TailRange::new(Some(TailCursor::new(3, 0)), None)));
         assert_eq!(res.logs.len(), 2);
-        assert_eq!(res.next, None);
-        assert_eq!(res.range.from, Some(TailCursor(2, 1)));
-        assert_eq!(res.range.to, Some(TailCursor(1, 0)));
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, Some(TailCursor::new(2, 0)));
+        assert_eq!(res.range.to, Some(TailCursor::new(1, 0)));
     }
 
     #[test]
@@ -536,41 +526,46 @@ mod test {
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS);
         logger.log(&LogLevel::Info, "t", DAY_IN_NANOS * 2);
 
-        let to = TailCursor(3, 10);
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: None,
-                to: Some(to),
-            }),
-        );
+        let to: TailCursor = TailCursor::new(3, 10);
+        let res = logger.tail(3, Some(TailRange::new(None, Some(to))));
         assert_eq!(res.logs.len(), 0);
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
 
-        let to = TailCursor(1, 10);
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: None,
-                to: Some(to),
-            }),
-        );
+        let to = TailCursor::new(1, 10);
+        let res = logger.tail(3, Some(TailRange::new(None, Some(to))));
         assert_eq!(res.logs.len(), 1);
         assert_eq!(res.logs[0], "[1970-01-03 00:00:00.000000000 UTC]: [INFO] t");
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
 
-        let to = TailCursor(0, 0);
-        let res = logger.tail(
-            3,
-            Some(TailRange {
-                from: None,
-                to: Some(to),
-            }),
-        );
+        let to = TailCursor::new(0, 0);
+        let res = logger.tail(3, Some(TailRange::new(None, Some(to))));
         assert_eq!(res.logs.len(), 2);
         assert_eq!(res.logs[0], "[1970-01-02 00:00:00.000000000 UTC]: [INFO] t");
         assert_eq!(res.logs[1], "[1970-01-03 00:00:00.000000000 UTC]: [INFO] t");
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
+    }
+
+    #[test]
+    fn test_tail_invalid_range() {
+        let logger = LoggerImpl::default();
+        logger.log(&LogLevel::Info, "t", DAY_IN_NANOS);
+        logger.log(&LogLevel::Info, "t", DAY_IN_NANOS * 2);
+
+        let from = Some(TailCursor::new(4, 9));
+        let to = Some(TailCursor::new(4, 10));
+        let res = logger.tail(3, Some(TailRange::new(from, to)));
+        assert_eq!(res.logs.len(), 0);
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, None);
+        assert_eq!(res.range.to, None);
+
+        let from = Some(TailCursor::new(4, 10));
+        let to = Some(TailCursor::new(4, 10));
+        let res = logger.tail(3, Some(TailRange::new(from, to)));
+        assert_eq!(res.logs.len(), 0);
+        assert_eq!(res.next_from, None);
+        assert_eq!(res.range.from, None);
+        assert_eq!(res.range.to, None);
     }
 
     #[test]
@@ -578,7 +573,7 @@ mod test {
         let logger = LoggerImpl::default();
         let res = logger.tail(1, None);
         assert_eq!(res.logs.len(), 0);
-        assert_eq!(res.next, None);
+        assert_eq!(res.next_from, None);
         assert_eq!(res.range.from, None);
         assert_eq!(res.range.to, None);
     }
