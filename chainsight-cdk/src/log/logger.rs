@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::{max, min},
     collections::HashMap,
-    u64,
 };
 
 const DAY_IN_NANOS: u64 = 86400 * 1_000_000_000;
@@ -177,11 +176,7 @@ impl LoggerImpl {
             return Some(TailCursor::new(cursor.key, cursor.idx - 1));
         }
 
-        let key = Self::keys().into_iter().find(|k| cursor.key > *k);
-        if key.is_none() {
-            return None;
-        };
-        let key = key.unwrap();
+        let key = Self::keys().into_iter().find(|k| cursor.key > *k)?;
         LOGS.with_borrow(|logs| {
             if let Some(logs) = logs.get(&key) {
                 return Some(TailCursor::new(key, logs.len().saturating_sub(1)));
