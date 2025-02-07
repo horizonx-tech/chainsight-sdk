@@ -230,9 +230,9 @@ fn define_relayer_web3_ctx_internal(input: DefineWeb3CtxArgs) -> proc_macro2::To
             )
         }
 
-        fn new_transport() -> ICHttp {
+        fn new_transport() -> ic_web3_rs::transports::ICHttp {
             let w3_ctx_param = get_web3_ctx_param();
-            ICHttp::new(&w3_ctx_param.url, #max_resp).expect("Failed to create transport")
+            ic_web3_rs::transports::ICHttp::new(&w3_ctx_param.url, #max_resp).expect("Failed to create transport")
         }
     }
 }
