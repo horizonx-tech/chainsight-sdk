@@ -12,7 +12,7 @@ thread_local! {
     static LOGS: std::cell::RefCell<HashMap<u64,Vec<String>>> = std::cell::RefCell::new(HashMap::new());
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct LoggerImpl {
     ctx: String,
 }
