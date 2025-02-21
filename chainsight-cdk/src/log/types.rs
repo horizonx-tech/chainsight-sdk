@@ -1,7 +1,7 @@
 use anyhow::Error;
 use std::fmt::Display;
 
-pub trait Logger {
+pub trait Logger: Clone {
     fn info(&self, s: &str);
     fn err(&self, e: &Error);
     fn err_with_msg(&self, e: &Error, msg: &str);
